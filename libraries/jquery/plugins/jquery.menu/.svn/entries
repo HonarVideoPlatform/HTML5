@@ -2,7 +2,7 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6/libraries/jquery/plugins/jquery.menu
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6d/libraries/jquery/plugins/jquery.menu
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
@@ -32,7 +32,7 @@ file
 
 
 
-2017-07-03T22:39:16.000000Z
+2017-07-03T22:50:51.000000Z
 3fbc4c55d1be935f7ea345eb5f45530e
 2012-03-18T17:15:19.535554Z
 7349
@@ -66,7 +66,7 @@ file
 
 
 
-2017-07-03T22:39:16.000000Z
+2017-07-03T22:50:51.000000Z
 6a43421db45b972a621f7b4c50a3da11
 2012-03-18T17:15:19.535554Z
 7349

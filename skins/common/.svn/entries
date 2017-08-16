@@ -2,7 +2,7 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6/skins/common
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6d/skins/common
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
@@ -32,7 +32,7 @@ file
 
 
 
-2017-07-03T22:38:20.000000Z
+2017-07-03T22:50:22.000000Z
 4e8e0cb7443dc38fde5e4a8d17cbba96
 2012-03-18T17:15:19.535554Z
 7349

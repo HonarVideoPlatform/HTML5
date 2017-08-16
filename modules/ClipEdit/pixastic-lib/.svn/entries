@@ -2,7 +2,7 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6/modules/ClipEdit/pixastic-lib
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6d/modules/ClipEdit/pixastic-lib
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
@@ -35,7 +35,7 @@ file
 
 
 
-2017-07-03T22:38:28.000000Z
+2017-07-03T22:50:32.000000Z
 5155f328eb4fa98f42c538493f5ee7e3
 2012-03-18T17:15:19.535554Z
 7349
@@ -72,7 +72,7 @@ file
 
 
 
-2017-07-03T22:38:28.000000Z
+2017-07-03T22:50:32.000000Z
 97612c297a27263c84127d7b107c1f07
 2012-03-18T17:15:19.535554Z
 7349
