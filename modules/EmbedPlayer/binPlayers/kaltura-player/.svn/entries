@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6g/modules/MiroSubs/mirosubs/media/images/prettyPhoto/dark_square
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.18/modules/EmbedPlayer/binPlayers/kaltura-player
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-18T17:15:19.535554Z
-7349
+2011-11-08T14:30:29.736476Z
+6825
 rany
 
 
@@ -26,16 +26,16 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-btnPrevious.png
+kdp3.swf
 file
 
 
 
 
-2017-07-03T22:59:38.000000Z
-9ad8565740908ecab23ff67990e590cc
-2012-03-18T17:15:19.535554Z
-7349
+2017-07-03T19:06:45.000000Z
+2a80d4894a3729794a54dc36bddb16ad
+2011-11-08T14:30:29.736476Z
+6825
 rany
 has-props
 
@@ -58,18 +58,18 @@ has-props
 
 
 
-1442
+256262
 
-btnNext.png
+LightDoodleskin.swf
 file
 
 
 
 
-2017-07-03T22:59:38.000000Z
-0a89018b6e4a1492623ca2b608b606ff
-2012-03-18T17:15:19.535554Z
-7349
+2017-07-03T19:06:45.000000Z
+68613ccf104d092a8995cd6b108b1eae
+2011-11-08T14:30:29.736476Z
+6825
 rany
 has-props
 
@@ -92,18 +92,18 @@ has-props
 
 
 
-1411
+190545
 
-sprite.png
+skin.swf
 file
 
 
 
 
-2017-07-03T22:59:38.000000Z
-50d50dc301facac07c414041a2d11389
-2012-03-18T17:15:19.535554Z
-7349
+2017-07-03T19:06:45.000000Z
+e6aca24bce6631c9c377afcb180e3a8b
+2011-11-08T14:30:29.736476Z
+6825
 rany
 has-props
 
@@ -126,20 +126,19 @@ has-props
 
 
 
-3303
+67435
 
-loader.gif
+config.xml
 file
 
 
 
 
-2017-07-03T22:59:38.000000Z
-4297900ae2d9d0c4eb00d1c15462fb19
-2012-03-18T17:15:19.535554Z
-7349
+2017-07-03T19:06:45.000000Z
+1b0eeceefe708146b88db5fb211082ea
+2011-11-08T14:30:29.736476Z
+6825
 rany
-has-props
 
 
 
@@ -160,18 +159,53 @@ has-props
 
 
 
-2545
+
+353
 
-contentPattern.png
+README
 file
 
 
 
 
-2017-07-03T22:59:38.000000Z
-6660e3acf8523be8de932abe1e075370
-2012-03-18T17:15:19.535554Z
-7349
+2017-07-03T19:06:45.000000Z
+44e3096892c7d491c1f5bc8b2c3f6f49
+2011-11-08T14:30:29.736476Z
+6825
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+632
+
+expressInstall.swf
+file
+
+
+
+
+2017-07-03T19:06:45.000000Z
+7b65fbfaec8b2955090389af60646e8b
+2011-11-08T14:30:29.736476Z
+6825
 rany
 has-props
 
@@ -194,5 +228,5 @@ has-props
 
 
 
-121
+727
 

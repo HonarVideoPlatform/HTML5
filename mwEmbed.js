@@ -890,8 +890,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 
 			// Set the loadDone callback per the provided resourceName
 			mw.setLoadDoneCB( resourceName, callback );
-			// Issue the request to load the resource (include resource name in
-			// result callback:
+			// Issue the request to load the resource (include resource name in result callback:
 			mw.getScript( scriptRequest, function( scriptRequest ) {
 				// If its a "style sheet" manually set its resource to true
 				var ext = scriptRequest.substr( scriptRequest.split('?')[0].lastIndexOf( '.' ), 4 ).toLowerCase();
@@ -1210,6 +1209,9 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	mw.isIOS = function(){
 		return ( mw.isIphone() || mw.isIpod() || mw.isIpad() );
 	},
+	mw.isIE9 = function(){
+		return (/msie 9/.test(navigator.userAgent.toLowerCase()));
+	}
 	mw.isIphone = function(){
 		return ( navigator.userAgent.indexOf('iPhone') != -1 && ! mw.isIpad() );
 	};
@@ -2166,7 +2168,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 */
 	// Flag to ensure setup is only run once:
 	var mwSetupFlag = false;
-	mw.setupMwEmbed = function ( ) {	
+	mw.setupMwEmbed = function ( ) {
 		// Only run the setup once:
 		if( mwSetupFlag ) {
 			return ;
@@ -2267,6 +2269,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		for( var i =0 ; i < loadSet.length; i ++ ){
 			resource = loadSet[i];
 			if( resource.type == 'js' ){
+				// For some reason safair loses context:
 				$j.getScript( resource.src, checkLoadDone);
 			} else if ( resource.type == 'css' ){
 				mw.getStyleSheet( resource.src, checkLoadDone);
@@ -2549,11 +2552,6 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		return true;
 	};
 
-	/**
-	 * Utility jQuery bindings Setup after jQuery is available ).
-	 */
-	
-
 } )( window.mw );
 
 
@@ -2773,11 +2771,9 @@ if( window.jQuery ){
 				callback( callbackData );
 			}
 		};
-		if( triggerParam ){
-			$( this ).trigger( triggerName, [ triggerParam, doCallbackCheck ]);
-		} else {
-			$( this ).trigger( triggerName, [ doCallbackCheck ] );
-		}
+		var tirggerArgs = ( triggerParam )? [ triggerParam, doCallbackCheck ] : [ doCallbackCheck ];
+		$( this ).trigger( triggerName, tirggerArgs);
+		
 	};
 	
 	/**
@@ -2789,17 +2785,16 @@ if( window.jQuery ){
 		// some defaults 
 		if(!opts)
 			opts = {};
-		opts = $.extend( {'color' : '#eee', 'shadow': true }, opts)
+		opts = $.extend( {'color' : '#eee', 'shadow': true }, opts);
 		this.each(function() {
-			var $this = $(this).empty(),
-			data = $this.data();
-		
-			if (data.spinner) {
-				data.spinner.stop();
-				delete data.spinner;
+			var $this = $(this).empty();
+			var thisSpinner = $this.data('spinner');
+			if (thisSpinner) {
+				thisSpinner.stop();
+				delete thisSpinner;
 			}
 			if (opts !== false) {
-				data.spinner = new Spinner($.extend({color: $this.css('color')}, opts)).spin(this);
+				thisSpinner = new Spinner($.extend({color: $this.css('color')}, opts)).spin(this);
 			}
 		});
 		// correct the position: 
@@ -2994,8 +2989,14 @@ if( window.jQuery ){
   /**
    * Insert a new stylesheet to hold the @keyframe or VML rules.
    */
-  ins(document.getElementsByTagName('head')[0], createEl('style'));
-  var sheet = document.styleSheets[document.styleSheets.length-1];
+  //ins(document.getElementsByTagName('head')[0], createEl('style'));
+  //var sheet = document.styleSheets[document.styleSheets.length-1];
+  var sheet = (function() {
+    ins(document.getElementsByTagName('head')[0], createEl('style', {title: 'spinjs'}));
+    for (var i=0, sheets=document.styleSheets; i < sheets.length; i++) {
+      if (sheets[i].title == 'spinjs') return sheets[i];
+    }
+  })();
 
   /**
    * Creates an opacity keyframe animation rule and returns its name.

@@ -368,6 +368,10 @@ mw.PlayerControlBuilder.prototype = {
 				this.doFullScreenPlayerDom();
 			}
 		}
+		// Pass on touch move event to parent
+		$( document ).bind( 'touchend.fullscreen', function(e){
+			$( embedPlayer ).trigger( 'onTouchEnd' );
+		});
 		if( triggerOnOpenFullScreen )
 			$( embedPlayer ).trigger( 'onOpenFullScreen' );
 	},
@@ -633,8 +637,10 @@ mw.PlayerControlBuilder.prototype = {
 		if( !mw.getConfig('EmbedPlayer.IsIframeServer' ) ){
 			this.restoreWindowPlayerDom();
 		} 
+		// Restore scrolling on iPad
+		$( document ).unbind('touchmove.fullscreen');
 		// Trigger the onCloseFullscreen event: 
-		$( this.embedPlayer ).trigger( 'onCloseFullScreen' );
+		$( embedPlayer ).trigger( 'onCloseFullScreen' );
 	},
 	restoreWindowPlayerDom:function(){
 		var _this = this;
@@ -804,21 +810,26 @@ mw.PlayerControlBuilder.prototype = {
 				// ( once the user touched the video "don't hide" )
 			} );
 
-			// Add a special absolute overlay for hover ( to keep menu displayed
+			var hoverIntentConfig = {
+					'sensitivity': 100,
+					'timeout' : 1000,
+					'over' : function(){
+						// Show controls with a set timeout ( avoid fade in fade out on short mouse over )
+						_this.showControlBar();
+						bindSpaceUp();
+					},
+					'out' : function(){
+						_this.hideControlBar();
+						bindSpaceDown();
+					}
+				};
 			
-			$interface.hoverIntent({
-				'sensitivity': 100,
-				'timeout' : 1000,
-				'over' : function(){
-					// Show controls with a set timeout ( avoid fade in fade out on short mouse over )
-					_this.showControlBar();
-					bindSpaceUp();
-				},
-				'out' : function(){
-					_this.hideControlBar();
-					bindSpaceDown();
-				}
-			});
+			// Check if we should display the interface: 
+			$interface.hoverIntent( hoverIntentConfig )
+			// special check for IE9 ( does not count hover on non-visiable inerface div
+			if( mw.isIE9() ){
+				$( embedPlayer.getPlayerElement() ).hoverIntent( hoverIntentConfig );
+			};
 			
 		}
 
@@ -1193,6 +1204,10 @@ mw.PlayerControlBuilder.prototype = {
 		//mw.log( "controlBuilder:: onSeek" );
 		// Update the interface:
 		this.setStatus( gM( 'mwe-embedplayer-seeking' ) );
+		// add a loading spinner: 
+		this.embedPlayer.addPlayerSpinner();
+		// hide once playing again:
+		this.embedPlayer.hideSpinnerOncePlaying();
 	},
 
 	/**
@@ -1882,6 +1897,8 @@ mw.PlayerControlBuilder.prototype = {
 					)
 						||
 					  mw.getConfig( "EmbedPlayer.NewWindowFullscreen" ) 
+					  	||
+					( mw.getConfig('EmbedPlayer.IsIframeServer')  && mw.getConfig('EmbedPlayer.EnableIframeApi') === false )
 				){
 					// Get the iframe url: 
 					var url = ctrlObj.embedPlayer.getIframeSourceUrl();
@@ -2052,8 +2069,11 @@ mw.PlayerControlBuilder.prototype = {
 								var perc = ui.value / 1000;
 								// set seek time (in case we have to do a url seek)
 								embedPlayer.seek_time_sec = mw.npt2seconds( embedPlayer.jump_time, true );
-								mw.log( 'do jump to: ' + embedPlayer.jump_time + ' perc:' + perc + ' sts:' + embedPlayer.seek_time_sec );
+								mw.log( 'PlayerControlBuilder:: seek to: ' + embedPlayer.jump_time + ' perc:' + perc + ' sts:' + embedPlayer.seek_time_sec );
 								ctrlObj.setStatus( gM( 'mwe-embedplayer-seeking' ) );
+								if( embedPlayer.isStopped() ){
+									embedPlayer.play();
+								}
 								embedPlayer.doSeek( perc );
 							}
 						}

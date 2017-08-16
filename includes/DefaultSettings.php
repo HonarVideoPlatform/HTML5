@@ -1,5 +1,5 @@
 <?php 
-/**
+/** 
  * This file stores default settings for Kaltura html5 client library "mwEmbed".
  * 
  *  DO NOT MODIFY THIS FILE. Instead modify LocalSettings.php in the parent mwEmbd directory. 
@@ -19,7 +19,7 @@ $wgMwEmbedPathUrl = str_replace(
 );
 
 // The version of the library ( should match the mwEmbedLoader KALTURA_LOADER_VERSION )
-$wgMwEmbedVersion = '1.5.13';
+$wgMwEmbedVersion = '1.5.17';
 
 // Url to the resource loader php script: 
 $wgResourceLoaderUrl = $wgMwEmbedPathUrl . 'ResourceLoader.php';
@@ -67,10 +67,18 @@ $wgKalturaForceIP = false;
 $wgKalturaForceReferer = false;
 
 // The default Kaltura service url:
-$wgKalturaServiceUrl = $wgHTTPProtocol . '://cdnapi.kaltura.com';
+$wgKalturaServiceUrl = 'http://cdnapi.kaltura.com';
+// if https use cdnsecakmi
+if( $wgHTTPProtocol == 'https' ){
+	$wgKalturaServiceUrl =  'https://www.kaltura.com';
+}
 
 // Default Kaltura CDN url: 
-$wgKalturaCDNUrl = $wgHTTPProtocol . '://cdnbakmi.kaltura.com';
+$wgKalturaCDNUrl = 'http://cdnbakmi.kaltura.com';
+// if https use cdnsecakmi
+if( $wgHTTPProtocol == 'https' ){
+	$wgKalturaCDNUrl =  'https://cdnsecakmi.kaltura.com';
+}
 
 // Default Kaltura Stats url
 $wgKalturaStatsServiceUrl = $wgHTTPProtocol . '://stats.kaltura.com';

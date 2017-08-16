@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6g/modules/MiroSubs/mirosubs/media/images/prettyPhoto/light_square
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.18/modules/EmbedPlayer/skins/mvpcf
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-18T17:15:19.535554Z
-7349
+2011-11-08T14:30:29.736476Z
+6825
 rany
 
 
@@ -26,52 +26,20 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-btnPrevious.png
-file
-
-
-
-
-2017-07-03T22:59:38.000000Z
-9ad8565740908ecab23ff67990e590cc
-2012-03-18T17:15:19.535554Z
-7349
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1442
+images
+dir
 
-btnNext.png
+mw.style.PlayerSkinMvpcf.css
 file
 
 
 
 
-2017-07-03T22:59:38.000000Z
-0a89018b6e4a1492623ca2b608b606ff
-2012-03-18T17:15:19.535554Z
-7349
+2017-07-03T19:06:44.000000Z
+53a3f71cf5ee4830a1333602c25467bd
+2011-11-08T14:30:29.736476Z
+6825
 rany
-has-props
 
 
 
@@ -92,20 +60,20 @@ has-props
 
 
 
-1411
+
+3006
 
-sprite.png
+mw.PlayerSkinMvpcf.js
 file
 
 
 
 
-2017-07-03T22:59:38.000000Z
-50d50dc301facac07c414041a2d11389
-2012-03-18T17:15:19.535554Z
-7349
+2017-07-03T19:06:44.000000Z
+adcb923cd0d0f1e75ca82a661be8cf0b
+2011-11-08T14:30:29.736476Z
+6825
 rany
-has-props
 
 
 
@@ -126,39 +94,6 @@ has-props
 
 
 
-3303
-
-loader.gif
-file
 
-
-
-
-2017-07-03T22:59:38.000000Z
-df46993044576f83f2c2cc1a64e18f31
-2012-03-18T17:15:19.535554Z
-7349
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2545
+77
 

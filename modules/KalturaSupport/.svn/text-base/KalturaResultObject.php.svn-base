@@ -11,7 +11,6 @@ require_once(  dirname( __FILE__ ) . '/KalturaNamedMultiRequest.php');
  * Generates a kaltura result object based on url Parameters 
  */
 class KalturaResultObject {
-	 
 	var $resultObj = null; // lazy init with getResultObject
 	var $clientTag = null;
 	var $uiConfFile = null;
@@ -221,8 +220,10 @@ class KalturaResultObject {
 	}
 	public function isCachedOutput(){
 		global $wgEnableScriptDebug; 
-		if( $wgEnableScriptDebug )
+		// Don't cache output if an iframe or there is an error.
+		if( $wgEnableScriptDebug || $this->error ){
 			return false;
+		}
 		return $this->outputFromCache;
 	}
 	public function isCachedUiConfFile(){
@@ -276,7 +277,7 @@ class KalturaResultObject {
 		}
 		//@@TODO integrate a library for doing this user-agent -> source selection
 		// what follows somewhat arbitrary
-		
+
 		$flavorUrl = false ;
 		// First set the most compatible source ( iPhone h.264 )
 		if( isset( $sources['iphone'] ) ) {
@@ -337,7 +338,12 @@ class KalturaResultObject {
 		if( !isset( $this->urlParameters['entry_id'] ) ){
 			return true;
 		}
-		
+
+		// If we have an error, return
+		if( $this->error ) {
+			return $this->error;
+		}
+
 		if( !$resultObject ){
 			$resultObject =  $this->getResultObject();
 		}
@@ -431,17 +437,19 @@ class KalturaResultObject {
 		$vars = array();
 
 		// Get all plugins elements
-		$pluginsXml = $this->getUiConfXML()->xpath("*//Plugin");
-		for( $i=0; $i < count($pluginsXml); $i++ ) {
-			$pluginId = (string) $pluginsXml[ $i ]->attributes()->id;
-			$plugins[ $pluginId ] = array(
-				'plugin' => true
-			);
-			foreach( $pluginsXml[ $i ]->attributes() as $key => $value) {
-				if( $key == "id" ) {
-					continue;
+		if( $this->uiConfFile ) {
+			$pluginsXml = $this->getUiConfXML()->xpath("*//Plugin");
+			for( $i=0; $i < count($pluginsXml); $i++ ) {
+				$pluginId = (string) $pluginsXml[ $i ]->attributes()->id;
+				$plugins[ $pluginId ] = array(
+					'plugin' => true
+				);
+				foreach( $pluginsXml[ $i ]->attributes() as $key => $value) {
+					if( $key == "id" ) {
+						continue;
+					}
+					$plugins[ $pluginId ][ $key ] = $this->formatString((string) $value);
 				}
-				$plugins[ $pluginId ][ $key ] = $this->formatString((string) $value);
 			}
 		}
 
@@ -456,18 +464,20 @@ class KalturaResultObject {
 		}
 
 		// uiVars
-		$uiVarsXml = $this->getUiConfXML()->xpath("*//var");
-		for( $i=0; $i < count($uiVarsXml); $i++ ) {
+		if( $this->uiConfFile ) {
+			$uiVarsXml = $this->getUiConfXML()->xpath("*//var");
+			for( $i=0; $i < count($uiVarsXml); $i++ ) {
 
-			$key = (string) $uiVarsXml[ $i ]->attributes()->key;
-			$value = (string) $uiVarsXml[ $i ]->attributes()->value;
-			$override = (string) $uiVarsXml[ $i ]->attributes()->overrideflashvar;
+				$key = (string) $uiVarsXml[ $i ]->attributes()->key;
+				$value = (string) $uiVarsXml[ $i ]->attributes()->value;
+				$override = (string) $uiVarsXml[ $i ]->attributes()->overrideflashvar;
 
-			// Continue if flashvar exists and can't override
-			if( isset( $vars[ $key ] ) && !$override ) {
-				continue;
+				// Continue if flashvar exists and can't override
+				if( isset( $vars[ $key ] ) && !$override ) {
+					continue;
+				}
+				$vars[ $key ] = $this->formatString($value);
 			}
-			$vars[ $key ] = $this->formatString($value);
 		}
 
 		// Set Plugin attributes from uiVars/flashVars to our plugins array
@@ -854,7 +864,7 @@ class KalturaResultObject {
 		}
 		
 		if( isset( $rawResultObject->code ) ) {
-			throw new Exception( KALTURA_GENERIC_SERVER_ERROR . "\n" . $rawResultObject['message'] );
+			$this->error = $rawResultObject['message'];
 		}
 		if( isset( $rawResultObject->confFile ) ){
 			return $this->cleanUiConf( $rawResultObject->confFile );
@@ -1009,7 +1019,7 @@ class KalturaResultObject {
 		}
 		// Check that the ks was valid on the first response ( flavors ) 
 		if( isset( $resultObject['flavors']['code'] ) && $resultObject['flavors']['code'] == 'INVALID_KS' ){
-			throw new Exception( 'Error invalid KS');
+			$this->error = 'Error invalid KS';
 			return array();
 		}
 		// Convert entryMeta to entryMeta XML
@@ -1248,6 +1258,6 @@ class KalturaResultObject {
 		if( $this->noCache ){
 			return ;
 		}
-		file_put_contents( $cacheFile, $data );
+		@file_put_contents( $cacheFile, $data );
 	}
 }

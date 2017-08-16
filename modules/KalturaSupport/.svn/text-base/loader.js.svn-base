@@ -119,6 +119,15 @@
 		'playlistPlugin'
 	];
 	
+	mw.newEmbedPlayerCheckUiConf = function( callback ){
+		$( mw ).bind( 'newEmbedPlayerEvent', function(event, embedPlayer){
+			$( embedPlayer ).bind( 'KalturaSupport_CheckUiConf', function( event, $uiConf, checkUiCallback ){
+				callback( embedPlayer, checkUiCallback );
+			})
+		} );
+	};
+	
+	
 	mw.addModuleLoader( 'KalturaPlaylist', function() {
 		return $.merge( kalturaSupportRequestSet,
 			[
@@ -136,7 +145,10 @@
 	
 	// Check if the document has kaltura objects ( for fall forward support ) 
 	$( mw ).bind( 'LoadeRewritePlayerTags', function( event, rewriteDoneCallback ){
-
+		// if kGetKalturaPlayerList is not defined ( we are not in a kaltura env )
+		if( typeof kGetKalturaPlayerList == 'undefined'){
+			return ;
+		}
 		var kalturaObjectPlayerList = kGetKalturaPlayerList();
 		mw.log( 'KalturaSupport found:: ' + kalturaObjectPlayerList.length + ' is mobile::' +  mw.isHTML5FallForwardNative() );
 		if( ! kalturaObjectPlayerList.length ) {
@@ -262,10 +274,8 @@
 							'position' : 'relative',
 							'display' : 'inline-block' // more or less the <object> tag default display
 						})
-						.data({
-							'flashvars': flashvars,
-							'cache_st': kEmbedSettings.cache_st
-						})
+						.data('flashvars', flashvars)
+						.data('cache_st', kEmbedSettings.cache_st)
 						.addClass( kalturaSwapObjectClass )
 						.append(
 							$imgThumb,

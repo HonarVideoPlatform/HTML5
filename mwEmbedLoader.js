@@ -38,7 +38,7 @@
 *	'EmbedPlayer.EnableIframeApi' : true
 */
 // The version of this script
-KALTURA_LOADER_VERSION = '1.5.13';
+KALTURA_LOADER_VERSION = '1.5.18';
 
 if( typeof console != 'undefined' && console.log ) {
 	console.log( 'Kaltura HTML5 Version: ' + KALTURA_LOADER_VERSION );
@@ -211,8 +211,8 @@ function kIframeWithoutApi( replaceTargetId, kEmbedSettings , options ){
 	// ( no javascript api needed )
 	
 	var iframeSrc = SCRIPT_LOADER_URL.replace( 'ResourceLoader.php', 'mwEmbedFrame.php' );
-	iframeSrc += kEmbedSettingsToUrl( kEmbedSettings );
-
+	iframeSrc += '?' + kEmbedSettingsToUrl( kEmbedSettings );
+	
 	// If remote service is enabled pass along service arguments:
 	if( mw.getConfig( 'Kaltura.AllowIframeRemoteService' ) && 
 		(
@@ -254,12 +254,12 @@ function kEmbedSettingsToUrl( kEmbedSettings ){
 		// Check if the attrKey is in the kalturaAttributeList:
 		for( var i =0 ; i < kalturaAttributeList.length; i++){
 			if( kalturaAttributeList[i] == attrKey ){
-				url += '/' + attrKey + '/' + encodeURIComponent( kEmbedSettings[attrKey] );
+				url += '&' + attrKey + '=' + encodeURIComponent( kEmbedSettings[attrKey] );  
 			}
 		}
 	}
 	// Add the flashvars:
-	url += '/?' + kFlashVarsToUrl( kEmbedSettings.flashvars );
+	url += kFlashVarsToUrl( kEmbedSettings.flashvars );
 	
 	return url;
 }
@@ -354,13 +354,13 @@ function kOverideJsFlashEmbed(){
 		var height = ( heightStr)? ( heightStr ) : $j('#' + replaceTargetId ).height();
 		
 		if( kEmbedSettings.entry_id ){
-			embedPlayerAttributes.kentryid = kEmbedSettings.entry_id;/*
+			embedPlayerAttributes.kentryid = kEmbedSettings.entry_id;				
 			embedPlayerAttributes.poster = kGetEntryThumbUrl( {
-				'width' : width,
-				'height' : height,
+				'width' : parseInt(width),
+				'height' : parseInt(height),
 				'entry_id' :  kEmbedSettings.entry_id,
 				'partner_id': kEmbedSettings.p 
-			});*/
+			});
 		}
 		if( mw.getConfig( 'Kaltura.IframeRewrite' ) ){
 			kalturaIframeEmbed( replaceTargetId, kEmbedSettings , { 'width': width, 'height': height } );
@@ -389,6 +389,7 @@ function kOverideJsFlashEmbed(){
 				}
 				if( kEmbedSettings.uiconf_id && kIsHTML5FallForward()  ){
 					document.getElementById( targetId ).innerHTML = '<div id="' + attributes.id + '"></div>';
+					
 					doEmbedSettingsWrite( kEmbedSettings, attributes.id, attributes.width, attributes.height);
 				} else {
 					// if its a kaltura player embed restore kdp callback:
@@ -493,7 +494,6 @@ function kGetFlashVersion(){
 // Check DOM for Kaltura embeds ( fall forward ) 
 // && html5 video tag ( for fallback & html5 player interface )
 function kCheckAddScript(){
-	
 	// Check if we already have got uiConfJs or not
 	if( mw.getConfig( 'Kaltura.EnableEmbedUiConfJs' ) && 
 		! mw.getConfig( 'Kaltura.UiConfJsLoaded') && ! mw.getConfig('EmbedPlayer.IsIframeServer') ){
@@ -1032,7 +1032,6 @@ function kGetEntryThumbUrl( entry ){
  */
 function kGetKalturaEmbedSettings ( swfUrl, flashvars ){
 	var embedSettings = {};	
-	
 	// Convert flashvars if in string format:
 	if( typeof flashvars == 'string' ){
 		flashvars = kFlashVars2Object( flashvars );
@@ -1091,6 +1090,11 @@ function kGetKalturaEmbedSettings ( swfUrl, flashvars ){
 			embedSettings.p = val;
 		}
 	}
+
+	// Always pass cache_st
+	if( ! embedSettings.cache_st )
+		embedSettings.cache_st = 1;
+	
 	return embedSettings;
 }
 

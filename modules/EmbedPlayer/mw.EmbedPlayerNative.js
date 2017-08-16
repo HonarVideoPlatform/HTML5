@@ -26,6 +26,9 @@ mw.EmbedPlayerNative = {
 
 	// If the media loaded event has been fired
 	mediaLoadedFlag: null,
+	
+	// A flag to designate the first play event, as to not propagate the native event in this case
+	isFirstEmbedPlay: null,
 
 	// All the native events per:
 	// http://www.w3.org/TR/html5/video.html#mediaevents
@@ -87,6 +90,8 @@ mw.EmbedPlayerNative = {
 	doEmbedHTML : function () {
 		var _this = this;
 		var vid = _this.getPlayerElement();
+		this.isFirstEmbedPlay = true;
+		
 		if( vid && $( vid ).attr('src') == this.getSrc( this.currentTime ) ){
 			_this.postEmbedJS();
 			return ;
@@ -297,8 +302,9 @@ mw.EmbedPlayerNative = {
 	* Issue a seeking request.
 	*
 	* @param {Float} percent
+	* @param {bollean} stopAfterSeek if the player should stop after the seek
 	*/
-	doSeek: function( percent ) {
+	doSeek: function( percent, stopAfterSeek ) {
 		// bounds check
 		if( percent < 0 )
 			percent = 0;
@@ -328,7 +334,7 @@ mw.EmbedPlayerNative = {
 				// We support URLTimeEncoding call parent seek:
 				this.parent_doSeek( percent );
 			}
-		} else if ( this.playerElement && this.playerElement.duration ) {
+		} else if ( this.playerElement && this.playerElement.duration && stopAfterSeek ) {
 			// (could also check bufferedPercent > percent seek (and issue oggz_chop request or not)
 			this.doNativeSeek( percent );
 		} else {
@@ -343,7 +349,13 @@ mw.EmbedPlayerNative = {
 	* 		Percent to seek to of full time
 	*/
 	doNativeSeek: function( percent, callback ) {
+		// If player already seeking, exit
 		var _this = this;
+		var isChrome = (navigator.userAgent.indexOf('Chrome') === -1) ? false : true;
+		if( isChrome && _this.playerElement.seeking ) {
+			return ;
+		}
+		
 		mw.log( 'EmbedPlayerNative::doNativeSeek::' + percent );
 		this.seeking = true;
 		
@@ -463,7 +475,6 @@ mw.EmbedPlayerNative = {
 		// Also update the embedPlayer poster 
 		this.parent_updatePosterSrc( src );
 	},
-	
 	/**
 	 * switchPlaySrc switches the player source working around a few bugs in browsers
 	 * 
@@ -477,8 +488,8 @@ mw.EmbedPlayerNative = {
 	switchPlaySrc: function( src, switchCallback, doneCallback ){
 		var _this = this;
 		var vid = this.getPlayerElement();
-		
 		var switchBindPostfix = '.switchPlaySrc';
+		this.isPauseLoading = false;
 		// Make sure the switch source is different: 
 		if( !src || src == vid.src ){
 			if( switchCallback ){
@@ -490,6 +501,9 @@ mw.EmbedPlayerNative = {
 			}, 100);
 			return ;
 		}
+		// don't propgate events while switching: 
+		this.stopEventPropagation();
+		
 		// only display switch msg if actually switching: 
 		mw.log( 'EmbedPlayerNative:: switchPlaySrc:' + src + ' native time: ' + vid.currentTime );
 		
@@ -515,7 +529,7 @@ mw.EmbedPlayerNative = {
 						return ;
 					}
 					vid.src = src;
-					// Give iOS 50ms to figure out the src got updated ( iPad OS 4.0 )
+					// Give iOS 50ms to figure out the src got updated ( iPad OS 3.x )
 					setTimeout( function() {
 						var vid = _this.getPlayerElement();
 						if (!vid){
@@ -547,6 +561,13 @@ mw.EmbedPlayerNative = {
 							}
 							_this.hidePlayerSpinner();
 						}, 50);
+						// restore events after we get the pause trigger
+						$( vid ).bind( 'pause' + switchBindPostfix, function(){
+							// remove pause binding: 
+							$( vid ).unbind( 'pause' + switchBindPostfix );
+							// restore event propagation
+							_this.restoreEventPropagation();
+						});
 					}, 50);
 				};
 				if (navigator.userAgent.toLowerCase().indexOf('chrome') != -1) {
@@ -562,23 +583,44 @@ mw.EmbedPlayerNative = {
 			}
 		}
 	},
-	/** if html5 implementation did not suck we could use the following code: */
+	/**
+	 * switchPlaySrc switches the player source
+	 * 
+	 * we don't appear to be able to use this simple sync switch ( fails on some browsers )
+	 * firefox 7x and iPad OS 3.2 right now) 
+	 */
 	/*switchPlaySrc: function( src, switchCallback, doneCallback ){
+		var _this = this;
 		var vid = this.getPlayerElement();
+		var switchBindPostfix = '.switchPlaySrc';
+		$(vid).unbind( switchBindPostfix );
 		
-		$(vid).unbind();
-		
-		$( vid ).bind( 'ended', function( event ) {
+		$( vid ).bind( 'ended' + switchBindPostfix, function( event ) {
+			$(vid).unbind( 'ended' + switchBindPostfix );
 			if( doneCallback ){
 				doneCallback();
 			}
-			return false;
 		});
-		if ( switchCallback ) {
-			switchCallback( vid );
+		// add a loading spinner: 
+		this.addPlayerSpinner();
+		
+		// once we can play remove the spinner
+		$( vid ).bind( 'canplaythrough' +switchBindPostfix, function( event ){
+			$(vid).unbind( 'canplaythrough' + switchBindPostfix );
+			_this.hidePlayerSpinner();
+		});
+		
+		// Swicth the src and play: 
+		try{
+			vid.src = src;
+			vid.load();
+			vid.play();
+		} catch ( e ){
+			mw.log("Error: could not switch source")
 		}
-		vid.src = src;
-		vid.play();
+		if( switchCallback ){
+			switchCallback();
+		}
 	},*/
 	/**
 	* Pause the video playback
@@ -588,9 +630,7 @@ mw.EmbedPlayerNative = {
 		this.getPlayerElement();
 		this.parent_pause(); // update interface
 		if ( this.playerElement ) { // update player
-			if( !this.playerElement.paused ){
-				this.playerElement.pause();
-			}
+			this.playerElement.pause();
 		}
 	},
 
@@ -604,8 +644,13 @@ mw.EmbedPlayerNative = {
 		if( _this.parent_play() ){
 			this.getPlayerElement();
 			if ( this.playerElement && this.playerElement.play ) {
-				// issue a play request 
+				// issue a play request ( capture the user gesture on iOS ) 
 				this.playerElement.play();
+				
+				// Dont play if in pauseloading state
+				if( this.isPauseLoading ){
+					this.playerElement.pause();
+				}
 				// re-start the monitor:
 				this.monitor();
 			}
@@ -770,9 +815,11 @@ mw.EmbedPlayerNative = {
 	_onplay: function(){
 		mw.log("EmbedPlayerNative:: OnPlay:: propogate" +  this._propagateEvents + ' paused: ' + this.paused);
 		// Update the interface ( if paused )
-		if(  this._propagateEvents && this.paused ){
+		if( ! this.isFirstEmbedPlay && this._propagateEvents && this.paused ){
 			this.parent_play();
 		}
+		// restore firstEmbedPlay state: 
+		this.isFirstEmbedPlay = false;
 	},
 
 	/**

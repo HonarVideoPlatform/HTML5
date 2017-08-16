@@ -16,7 +16,13 @@ mw.KWidgetSupport.prototype = {
 		}
 		this.addPlayerHooks();
 	},
-	
+	isIframeApiServer: function(){
+		return ( mw.getConfig( 'EmbedPlayer.IsIframeServer' )
+					&& 
+				mw.getConfig( 'EmbedPlayer.EnableIframeApi' ) 
+					&& 
+				mw.getConfig( 'EmbedPlayer.IframeParentUrl' ) )
+	},
 	/**
 	* Add Player hooks for supporting Kaltura api
 	*/ 
@@ -31,7 +37,7 @@ mw.KWidgetSupport.prototype = {
 			// Add Kaltura iframe share support:
 			$( embedPlayer ).bind( 'getShareIframeSrc', function( event, callback ){
 				var iframeUrl = mw.getMwEmbedPath() + 'mwEmbedFrame.php';
-				iframeUrl +='/wid/_' + _this.kClient.getPartnerId() +
+				iframeUrl +='/wid/_' + embedPlayer.kwidgetid +
 				'/uiconf_id/' + embedPlayer.kuiconfid +
 				'/entry_id/' + embedPlayer.kentryid + '/';
 				// return the iframeUrl via the callback: 
@@ -96,8 +102,13 @@ mw.KWidgetSupport.prototype = {
 		});
 	},
 	
-	updatePlayerData:function( embedPlayer,  playerData, callback ){
+	updatePlayerData: function( embedPlayer,  playerData, callback ){
 		var _this = this;
+		// Check for playerData error: 
+		if( playerData.error ){
+			embedPlayer['data-playerError'] = playerData.error;
+		}
+		
 		// Check for uiConf	and attach it to the embedPlayer object:
 		if( playerData.uiConf ){
 			// Store the parsed uiConf in the embedPlayer object:
@@ -123,7 +134,7 @@ mw.KWidgetSupport.prototype = {
 		if( playerData.accessControl ){
 			var acStatus = _this.getAccessControlStatus( playerData.accessControl );
 			if( acStatus !== true ){
-				$( '.loadingSpinner' ).remove();
+				embedPlayer.hidePlayerSpinner();
 				embedPlayer.showErrorMsg( acStatus );
 				return ;
 			}
@@ -242,8 +253,11 @@ mw.KWidgetSupport.prototype = {
 			// Run the DoneWithUiConf trigger 
 			// Allows modules that depend on other modules initialization to do what they need to do. 
 			mw.log("KWidgetSupport:: trigger KalturaSupport_DoneWithUiConf");
-			$( embedPlayer ).trigger( 'KalturaSupport_DoneWithUiConf' );
-			callback();
+			// don't stack
+			setTimeout(function(){
+				$( embedPlayer ).trigger( 'KalturaSupport_DoneWithUiConf' );
+				callback();
+			},0);
 		};
 		
 		// sync iframe with attribute data updates:
@@ -314,7 +328,7 @@ mw.KWidgetSupport.prototype = {
 		var $uiPluginVars = [];
 		
 		// if confPrefix is not an empty string or null check for the conf prefix
-		if( confPrefix ){ 
+		if( confPrefix ){
 			$plugin = $uiConf.find( 'plugin#' + confPrefix );
 			// When defined from uiConf ( "plugin" tag is equivalent to "confPrefix.plugin = true" in the uiVars )
 			if( $plugin.length && attr && $.inArray( 'plugin', attr ) != -1 ){ 
@@ -366,7 +380,7 @@ mw.KWidgetSupport.prototype = {
 						config[ attrName ] = $plugin.attr( attrName.toLowerCase() );
 					}
 				}
-				
+
 				// Flashvars overrides
 				var pluginPrefix = ( confPrefix )? confPrefix + '.': '';
 				if( flashvars[ pluginPrefix + attrName ] ){
@@ -474,7 +488,6 @@ mw.KWidgetSupport.prototype = {
 		// Check if we have the player data bootstrap from the iframe
 		var bootstrapData = mw.getConfig("KalturaSupport.IFramePresetPlayerData");
 
-		//alert( 'bootstrap:' + mw.getConfig( 'KalturaSupport.IFramePresetPlayerData' ) ) ;
 		// Insure the bootStrap data has all the required info: 
 		if( bootstrapData 
 			&& bootstrapData.partner_id == embedPlayer.kwidgetid.replace('_', '')
@@ -502,8 +515,8 @@ mw.KWidgetSupport.prototype = {
 	/**
 	 * Check if the access control is oky and set a given error message
 	 * 
-	 * NOTE should match the iframe messages
-	 * NOTE need to i8ln message with gM( 'msg-key' );
+	 * TODO should match the iframe messages keys
+	 * TODO need to i8ln message with gM( 'msg-key' );
 	 * 
 	 * @return 
 	 * @type boolean 
@@ -511,12 +524,12 @@ mw.KWidgetSupport.prototype = {
 	 * 		false if the media should not be played. 
 	 */
 	getAccessControlStatus: function( ac ){
-		if( ac.isAdmin){
+		if( ac.isAdmin ){
 			return true;
 		}
-		//if( ac.isCountryRestricted ){
-		//	return 'country is restricted';
-		//}
+		if( ac.isCountryRestricted ){
+			return 'country is restricted';
+		}
 		if( ac.isScheduledNow === 0 ){
 			return 'is not scheduled now';
 		}

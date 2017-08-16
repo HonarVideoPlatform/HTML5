@@ -111,7 +111,7 @@ mw.KAnalytics.prototype = {
 		var _this = this;				
 		
 		// Kalutra analytics does not collect info for ads: 
-		if( this.embedPlayer.evaluate && this.embedPlayer.evaluate('{sequenceProxy.isInSequence}') ){
+		if( this.embedPlayer.evaluate('{sequenceProxy.isInSequence}') ){
 			return ;
 		}
 		

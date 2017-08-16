@@ -194,13 +194,14 @@ class kalturaIframe {
 				'</span>
 			</div>';
 	}
-	private function getVideoHTML( $playerSize = ''  ){
+	private function getVideoHTML( $playerStyle = ''  ){
 		$videoTagMap = array(
 			'entry_id' => 'kentryid',
 			'uiconf_id' => 'kuiconfid',
 			'wid' => 'kwidgetid',
 			'autoplay' => 'autoplay',
 		);
+		$posterUrl = false;
 		// Check if we have flashvar: loadThumbnailWithKs, if so load the thumbnail with KS
 		$ksParam = '';
 		if( isset( $_REQUEST['flashvars'] ) && is_array( $_REQUEST['flashvars'] ) && 
@@ -244,7 +245,7 @@ class kalturaIframe {
 			$o.='poster="' . htmlspecialchars( $posterUrl ) . '" ';
 		}
 		$o.='id="' . htmlspecialchars( $this->getIframeId() ) . '" ' .
-			'style="' . $playerSize . '" ';
+			'style="' . $playerStyle . '" ';
 
 		$urlParams = $this->getResultObject()->getUrlParameters();
 		
@@ -355,7 +356,10 @@ class kalturaIframe {
 			
 			// Add the resource	
 			$resourceIncludes[] = $resource;
-		}		
+		}
+		
+		//$resourceIncludes[] = array( 'src'=> '/testOverlay.js', 'type' => 'js' );
+		
 		// plugins
 		foreach( $playerConfig['plugins'] as $pluginId => $plugin ){
 			foreach( $plugin as $attr => $value ){
@@ -444,7 +448,7 @@ class kalturaIframe {
 		global $wgKalturaUiConfCacheTime;
 
 		// Set relevent expire headers:
-		if( $this->getResultObject()->isCachedOutput() ){
+		if( $this->getResultObject()->isCachedOutput() && ! $this->isError() ){
 			$time = $this->getResultObject()->getFileCacheTime();
 			header( 'Pragma: public' );
 			// Cache for $wgKalturaUiConfCacheTime
@@ -604,7 +608,8 @@ class kalturaIframe {
 			if( $this->getResultObject()->isPlaylist() ){ 
 				echo $this->getPlaylistWraper( 
 					// Get video html with a default playlist video size ( we can adjust it later in js )
-					$this->getVideoHTML( $this->getPlaylistPlayerSizeCss() ) 
+					// iOS needs display type block: 
+					$this->getVideoHTML( $this->getPlaylistPlayerSizeCss() . ';display:block' ) 
 				);
 			} else {
 				// For the actual video tag we need to use a document.write since android dies 
@@ -612,15 +617,14 @@ class kalturaIframe {
 				?>
 				<script type="text/javascript">
 					var videoTagHTML = <?php echo json_encode( $this->getVideoHTML() ) ?>;
-					// Android can't handle position:absolute style on video tags and requires an absolute size: 
+					// Android can't handle position:absolute style on video tags
 					if( navigator.userAgent.indexOf('Android' ) !== -1 ){
 						// Also android does not like "type" on source tags
 						videoTagHTML= videoTagHTML.replace(/type=\"[^\"]*\"/g, '');
-						styleValue = '<?php echo $this->getPlayerSizeCss(); ?>';
-					} else {
-						// iOS and other OSs are fine with 100% size and position:abolute;
-						styleValue = 'position:absolute;width:100%;height:100%';
-					}
+					} 
+					//styleValue = 'position:absolute;width:100%;height:100%';
+					styleValue = 'display: block;<?php echo $this->getPlayerSizeCss(); ?>';
+					
 					videoTagHTML = videoTagHTML.replace(/style=\"\"/, 'style="' + styleValue + '"');
 					document.write( videoTagHTML );
 				</script>
@@ -667,7 +671,7 @@ class kalturaIframe {
 			waitforMw( function(){
 				<?php 
 					global $wgAllowCustomResourceIncludes;
-					if( $wgAllowCustomResourceIncludes ){
+					if( $wgAllowCustomResourceIncludes && $this->getCustomPlayerIncludesJSON() ){
 						echo 'mw.setConfig( \'Mw.CustomResourceIncludes\', '. $this->getCustomPlayerIncludesJSON() .' );';
 					}
 				?>
@@ -868,6 +872,8 @@ class kalturaIframe {
 			list( $errorTitle, $errorMsg) = explode( "\n", $errorTitle);
 		};
 		$this->setError( $errorTitle );
+		// Send expire headers: 
+		$this->setIFrameHeaders();
 		
 		// clear the buffer
 		$pageInProgress = ob_end_clean();

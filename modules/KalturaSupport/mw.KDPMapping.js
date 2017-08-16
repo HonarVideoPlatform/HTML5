@@ -18,15 +18,17 @@
 		*/ 
 		init: function( ){
 			if( mw.getConfig( 'EmbedPlayer.IsIframeServer' ) ){
-				this.addIframePlayerHooksServer();
-				return ;
-			} 
-			// For client side of the iframe add iframe hooks and player hooks ( will bind to 
-			// different build player build outs and lets us support pages with both
-			// iframe and no iframes players
-			this.addIframePlayerHooksClient();
-			// Always add player hooks
-			this.addPlayerHooks();
+				this.addIframePlayerServerBindings();
+			} else {
+				// For client side of the iframe add iframe hooks and player hooks ( will bind to 
+				// different build player build outs and lets us support pages with both
+				// iframe and no iframes players
+				this.addIframePlayerClientBindings();
+			}
+			// if not an api server include non-iframe player hooks 
+			if( window.kWidgetSupport && !window.kWidgetSupport.isIframeApiServer() ){
+				this.addPlayerHooks();
+			}
 		},
 		addPlayerHooks: function(){
 			var _this = this;
@@ -44,7 +46,6 @@
 				embedPlayer.sendNotification = function( notificationName, notificationData ){
 					_this.sendNotification( embedPlayer, notificationName, notificationData);
 				};
-				
 				embedPlayer.evaluate = function( objectString ){
 					return _this.evaluate( embedPlayer, objectString);
 				};
@@ -65,9 +66,9 @@
 		/***************************************
 		 * Client side kdp mapping iframe player setup: 
 		 **************************************/	
-		addIframePlayerHooksClient: function(){
+		addIframePlayerClientBindings: function(){
 			var _this = this;
-			mw.log( "KDPMapping::addIframePlayerHooksClient" );
+			mw.log( "KDPMapping::addIframePlayerClientBindings" );
 
 			$( mw ).bind( 'AddIframePlayerMethods', function( event, playerMethods ){
 				playerMethods.push( 'addJsListener', 'removeJsListener', 'sendNotification', 'setKDPAttribute' );
@@ -113,9 +114,9 @@
 		/***************************************
 		 * Server side kdp mapping iframe player setup: 
 		 **************************************/
-		addIframePlayerHooksServer: function(){
+		addIframePlayerServerBindings: function(){
 			var _this = this;
-			mw.log("KDPMapping::addIframePlayerHooksServer");
+			mw.log("KDPMapping::addIframePlayerServerBindings");
 			$( mw ).bind( 'AddIframePlayerBindings', function( event, exportedBindings ){
 				exportedBindings.push( 'jsListenerEvent', 'Kaltura.SendAnalyticEvent' );
 			});
@@ -469,7 +470,12 @@
 				case 'doPause':
 					b( "pause" );
 					break;
-
+				case 'adStart':
+					b('AdSupport_StartAdPlayback');
+					break;
+				case 'adEnd':
+					b('AdSupport_EndAdPlayback');
+					break;
 				// Pre sequences: 
 				case 'preSequenceStart':
 				case 'pre1start':
@@ -504,7 +510,7 @@
 					b( "seeked" );
 					break;
 				case 'playerPlayEnd':
-					b( "ended" );
+					b( "onEndedDone" );
 					break;
 				case 'durationChange': 
 					b( "durationchange", function(){

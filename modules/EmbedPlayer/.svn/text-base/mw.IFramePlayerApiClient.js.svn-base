@@ -82,25 +82,38 @@ mw.IFramePlayerApiClient.prototype = {
 		// orientation change ) 
 		var localIframeInFullscreen = false;
 		var verticalScrollPosition = 0;
+		var viewPortTag;
 		
-		// Bind orientation change to resize player ( if fullscreen )
-		$(window).bind( 'orientationchange', function(e){
-			if( localIframeInFullscreen ){
-				doFullscreen();
-			}
-		});
-		
+		/* Un-used for now
+		var disableZoom = function() {
+			viewPortTag = $('head meta[name=viewport]').get(0);
+			$('head meta[name=viewport]').remove();
+			$('head').prepend('<meta name="viewport" content="width=device-width, initial-scale=1.0">');
+		};
+
+		var restoreZoom = function() {
+			$('head meta[name=viewport]').remove();
+			$('head').prepend( viewPortTag );
+		};
+		*/
+
+		var scrollToTop = function() {
+			window.scroll(0, 0);
+		};
+
 		var doFullscreen = function(){
+			mw.log("iframeClient:: doFullscreen()");
 			// Save vertical scroll position and scroll to top
 			verticalScrollPosition = (document.all ? document.scrollTop : window.pageYOffset);
-			window.scroll(0,0);
-			mw.log("iframeClient:: doFullscreen()");
+			scrollToTop();
 			localIframeInFullscreen = true;
+			// changed to fixed from absolute in order to "disable" scrolling
+			var playerCssPosition = (mw.isIpad()) ? 'absolute' : 'fixed';
 			// Make the iframe fullscreen
 			$( _this.iframe )
 				.css({
 					'z-index': mw.getConfig( 'EmbedPlayer.FullScreenZIndex' ) + 1,
-					'position': 'fixed', // changed to fixed from absolute in order to "disable" scrolling
+					'position': playerCssPosition,
 					'top' : 0,
 					'left' : 0,
 					'width' : $(window).width(),
@@ -134,8 +147,22 @@ mw.IFramePlayerApiClient.prototype = {
 			} );
 		};
 		
+		// Bind orientation change to resize player ( if fullscreen )
+		$(window).bind( 'orientationchange', function(e){
+			if( localIframeInFullscreen ){
+				doFullscreen();
+			}
+		});
+
+		// Bind to resize event to enlarge the player size ( if fullscreen )
+		$(window).bind('resize', function() {
+			if( localIframeInFullscreen ){
+				doFullscreen();
+			}
+		});
 		$( this.playerProxy ).bind( 'onOpenFullScreen', doFullscreen);
 		$( this.playerProxy ).bind( 'onCloseFullScreen', restoreWindowMode);
+		$( this.playerProxy ).bind( 'onTouchEnd', scrollToTop);
 	},
 	/**
 	 * Handle received events

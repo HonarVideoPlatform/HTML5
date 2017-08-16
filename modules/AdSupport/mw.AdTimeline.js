@@ -135,7 +135,10 @@ mw.AdTimeline.prototype = {
 		$( embedPlayer ).bind( 'onChangeMedia' + _this.bindPostfix, function(){
 			_this.destroy();
 		});
-		
+		var playedAnAdFlag = false;
+		$( embedPlayer ).bind( 'AdSupport_StartAdPlayback' +  _this.bindPostfix, function(){
+			playedAnAdFlag = true;
+		});
 		// On play preSequence
 		$( embedPlayer ).bind( 'preSequence' + _this.bindPostfix, function() {
 			mw.log( "AdTimeline:: First Play Start / bind Ad timeline" );
@@ -148,7 +151,7 @@ mw.AdTimeline.prototype = {
 				_this.displaySlots( 'preroll', function(){
 					// Show bumpers:
 					_this.displaySlots( 'bumper', function(){
-						
+						// restore the original source:
 						embedPlayer.switchPlaySrc( _this.originalSrc, function(){
 							// turn off preSequence
 							embedPlayer.sequenceProxy.isInSequence = false;
@@ -160,15 +163,12 @@ mw.AdTimeline.prototype = {
 								_this.restorePlayer();
 								// trigger another onplay ( to match the kaltura kdp ) on play event
 								// after the ad is complete 
-								$(embedPlayer).trigger('onplay');
+								if( playedAnAdFlag ){
+									$(embedPlayer).trigger('onplay');
 								
-								// Continue playback
-								embedPlayer.play();
-
-								// Sometimes the player gets a pause event out of order be sure to "play" 
-								setTimeout(function(){
+									// Continue playback
 									embedPlayer.play();
-								}, 300 );
+								}
 							},0);
 						});
 						
@@ -185,6 +185,7 @@ mw.AdTimeline.prototype = {
 			if( displayedPostroll ){
 				return ;
 			}
+			playedAnAdFlag = false;
 			displayedPostroll = true;
 			embedPlayer.onDoneInterfaceFlag = false;
 			// Trigger the postSequenceStart event
@@ -198,15 +199,23 @@ mw.AdTimeline.prototype = {
 				$( embedPlayer ).trigger( 'postSequenceComplete' );
 
 				/** TODO support postroll bumper and leave behind */
-				embedPlayer.switchPlaySrc( _this.originalSrc, function(){
+				if( playedAnAdFlag ){
+					embedPlayer.switchPlaySrc( _this.originalSrc, function(){
+							_this.restorePlayer();
+							// stop the playback: 
+							embedPlayer.pause();
+							// Restore ondone interface: 
+							embedPlayer.onDoneInterfaceFlag = true;
+							// run the clipdone event:
+							embedPlayer.onClipDone();
+					});
+				} else {
 					_this.restorePlayer();
-					// stop the playback: 
-					embedPlayer.pause();
 					// Restore ondone interface: 
 					embedPlayer.onDoneInterfaceFlag = true;
 					// run the clipdone event:
 					embedPlayer.onClipDone();
-				});
+				}
 			});
 		});
 	},

@@ -22,30 +22,17 @@ $wgKalturaCDNUrl = $wgHTTPProtocol. '://' . $kConf->get('cdn_host_https');
 // Default Asset CDN Path (used in ResouceLoader.php):
 $wgCDNAssetPath = $wgKalturaCDNUrl;
 
-// Default Kaltura service url:
-$wgKalturaServiceBase = '/api_v3/index.php?service=';
-
 // Default Kaltura Cache Path
 $wgScriptCacheDirectory = $kConf->get('cache_root_path') . 'html5/' . $wgKalturaVersion;
 
 $wgResourceLoaderUrl = $wgKalturaServiceUrl . '/html5/html5lib/' . $wgKalturaVersion . '/ResourceLoader.php';
 
+// Salt for proxy the user IP address to Kaltura API
+$wgKalturaRemoteAddressSalt = $kConf->get('remote_addr_header_salt');
+
 // Set debug for true (testing only)
 $wgEnableScriptDebug = false;
 
-// This will tell the library to use Iframe Rewrite Method
-$wgKalturaIframeRewrite = true;
-
-// This will tell the library to enable the Iframe Api
-$wgEnableIframeApi = true;
-
-// Show control bar on iPad
-$wgEnableIpadHTMLControls = true;
-
-// Use playManifest
-$wgKalturaUseManifestUrls = true;
-
-$wgAllowRemoteKalturaService = true;
 $wgKalturaAllowIframeRemoteService = true;
 
 // Define which modules to load
