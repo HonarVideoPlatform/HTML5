@@ -272,8 +272,9 @@
 					}
 				}
 				if( $(p).attr('tts:textAlign') ){
-					if( !captionObj['css'] )
+					if( !captionObj['css'] ){
 						captionObj['css'] = {};
+					}
 					captionObj['css']['text-align'] = $(p).attr('tts:textAlign');
 					
 					// Remove text align is "right" flip the css left:

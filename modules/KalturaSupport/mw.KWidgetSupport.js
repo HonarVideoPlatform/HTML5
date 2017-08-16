@@ -36,19 +36,8 @@ mw.KWidgetSupport.prototype = {
 			if( ! embedPlayer.kwidgetid ){
 				return ;
 			}
-			// Add hook for check player sources to use local kEntry ID source check:
-			$( embedPlayer ).bind( 'checkPlayerSourcesEvent', function( event, callback ) {
-				_this.loadAndUpdatePlayerData( embedPlayer, callback );
-			});
-			// Add Kaltura iframe share support:
-			$( embedPlayer ).bind( 'getShareIframeSrc', function( event, callback ){
-				var iframeUrl = mw.getMwEmbedPath() + 'mwEmbedFrame.php';
-				iframeUrl +='/wid/' + embedPlayer.kwidgetid +
-					'/uiconf_id/' + embedPlayer.kuiconfid +
-					'/entry_id/' + embedPlayer.kentryid + '/';
-				// return the iframeUrl via the callback: 
-				callback( iframeUrl );
-			});
+			_this.bindPlayer( embedPlayer );
+			
 		});
 		// Ads have to communicate with parent iframe to support companion ads.
 		$( mw ).bind( 'AddIframePlayerBindings', function( event, exportedBindings){
@@ -67,8 +56,28 @@ mw.KWidgetSupport.prototype = {
 		});
 		
 	},
+	/**
+	 * Add player bindings 
+	 */
+	bindPlayer: function( embedPlayer ){
+		var _this = this;
+		// Add hook for check player sources to use local kEntry ID source check:
+		$( embedPlayer ).bind( 'checkPlayerSourcesEvent', function( event, callback ) {
+			_this.loadAndUpdatePlayerData( embedPlayer, callback );
+		});
+		// Add Kaltura iframe share support:
+		$( embedPlayer ).bind( 'getShareIframeSrc', function( event, callback ){
+			var iframeUrl = mw.getMwEmbedPath() + 'mwEmbedFrame.php';
+			iframeUrl +='/wid/' + embedPlayer.kwidgetid +
+				'/uiconf_id/' + embedPlayer.kuiconfid +
+				'/entry_id/' + embedPlayer.kentryid + '/';
+			// return the iframeUrl via the callback: 
+			callback( iframeUrl );
+		});
+	},
 	rewriteTarget: function( widgetTarget, callback ){
 		var _this = this;
+		debugger;
 		this.loadPlayerData( widgetTarget, function( playerData ){
 			// look for widget type in uiConf file: 
 			switch( _this.getWidgetType( playerData.uiConf ) ){
@@ -117,7 +126,7 @@ mw.KWidgetSupport.prototype = {
 		// Load all the player configuration from kaltura: 
 		_this.loadPlayerData( embedPlayer, function( playerData ){
 			if( !playerData ){
-				mw.log("KWidgetSupport::addPlayerHooks> error no player data!");
+				mw.log("KWidgetSupport::loadAndUpdatePlayerData> error no player data!");
 				callback();
 				return ;
 			}
@@ -134,7 +143,11 @@ mw.KWidgetSupport.prototype = {
 		
 		// Check for uiConf	and attach it to the embedPlayer object:
 		if( playerData.uiConf ){
-			// Pass along the uiConf data
+			// check raw data for xml header ( remove ) 
+			// <?xml version="1.0" encoding="UTF-8"?>
+			playerData.uiConf = $.trim( playerData.uiConf.replace( /\<\?xml.*\?\>/, '' ) );
+			
+			// Pass along the raw uiConf data
 			$( embedPlayer ).trigger( 'KalturaSupport_RawUiConfReady', [ playerData.uiConf ] );
 			
 			// Store the parsed uiConf in the embedPlayer object:
@@ -148,8 +161,6 @@ mw.KWidgetSupport.prototype = {
 						// String to boolean: 
 						cVar = ( cVar === "false" ) ? false : cVar;
 						cVar = ( cVar === "true" ) ? true : cVar;
-						
-						// mw.log("KWidgetSupport::addPlayerHooks> Set Global Config:  " + $( customVar ).attr('key') + ' ' + cVar );
 						mw.setConfig(  $( customVar ).attr('key'), cVar);
 					}
 				});
@@ -440,7 +451,7 @@ mw.KWidgetSupport.prototype = {
 						config[ attrName ] = $plugin.attr( attrName.toLowerCase() );
 					}
 				}
-
+				
 				// Flashvars overrides
 				var pluginPrefix = ( confPrefix )? confPrefix + '.': '';
 				if( flashvars[ pluginPrefix + attrName ] ){
@@ -450,7 +461,7 @@ mw.KWidgetSupport.prototype = {
 				// Uivars Check for "flat plugin vars" stored at the end of the uiConf ( instead of as attributes )"
 				$uiPluginVars.each( function(inx, node){
 					if( $( node ).attr('key') == pluginPrefix + attrName ){
-						if( $(node).attr('overrideflashvar') != "false" || ! config[attrName] ){
+						if( $(node).attr('overrideflashvar') == "true" || ! config[attrName] ){
 							config[attrName] = $(node)[0].getAttribute('value');
 						}
 						// Found break out of loop
@@ -542,6 +553,10 @@ mw.KWidgetSupport.prototype = {
 			// Add entry_id playerLoader call			
 			playerRequest.entry_id =  embedPlayer.kentryid;
 		}
+
+		if( embedPlayer.kreferenceid ) {
+			playerRequest.reference_id = embedPlayer.kreferenceid;
+		}
 		
 		// only request the ui Conf if we don't already have it: 
 		if( !embedPlayer.$uiConf ){
@@ -572,6 +587,15 @@ mw.KWidgetSupport.prototype = {
 					$('.loadingSpinner').remove();
 					$(embedPlayer).replaceWith( "Error invalid KS" );
 					return ;
+				}
+				if( playerData.meta && playerData.meta.id ) {
+					embedPlayer.kentryid = playerData.meta.id;
+					
+					var poster = playerData.meta.thumbnailUrl;
+					// Include width and height info if avaliable: 
+					poster += '/width/' + embedPlayer.getWidth();
+					poster += '/height/' + embedPlayer.getHeight();
+					embedPlayer.updatePosterSrc( poster );
 				}
 				callback( playerData );
 			});
@@ -657,7 +681,7 @@ mw.KWidgetSupport.prototype = {
 				'height' :  embedPlayer.getHeight()
 			});
 		}
-		// Check if we already have sources: 
+		// Check if we already have sources with flavorid info 
 		var sources = embedPlayer.mediaElement.getSources();
 		if( sources[0] && sources[0]['data-flavorid'] ){
 			return ;
@@ -742,7 +766,7 @@ mw.KWidgetSupport.prototype = {
 			
 			// Add iPad Akamai flavor to iPad flavor Ids list id list
 			if( asset.tags.toLowerCase().indexOf('ipadnew') != -1 ){
-				iphoneAdaptiveFlavors.push( asset.id );
+				ipadAdaptiveFlavors.push( asset.id );
 				// We don't need to continue, the ipadnew/iphonenew flavor are used also for progressive download
 				//continue;
 			}
@@ -758,7 +782,8 @@ mw.KWidgetSupport.prototype = {
 				var src  = flavorUrl + '/entryId/' + asset.entryId;
 				// Check if Apple http streaming is enabled and the tags include applembr
 				if( asset.tags.indexOf('applembr') != -1 ) {
-					src += '/format/applehttp/protocol/'+ protocol + '/a.m3u8';
+					src += '/format/applehttp/protocol/' + protocol + '/a.m3u8';
+					continue;
 				} else {
 					src += '/flavorId/' + asset.id + '/format/url/protocol/' + protocol;
 				}

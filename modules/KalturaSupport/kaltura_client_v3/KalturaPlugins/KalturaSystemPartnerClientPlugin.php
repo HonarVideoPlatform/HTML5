@@ -1,4 +1,32 @@
 <?php
+// ===================================================================================================
+//                           _  __     _ _
+//                          | |/ /__ _| | |_ _  _ _ _ __ _
+//                          | ' </ _` | |  _| || | '_/ _` |
+//                          |_|\_\__,_|_|\__|\_,_|_| \__,_|
+//
+// This file is part of the Kaltura Collaborative Media Suite which allows users
+// to do with audio, video, and animation what Wiki platfroms allow them to do with
+// text.
+//
+// Copyright (C) 2006-2011  Kaltura Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+// @ignore
+// ===================================================================================================
+
 require_once(dirname(__FILE__) . "/../KalturaClientBase.php");
 require_once(dirname(__FILE__) . "/../KalturaEnums.php");
 require_once(dirname(__FILE__) . "/../KalturaTypes.php");
@@ -21,7 +49,6 @@ class KalturaSystemPartnerLimitType
 class KalturaSystemPartnerUsageFilter extends KalturaFilter
 {
 	/**
-	 * Date range from
 	 * 
 	 *
 	 * @var int
@@ -29,7 +56,6 @@ class KalturaSystemPartnerUsageFilter extends KalturaFilter
 	public $fromDate = null;
 
 	/**
-	 * Date range to
 	 * 
 	 *
 	 * @var int
@@ -42,7 +68,6 @@ class KalturaSystemPartnerUsageFilter extends KalturaFilter
 class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 {
 	/**
-	 * Partner ID
 	 * 
 	 *
 	 * @var int
@@ -50,7 +75,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $partnerId = null;
 
 	/**
-	 * Partner name
 	 * 
 	 *
 	 * @var string
@@ -58,7 +82,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $partnerName = null;
 
 	/**
-	 * Partner status
 	 * 
 	 *
 	 * @var KalturaPartnerStatus
@@ -66,7 +89,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $partnerStatus = null;
 
 	/**
-	 * Partner package
 	 * 
 	 *
 	 * @var int
@@ -74,7 +96,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $partnerPackage = null;
 
 	/**
-	 * Partner creation date (Unix timestamp)
 	 * 
 	 *
 	 * @var int
@@ -82,7 +103,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $partnerCreatedAt = null;
 
 	/**
-	 * Number of player loads in the specific date range
 	 * 
 	 *
 	 * @var int
@@ -90,7 +110,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $views = null;
 
 	/**
-	 * Number of plays in the specific date range
 	 * 
 	 *
 	 * @var int
@@ -98,7 +117,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $plays = null;
 
 	/**
-	 * Number of new entries created during specific date range
 	 * 
 	 *
 	 * @var int
@@ -106,7 +124,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $entriesCount = null;
 
 	/**
-	 * Total number of entries
 	 * 
 	 *
 	 * @var int
@@ -114,7 +131,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $totalEntriesCount = null;
 
 	/**
-	 * Number of new video entries created during specific date range
 	 * 
 	 *
 	 * @var int
@@ -122,7 +138,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $videoEntriesCount = null;
 
 	/**
-	 * Number of new image entries created during specific date range
 	 * 
 	 *
 	 * @var int
@@ -130,7 +145,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $imageEntriesCount = null;
 
 	/**
-	 * Number of new audio entries created during specific date range
 	 * 
 	 *
 	 * @var int
@@ -138,7 +152,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $audioEntriesCount = null;
 
 	/**
-	 * Number of new mix entries created during specific date range
 	 * 
 	 *
 	 * @var int
@@ -146,7 +159,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $mixEntriesCount = null;
 
 	/**
-	 * The total bandwidth usage during the given date range (in MB)
 	 * 
 	 *
 	 * @var float
@@ -154,7 +166,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $bandwidth = null;
 
 	/**
-	 * The total storage consumption (in MB)
 	 * 
 	 *
 	 * @var float
@@ -162,7 +173,6 @@ class KalturaSystemPartnerUsageItem extends KalturaObjectBase
 	public $totalStorage = null;
 
 	/**
-	 * The change in storage consumption (new uploads) during the given date range (in MB)
 	 * 
 	 *
 	 * @var float
@@ -203,7 +213,7 @@ class KalturaSystemPartnerLimit extends KalturaObjectBase
 	/**
 	 * 
 	 *
-	 * @var int
+	 * @var float
 	 */
 	public $max = null;
 
@@ -214,11 +224,26 @@ class KalturaSystemPartnerLimit extends KalturaObjectBase
 	 */
 	public $overagePrice = null;
 
+	/**
+	 * 
+	 *
+	 * @var float
+	 */
+	public $overageUnit = null;
+
 
 }
 
 class KalturaSystemPartnerConfiguration extends KalturaObjectBase
 {
+	/**
+	 * 
+	 *
+	 * @var int
+	 * @readonly
+	 */
+	public $id = null;
+
 	/**
 	 * 
 	 *
@@ -260,6 +285,13 @@ class KalturaSystemPartnerConfiguration extends KalturaObjectBase
 	 * @var string
 	 */
 	public $cdnHost = null;
+
+	/**
+	 * 
+	 *
+	 * @var string
+	 */
+	public $thumbnailHost = null;
 
 	/**
 	 * 
@@ -315,7 +347,21 @@ class KalturaSystemPartnerConfiguration extends KalturaObjectBase
 	 *
 	 * @var int
 	 */
+	public $restrictThumbnailByKs = null;
+
+	/**
+	 * 
+	 *
+	 * @var int
+	 */
 	public $defThumbOffset = null;
+
+	/**
+	 * 
+	 *
+	 * @var int
+	 */
+	public $defThumbDensity = null;
 
 	/**
 	 * 
@@ -415,6 +461,118 @@ class KalturaSystemPartnerConfiguration extends KalturaObjectBase
 	 */
 	public $limits;
 
+	/**
+	 * 
+	 *
+	 * @var string
+	 */
+	public $streamerType = null;
+
+	/**
+	 * 
+	 *
+	 * @var string
+	 */
+	public $mediaProtocol = null;
+
+	/**
+	 * 
+	 *
+	 * @var string
+	 */
+	public $extendedFreeTrailExpiryReason = null;
+
+	/**
+	 * 
+	 *
+	 * @var int
+	 */
+	public $extendedFreeTrailExpiryDate = null;
+
+	/**
+	 * 
+	 *
+	 * @var int
+	 */
+	public $extendedFreeTrail = null;
+
+	/**
+	 * 
+	 *
+	 * @var string
+	 */
+	public $crmId = null;
+
+	/**
+	 * 
+	 *
+	 * @var string
+	 */
+	public $crmLink = null;
+
+	/**
+	 * 
+	 *
+	 * @var string
+	 */
+	public $verticalClasiffication = null;
+
+	/**
+	 * 
+	 *
+	 * @var string
+	 */
+	public $partnerPackageClassOfService = null;
+
+	/**
+	 * 
+	 *
+	 * @var bool
+	 */
+	public $enableBulkUploadNotificationsEmails = null;
+
+	/**
+	 * 
+	 *
+	 * @var string
+	 */
+	public $deliveryRestrictions = null;
+
+	/**
+	 * 
+	 *
+	 * @var string
+	 */
+	public $bulkUploadNotificationsEmail = null;
+
+	/**
+	 * 
+	 *
+	 * @var bool
+	 */
+	public $internalUse = null;
+
+	/**
+	 * 
+	 *
+	 * @var KalturaSourceType
+	 */
+	public $defaultLiveStreamEntrySourceType = null;
+
+	/**
+	 * 
+	 *
+	 * @var string
+	 */
+	public $liveStreamProvisionParams = null;
+
+	/**
+	 * 
+	 *
+	 * @var KalturaBaseEntryFilter
+	 */
+	public $autoModerateEntryFilter;
+
 
 }
 
@@ -451,7 +609,7 @@ class KalturaSystemPartnerService extends KalturaServiceBase
 		$this->client->addParam($kparams, "partnerId", $partnerId);
 		$this->client->queueServiceActionCall("systempartner_systempartner", "get", $kparams);
 		if ($this->client->isMultiRequest())
-			return null;
+			return $this->client->getMultiRequestResult();
 		$resultObject = $this->client->doQueue();
 		$this->client->throwExceptionIfError($resultObject);
 		$this->client->validateObjectType($resultObject, "KalturaPartner");
@@ -469,7 +627,7 @@ class KalturaSystemPartnerService extends KalturaServiceBase
 			$this->client->addParam($kparams, "pager", $pager->toParams());
 		$this->client->queueServiceActionCall("systempartner_systempartner", "getUsage", $kparams);
 		if ($this->client->isMultiRequest())
-			return null;
+			return $this->client->getMultiRequestResult();
 		$resultObject = $this->client->doQueue();
 		$this->client->throwExceptionIfError($resultObject);
 		$this->client->validateObjectType($resultObject, "KalturaSystemPartnerUsageListResponse");
@@ -485,7 +643,7 @@ class KalturaSystemPartnerService extends KalturaServiceBase
 			$this->client->addParam($kparams, "pager", $pager->toParams());
 		$this->client->queueServiceActionCall("systempartner_systempartner", "list", $kparams);
 		if ($this->client->isMultiRequest())
-			return null;
+			return $this->client->getMultiRequestResult();
 		$resultObject = $this->client->doQueue();
 		$this->client->throwExceptionIfError($resultObject);
 		$this->client->validateObjectType($resultObject, "KalturaPartnerListResponse");
@@ -499,7 +657,7 @@ class KalturaSystemPartnerService extends KalturaServiceBase
 		$this->client->addParam($kparams, "status", $status);
 		$this->client->queueServiceActionCall("systempartner_systempartner", "updateStatus", $kparams);
 		if ($this->client->isMultiRequest())
-			return null;
+			return $this->client->getMultiRequestResult();
 		$resultObject = $this->client->doQueue();
 		$this->client->throwExceptionIfError($resultObject);
 		$this->client->validateObjectType($resultObject, "null");
@@ -513,7 +671,7 @@ class KalturaSystemPartnerService extends KalturaServiceBase
 		$this->client->addParam($kparams, "userId", $userId);
 		$this->client->queueServiceActionCall("systempartner_systempartner", "getAdminSession", $kparams);
 		if ($this->client->isMultiRequest())
-			return null;
+			return $this->client->getMultiRequestResult();
 		$resultObject = $this->client->doQueue();
 		$this->client->throwExceptionIfError($resultObject);
 		$this->client->validateObjectType($resultObject, "string");
@@ -527,7 +685,7 @@ class KalturaSystemPartnerService extends KalturaServiceBase
 		$this->client->addParam($kparams, "configuration", $configuration->toParams());
 		$this->client->queueServiceActionCall("systempartner_systempartner", "updateConfiguration", $kparams);
 		if ($this->client->isMultiRequest())
-			return null;
+			return $this->client->getMultiRequestResult();
 		$resultObject = $this->client->doQueue();
 		$this->client->throwExceptionIfError($resultObject);
 		$this->client->validateObjectType($resultObject, "null");
@@ -540,7 +698,7 @@ class KalturaSystemPartnerService extends KalturaServiceBase
 		$this->client->addParam($kparams, "partnerId", $partnerId);
 		$this->client->queueServiceActionCall("systempartner_systempartner", "getConfiguration", $kparams);
 		if ($this->client->isMultiRequest())
-			return null;
+			return $this->client->getMultiRequestResult();
 		$resultObject = $this->client->doQueue();
 		$this->client->throwExceptionIfError($resultObject);
 		$this->client->validateObjectType($resultObject, "KalturaSystemPartnerConfiguration");
@@ -552,7 +710,31 @@ class KalturaSystemPartnerService extends KalturaServiceBase
 		$kparams = array();
 		$this->client->queueServiceActionCall("systempartner_systempartner", "getPackages", $kparams);
 		if ($this->client->isMultiRequest())
-			return null;
+			return $this->client->getMultiRequestResult();
+		$resultObject = $this->client->doQueue();
+		$this->client->throwExceptionIfError($resultObject);
+		$this->client->validateObjectType($resultObject, "array");
+		return $resultObject;
+	}
+
+	function getPackagesClassOfService()
+	{
+		$kparams = array();
+		$this->client->queueServiceActionCall("systempartner_systempartner", "getPackagesClassOfService", $kparams);
+		if ($this->client->isMultiRequest())
+			return $this->client->getMultiRequestResult();
+		$resultObject = $this->client->doQueue();
+		$this->client->throwExceptionIfError($resultObject);
+		$this->client->validateObjectType($resultObject, "array");
+		return $resultObject;
+	}
+
+	function getPackagesVertical()
+	{
+		$kparams = array();
+		$this->client->queueServiceActionCall("systempartner_systempartner", "getPackagesVertical", $kparams);
+		if ($this->client->isMultiRequest())
+			return $this->client->getMultiRequestResult();
 		$resultObject = $this->client->doQueue();
 		$this->client->throwExceptionIfError($resultObject);
 		$this->client->validateObjectType($resultObject, "array");
@@ -567,10 +749,26 @@ class KalturaSystemPartnerService extends KalturaServiceBase
 		$this->client->addParam($kparams, "newPassword", $newPassword);
 		$this->client->queueServiceActionCall("systempartner_systempartner", "resetUserPassword", $kparams);
 		if ($this->client->isMultiRequest())
-			return null;
+			return $this->client->getMultiRequestResult();
 		$resultObject = $this->client->doQueue();
 		$this->client->throwExceptionIfError($resultObject);
 		$this->client->validateObjectType($resultObject, "null");
+		return $resultObject;
+	}
+
+	function listUserLoginData(KalturaUserLoginDataFilter $filter = null, KalturaFilterPager $pager = null)
+	{
+		$kparams = array();
+		if ($filter !== null)
+			$this->client->addParam($kparams, "filter", $filter->toParams());
+		if ($pager !== null)
+			$this->client->addParam($kparams, "pager", $pager->toParams());
+		$this->client->queueServiceActionCall("systempartner_systempartner", "listUserLoginData", $kparams);
+		if ($this->client->isMultiRequest())
+			return $this->client->getMultiRequestResult();
+		$resultObject = $this->client->doQueue();
+		$this->client->throwExceptionIfError($resultObject);
+		$this->client->validateObjectType($resultObject, "KalturaUserLoginDataListResponse");
 		return $resultObject;
 	}
 }

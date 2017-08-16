@@ -138,36 +138,6 @@ class KalturaResultObject {
 		}
 		return $this->playerConfig['vars'];
 	}	
-	/**
-	 * Kaltura object provides sources, sometimes no sources are found or an error occurs in 
-	 * a video delivery context we don't want ~nothing~ to happen instead we send a special error
-	 * video. 
-	 */
-	public static function getErrorVideoSources(){
-		// @@TODO pull this from config: 'Kaltura.BlackVideoSources' 
-		return array(
-		    'iphone' => array( 
-		    	'src' => 'http://www.kaltura.com/p/243342/sp/24334200/playManifest/entryId/1_g18we0u3/flavorId/1_ktavj42z/format/url/protocol/http/a.mp4',
-		    	'type' =>'video/h264',
-				'data-flavorid' => 'iPhone'
-		    ),
-		    'ogg' => array(  
-		    	'src' => 'http://www.kaltura.com/p/243342/sp/24334200/playManifest/entryId/1_g18we0u3/flavorId/1_gtm9gzz2/format/url/protocol/http/a.ogg',
-		    	'type' => 'video/ogg',
-		    	'data-flavorid' => 'ogg'
-		    ),
-		    'webm' => array(
-		    	'src' => 'http://www.kaltura.com/p/243342/sp/24334200/playManifest/entryId/1_g18we0u3/flavorId/1_bqsosjph/format/url/protocol/http/a.webm',
-		    	'type' => 'video/webm',
-		    	'data-flavorid' => 'webm'
-		    ),
-		    '3gp' => array( 
-		    	'src' => 'http://www.kaltura.com/p/243342/sp/24334200/playManifest/entryId/1_g18we0u3/flavorId/1_mfqemmyg/format/url/protocol/http/a.mp4',
-		    	'type' => 'video/3gp',
-		    	'data-flavorid' => '3gp'
-		    )
-		 );
-	}
 	public static function getBlackVideoSources(){
 		// @@TODO merge with Kaltura.BlackVideoSources config!!
 		return array(
@@ -194,7 +164,7 @@ class KalturaResultObject {
 	// empty player test ( nothing in the uiConf says "player" diffrent from other widgets so we 
 	// we just have to use the 
 	function isEmptyPlayer(){
-		if( !$this->urlParameters['entry_id'] && !$this->isJavascriptRewriteObject()
+		if( !$this->urlParameters['entry_id'] && ! isset( $this->urlParameters['flashvars']['referenceId'] ) && !$this->isJavascriptRewriteObject()
 			&& !$this->isPlaylist() ){
 			return true;
 		}
@@ -267,96 +237,6 @@ class KalturaResultObject {
 						return $restrictedMessage;
 					}
 				}
-			}
-		}
-		return false;
-	}
-
-	public function getSourceForUserAgent( $sources = null, $userAgent = false ){
-		// Get all sources
-		if( !$sources ){
-			$sources = $this->getSources();
-		}
-		// Get user agent
-		if( !$userAgent ){
-			$userAgent = $this->getUserAgent();
-		}
-
-		$flavorUrl = false ;
-		// First set the most compatible source ( iPhone h.264 )
-		$iPhoneSrc = $this->getSourceFlavorUrl( 'iPhone' );
-		if( $iPhoneSrc ) {
-			$flavorUrl = $iPhoneSrc;
-		}
-		// if your on an iphone we are done: 
-		if( strpos( $userAgent, 'iPhone' )  ){
-			return $flavorUrl;
-		}
-		// h264 for iPad
-		$iPadSrc = $this->getSourceFlavorUrl( 'ipad' );
-		if( $iPadSrc ) {
-			$flavorUrl = $iPadSrc;
-		}
-		// rtsp3gp for BlackBerry
-		$rtspSrc = $this->getSourceFlavorUrl( 'rtsp3gp' );
-		if( strpos( $userAgent, 'BlackBerry' ) !== false && $rtspSrc){
-			return 	$rtspSrc;
-		}
-		
-		// 3gp check 
-		$gpSrc = $this->getSourceFlavorUrl( '3gp' );
-		if( $gpSrc ) {
-			// Blackberry ( newer blackberry's can play the iPhone src but better safe than broken )
-			if( strpos( $userAgent, 'BlackBerry' ) !== false ){
-				$flavorUrl = $gpSrc;
-			}
-			// if we have no iphone source then do use 3gp:
-			if( !$flavorUrl ){
-				$flavorUrl = $gpSrc;
-			}
-		}
-		
-		// Firefox > 3.5 and chrome support ogg
-		$ogSrc = $this->getSourceFlavorUrl( 'ogg' );
-		if( $ogSrc ){
-			// chrome supports ogg:
-			if( strpos( $userAgent, 'Chrome' ) !== false ){
-				$flavorUrl = $ogSrc;
-			}
-			// firefox 3.5 and greater supported ogg:
-			if( strpos( $userAgent, 'Firefox' ) !== false ){
-				$flavorUrl = $ogSrc;
-			}
-		}
-		
-		// Firefox > 3 and chrome support webm ( use after ogg )
-		$webmSrc = $this->getSourceFlavorUrl( 'webm' );
-		if( $webmSrc ){
-			if( strpos( $userAgent, 'Chrome' ) !== false ){
-				$flavorUrl = $webmSrc;
-			}
-			if( strpos( $userAgent, 'Firefox/3' ) === false && strpos( $userAgent, 'Firefox' ) !== false ){
-				$flavorUrl = $webmSrc;
-			}
-		}
-		return $flavorUrl;
-	}
-	/**
-	 * Gets a single source url flavors by flavor id ( gets the first flavor ) 
-	 * 
-	 * TODO we should support setting a bitrate as well.
-	 * 
-	 * @param $sources 
-	 * 	{Array} the set of sources to search 
-	 * @param $flavorId 
-	 * 	{String} the flavor id string
-	 */
-	private function getSourceFlavorUrl( $flavorId = false){
-		// Get all sources ( if not provided ) 
-		$sources = $this->getSources();
-		foreach( $sources as $inx => $source ){
-			if( strtolower( $source[ 'data-flavorid' ] )  == strtolower( $flavorId ) ) {
-				return $source['src'];
 			}
 		}
 		return false;
@@ -607,6 +487,7 @@ class KalturaResultObject {
 				if( $KalturaFlavorAsset->status == 4 ){
 					$source['data-error'] = "not-ready-transcoding" ;
 				}
+				continue;
 			}
 			
 			// If we have apple http steaming then use it for ipad & iphone instead of regular flavors
@@ -816,7 +697,7 @@ class KalturaResultObject {
 		}
 
 		// Check for no cache flag
-		if( isset( $_REQUEST['nocache'] ) && $_REQUEST['nocache'] == true ) {
+		if( isset( $_REQUEST['nocache'] ) && $_REQUEST['nocache'] == 'true' ) {
 			$this->noCache = true;
 		}
 
@@ -867,8 +748,8 @@ class KalturaResultObject {
 		} else {
 			return $this->getEntryResult();
 		}
-	
 	}
+	
 	function getUiConfResult(){
 		// no need to call this.. the getters don't have clean lazy init and . 
 		// $this->loadUiConf
@@ -1014,23 +895,34 @@ class KalturaResultObject {
 			}
 			$namedMultiRequest = new KalturaNamedMultiRequest( $client, $default_params );
 			
+			// Added support for passing referenceId instead of entryId
+			$useReferenceId = false;
+			if( ! $this->urlParameters['entry_id'] && isset($this->urlParameters['flashvars']['referenceId']) ) {
+				// Use baseEntry->listByReferenceId
+				$useReferenceId = true;
+				$refIndex = $namedMultiRequest->addNamedRequest( 'referenceResult', 'baseEntry', 'listByReferenceId', array( 'refId' => $this->urlParameters['flashvars']['referenceId'] ) );
+				$entryIdParamValue = '{' . $refIndex . ':result:objects:0:id}';
+			} else {
+				// Use normal baseEntry->get
+				$namedMultiRequest->addNamedRequest( 'meta', 'baseEntry', 'get', array( 'entryId' => $this->urlParameters['entry_id'] ) );
+				// Set entry id param value for other requests
+				$entryIdParamValue = $this->urlParameters['entry_id'];
+			}
+			// Set entry parameter
+			$entryParam = array( 'entryId' => $entryIdParamValue );
 			// Flavors: 
-			$entryParam = array( 'entryId' => $this->urlParameters['entry_id'] );
 			$namedMultiRequest->addNamedRequest( 'flavors', 'flavorAsset', 'getByEntryId', $entryParam );
 				
 			// Access control NOTE: kaltura does not use http header spelling of Referer instead kaltura uses: "referrer"
 			$params = array_merge( $entryParam, array( "contextDataParams" => array( 'referrer' =>  $this->getReferer() ) ) );
 			$namedMultiRequest->addNamedRequest( 'accessControl', 'baseEntry', 'getContextData', $params );
-
-			// Entry Meta
-			$namedMultiRequest->addNamedRequest( 'meta', 'baseEntry', 'get', $entryParam );
 			
 			// Entry Custom Metadata
 			// Always get custom metadata for now 
 			//if( $this->getPlayerConfig(false, 'requiredMetadataFields') ) {
 				$filter = new KalturaMetadataFilter();
 				$filter->orderBy = KalturaMetadataOrderBy::CREATED_AT_ASC;
-				$filter->objectIdEqual = $this->urlParameters['entry_id'];
+				$filter->objectIdEqual = $entryIdParamValue;
 				$filter->metadataObjectTypeEqual = KalturaMetadataObjectType::ENTRY;
 				
 				$metadataPager =  new KalturaFilterPager();
@@ -1043,7 +935,7 @@ class KalturaResultObject {
 			if( $this->getPlayerConfig(false, 'getCuePointsData') !== false ) {
 				$filter = new KalturaCuePointFilter();
 				$filter->orderBy = KalturaAdCuePointOrderBy::START_TIME_ASC;
-				$filter->entryIdEqual = $this->urlParameters['entry_id'];
+				$filter->entryIdEqual = $entryIdParamValue;
 
 				$params = array( 'filter' => $filter );
 				$namedMultiRequest->addNamedRequest( 'entryCuePoints', "cuepoint_cuepoint", "list", $params );
@@ -1055,7 +947,7 @@ class KalturaResultObject {
 			
 			// Check if the server cached the result by search for "cached-dispatcher" in the request headers
 			// If not, do not cache the request (Used for Access control cache issue)
-			$requestCached = strpos( $client->getHeaders(), "X-Kaltura: cached-dispatcher" );
+			$requestCached = in_array( "X-Kaltura: cached-dispatcher", $client->getResponseHeaders() );
 			if( $requestCached === false ) {
 				$this->noCache = true;
 			}
@@ -1065,8 +957,18 @@ class KalturaResultObject {
 			throw new Exception( KALTURA_GENERIC_SERVER_ERROR . "\n" . $e->getMessage() );
 			return array();
 		}
+
+		if( $useReferenceId ) {
+			if( $resultObject['referenceResult'] && $resultObject['referenceResult']->objects ) {
+				$this->urlParameters['entry_id'] = $resultObject['referenceResult']->objects[0]->id;
+				$resultObject['meta'] = $resultObject['referenceResult']->objects[0];
+			} else {
+				$resultObject['meta'] = array();
+			}
+		}
+
 		// Check that the ks was valid on the first response ( flavors ) 
-		if( isset( $resultObject['flavors']['code'] ) && $resultObject['flavors']['code'] == 'INVALID_KS' ){
+		if( is_array( $resultObject['meta'] ) && isset( $resultObject['meta']['code'] ) && $resultObject['meta']['code'] == 'INVALID_KS' ){
 			$this->error = 'Error invalid KS';
 			return array();
 		}
@@ -1126,6 +1028,18 @@ class KalturaResultObject {
 		}
 		return ( isset( $_SERVER['HTTP_REFERER'] ) ) ? $_SERVER['HTTP_REFERER'] : 'http://www.kaltura.org/';
 	}
+	private function getRemoteAddrHeader(){
+		global $wgKalturaRemoteAddressSalt, $wgKalturaForceIP;
+		if( $wgKalturaRemoteAddressSalt === false ){
+			return '';
+		}
+		$ip = $_SERVER['REMOTE_ADDR'];
+		if( $wgKalturaForceIP ){
+			$ip = $wgKalturaForceIP;
+		}
+		$s = $ip . "," . time() . "," . microtime( true );
+		return "X_KALTURA_REMOTE_ADDR: " . $s . ',' . md5( $s . "," . $wgKalturaRemoteAddressSalt );
+	}
 	private function getClient(){
 		global $mwEmbedRoot, $wgKalturaUiConfCacheTime, $wgScriptCacheDirectory, 
 			$wgMwEmbedVersion, $wgKalturaServiceTimeout, $wgLogApiRequests;
@@ -1142,6 +1056,8 @@ class KalturaResultObject {
 		$conf->clientTag = $this->clientTag;
 		$conf->curlTimeout = $wgKalturaServiceTimeout;
 		$conf->userAgent = $this->getUserAgent();
+		$conf->verifySSL = false;
+		$conf->requestHeaders = array(  $this->getRemoteAddrHeader() );
 
 		if( $wgLogApiRequests ) {
 			require_once 'KalturaLogger.php';

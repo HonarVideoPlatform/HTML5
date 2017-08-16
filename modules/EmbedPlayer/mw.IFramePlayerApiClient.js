@@ -138,15 +138,26 @@ mw.IFramePlayerApiClient.prototype = {
 					$parent.css( 'position', 'static' );
 				}
 			});
+			// don't resize bellow original size: 
+			var targetSize = {
+				'width' : $( window ).width(),
+				'height' : $( window ).height()
+			};
+			if( targetSize.width < orgSize.width ){
+				targetSize.width = orgSize.width;
+			}
+			if( targetSize.height < orgSize.height ){
+				targetSize.height =  orgSize.height;
+			}
 			// Make the iframe fullscreen
 			$iframe
 				.css({
-					'z-index': mw.getConfig( 'EmbedPlayer.FullScreenZIndex' ) + 1,
+					'z-index': mw.getConfig( 'EmbedPlayer.FullScreenZIndex' ),
 					'position': playerCssPosition,
 					'top' : 0,
 					'left' : 0,
-					'width' : $(window).width(),
-					'height' : $(window).height(),
+					'width' : targetSize.width,
+					'height' : targetSize.height,
 					'margin': 0
 				})
 				.data(

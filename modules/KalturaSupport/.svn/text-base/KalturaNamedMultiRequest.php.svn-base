@@ -17,6 +17,7 @@ class KalturaNamedMultiRequest {
 		}
 		$this->client->queueServiceActionCall($service, $action, $kparams );
 		$this->requestInx[ count( $this->requestInx ) ] = $name;
+		return count( $this->requestInx );
 	}
 	function doQueue(){
 		$rawResultObject = $this->client->doQueue();

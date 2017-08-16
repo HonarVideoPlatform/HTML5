@@ -436,6 +436,8 @@ mw.EmbedPlayer.prototype = {
 	checkPlayerSources: function() {
 		mw.log( 'EmbedPlayer::checkPlayerSources: ' + this.id );
 		var _this = this;
+		// Allow plugins to listen to a preCheckPlayerSources ( for registering the source loading point )
+		$( _this ).trigger( 'preCheckPlayerSources' );
 
 		// Allow plugins to block on sources lookup ( cases where we just have an api key for example )
 		$( _this ).triggerQueueCallback( 'checkPlayerSourcesEvent', function(){
@@ -1004,7 +1006,12 @@ mw.EmbedPlayer.prototype = {
 		mw.log("EmbedPlayer::showPluginMissingHTML");
 		// Hide loader
 		this.hidePlayerSpinner();
-		
+
+		// Control builder ( for play button )
+		this.controlBuilder = new mw.PlayerControlBuilder( this );
+		// Make sure interface is available
+		this.getPlayerInterface();
+
 		// Error in loading media ( trigger the mediaLoadError )
 		$this.trigger( 'mediaLoadError' );
 		
@@ -1027,11 +1034,6 @@ mw.EmbedPlayer.prototype = {
 		
 		// Set the top level container to relative position:
 		$this.css('position', 'relative');
-		
-		// Control builder ( for play button )
-		this.controlBuilder = new mw.PlayerControlBuilder( this );					
-		// Make sure interface is available
-		this.getPlayerInterface();
 	
 		// Update the poster and html:
 		this.updatePosterHTML();
@@ -1173,6 +1175,9 @@ mw.EmbedPlayer.prototype = {
 	 * 		posterSrc Poster src url
 	 */	
 	updatePosterSrc: function( posterSrc ){
+		if( ! posterSrc ) {
+			posterSrc = mw.getConfig( 'EmbedPlayer.BlackPixel' );
+		}
 		this.poster = posterSrc;
 		this.updatePosterHTML();
 		this.applyIntrinsicAspect();

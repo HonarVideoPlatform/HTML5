@@ -1,4 +1,32 @@
 <?php
+// ===================================================================================================
+//                           _  __     _ _
+//                          | |/ /__ _| | |_ _  _ _ _ __ _
+//                          | ' </ _` | |  _| || | '_/ _` |
+//                          |_|\_\__,_|_|\__|\_,_|_| \__,_|
+//
+// This file is part of the Kaltura Collaborative Media Suite which allows users
+// to do with audio, video, and animation what Wiki platfroms allow them to do with
+// text.
+//
+// Copyright (C) 2006-2011  Kaltura Inc.
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see <http://www.gnu.org/licenses/>.
+//
+// @ignore
+// ===================================================================================================
+
 require_once("KalturaClientBase.php");
 
 class KalturaAccessControlOrderBy
@@ -30,6 +58,7 @@ class KalturaApiParameterPermissionItemAction
 	const READ = "read";
 	const UPDATE = "update";
 	const INSERT = "insert";
+	const USAGE = "all";
 }
 
 class KalturaApiParameterPermissionItemOrderBy
@@ -69,15 +98,13 @@ class KalturaAssetParamsOutputOrderBy
 {
 }
 
-class KalturaAssetType
+class KalturaAssetStatus
 {
-	const FLAVOR = "1";
-	const THUMBNAIL = "2";
-	const DOCUMENT = "document.Document";
-	const SWF = "document.SWF";
-	const PDF = "document.PDF";
-	const CAPTION = "caption.Caption";
-	const ATTACHMENT = "attachment.Attachment";
+	const ERROR = -1;
+	const QUEUED = 0;
+	const READY = 2;
+	const DELETED = 3;
+	const IMPORTING = 7;
 }
 
 class KalturaAudioCodec
@@ -87,6 +114,9 @@ class KalturaAudioCodec
 	const AAC = "aac";
 	const VORBIS = "vorbis";
 	const WMA = "wma";
+	const WMAPRO = "wmapro";
+	const AMRNB = "amrnb";
+	const MPEG2 = "mpeg2";
 	const COPY = "copy";
 }
 
@@ -102,6 +132,10 @@ class KalturaBaseEntryOrderBy
 	const UPDATED_AT_DESC = "-updatedAt";
 	const RANK_ASC = "+rank";
 	const RANK_DESC = "-rank";
+	const START_DATE_ASC = "+startDate";
+	const START_DATE_DESC = "-startDate";
+	const END_DATE_ASC = "+endDate";
+	const END_DATE_DESC = "-endDate";
 	const PARTNER_SORT_VALUE_ASC = "+partnerSortValue";
 	const PARTNER_SORT_VALUE_DESC = "-partnerSortValue";
 }
@@ -227,6 +261,9 @@ class KalturaBatchJobType
 	const DISTRIBUTION_ENABLE = "contentDistribution.DistributionEnable";
 	const DISTRIBUTION_DISABLE = "contentDistribution.DistributionDisable";
 	const DISTRIBUTION_SYNC = "contentDistribution.DistributionSync";
+	const DROP_FOLDER_WATCHER = "dropFolder.DropFolderWatcher";
+	const DROP_FOLDER_HANDLER = "dropFolder.DropFolderHandler";
+	const PARSE_CAPTION_ASSET = "captionSearch.parseCaptionAsset";
 }
 
 class KalturaBitRateMode
@@ -235,8 +272,25 @@ class KalturaBitRateMode
 	const VBR = 2;
 }
 
+class KalturaBulkUploadAction
+{
+	const ADD = 1;
+	const UPDATE = 2;
+	const DELETE = 3;
+	const REPLACE = 4;
+	const TRANSFORM_XSLT = 5;
+}
+
+class KalturaBulkUploadResultObjectType
+{
+	const ENTRY = "1";
+}
+
 class KalturaBulkUploadType
 {
+	const CSV = "bulkUploadCsv.CSV";
+	const XML = "bulkUploadXml.XML";
+	const DROP_FOLDER_XML = "dropFolderXmlBulkUpload.DROP_FOLDER_XML";
 }
 
 class KalturaCategoryOrderBy
@@ -345,6 +399,10 @@ class KalturaDataEntryOrderBy
 	const UPDATED_AT_DESC = "-updatedAt";
 	const RANK_ASC = "+rank";
 	const RANK_DESC = "-rank";
+	const START_DATE_ASC = "+startDate";
+	const START_DATE_DESC = "-startDate";
+	const END_DATE_ASC = "+endDate";
+	const END_DATE_DESC = "-endDate";
 	const PARTNER_SORT_VALUE_ASC = "+partnerSortValue";
 	const PARTNER_SORT_VALUE_DESC = "-partnerSortValue";
 }
@@ -405,6 +463,7 @@ class KalturaEntryStatus
 	const BLOCKED = "6";
 	const NO_CONTENT = "7";
 	const INFECTED = "virusScan.Infected";
+	const SCAN_FAILURE = "virusScan.ScanFailure";
 }
 
 class KalturaEntryType
@@ -423,11 +482,12 @@ class KalturaFileSyncObjectType
 	const ENTRY = "1";
 	const UICONF = "2";
 	const BATCHJOB = "3";
-	const FLAVOR_ASSET = "4";
+	const ASSET = "4";
 	const METADATA = "5";
 	const METADATA_PROFILE = "6";
 	const SYNDICATION_FEED = "7";
 	const CONVERSION_PROFILE = "8";
+	const FLAVOR_ASSET = "4";
 	const GENERIC_DISTRIBUTION_ACTION = "contentDistribution.GenericDistributionAction";
 	const ENTRY_DISTRIBUTION = "contentDistribution.EntryDistribution";
 	const DISTRIBUTION_PROFILE = "contentDistribution.DistributionProfile";
@@ -447,16 +507,16 @@ class KalturaFlavorAssetOrderBy
 
 class KalturaFlavorAssetStatus
 {
-	const ERROR = -1;
-	const QUEUED = 0;
 	const CONVERTING = 1;
-	const READY = 2;
-	const DELETED = 3;
 	const NOT_APPLICABLE = 4;
 	const TEMP = 5;
 	const WAIT_FOR_CONVERT = 6;
-	const IMPORTING = 7;
 	const VALIDATING = 8;
+	const ERROR = -1;
+	const QUEUED = 0;
+	const READY = 2;
+	const DELETED = 3;
+	const IMPORTING = 7;
 }
 
 class KalturaFlavorParamsOrderBy
@@ -756,7 +816,7 @@ class KalturaLanguage
 	const UR = "Urdu";
 	const UZ = "Uzbek";
 	const VI = "Vietnamese";
-	const VO = "Volap?k";
+	const VO = "Volapuk";
 	const CY = "Welsh";
 	const WO = "Wolof";
 	const XH = "Xhosa";
@@ -764,6 +824,153 @@ class KalturaLanguage
 	const JI = "Yiddish";
 	const YO = "Yoruba";
 	const ZU = "Zulu";
+}
+
+class KalturaLanguageCode
+{
+	const AB = "ab";
+	const AA = "aa";
+	const AF = "af";
+	const SQ = "sq";
+	const AM = "am";
+	const AR = "ar";
+	const HY = "hy";
+	const AS_ = "as";
+	const AY = "ay";
+	const AZ = "az";
+	const BA = "ba";
+	const EU = "eu";
+	const BN = "bn";
+	const DZ = "dz";
+	const BH = "bh";
+	const BI = "bi";
+	const BR = "br";
+	const BG = "bg";
+	const MY = "my";
+	const BE = "be";
+	const KM = "km";
+	const CA = "ca";
+	const ZH = "zh";
+	const CO = "co";
+	const HR = "hr";
+	const CS = "cs";
+	const DA = "da";
+	const NL = "nl";
+	const EN = "en";
+	const EO = "eo";
+	const ET = "et";
+	const FO = "fo";
+	const FA = "fa";
+	const FJ = "fj";
+	const FI = "fi";
+	const FR = "fr";
+	const FY = "fy";
+	const GL = "gl";
+	const GD = "gd";
+	const GV = "gv";
+	const KA = "ka";
+	const DE = "de";
+	const EL = "el";
+	const KL = "kl";
+	const GN = "gn";
+	const GU = "gu";
+	const HA = "ha";
+	const HE = "he";
+	const IW = "iw";
+	const HI = "hi";
+	const HU = "hu";
+	const IS = "is";
+	const ID = "id";
+	const IN = "in";
+	const IA = "ia";
+	const IE = "ie";
+	const IU = "iu";
+	const IK = "ik";
+	const GA = "ga";
+	const IT = "it";
+	const JA = "ja";
+	const JV = "jv";
+	const KN = "kn";
+	const KS = "ks";
+	const KK = "kk";
+	const RW = "rw";
+	const KY = "ky";
+	const RN = "rn";
+	const KO = "ko";
+	const KU = "ku";
+	const LO = "lo";
+	const LA = "la";
+	const LV = "lv";
+	const LI = "li";
+	const LN = "ln";
+	const LT = "lt";
+	const MK = "mk";
+	const MG = "mg";
+	const MS = "ms";
+	const ML = "ml";
+	const MT = "mt";
+	const MI = "mi";
+	const MR = "mr";
+	const MO = "mo";
+	const MN = "mn";
+	const NA = "na";
+	const NE = "ne";
+	const NO = "no";
+	const OC = "oc";
+	const OR_ = "or";
+	const OM = "om";
+	const PS = "ps";
+	const PL = "pl";
+	const PT = "pt";
+	const PA = "pa";
+	const QU = "qu";
+	const RM = "rm";
+	const RO = "ro";
+	const RU = "ru";
+	const SM = "sm";
+	const SG = "sg";
+	const SA = "sa";
+	const SR = "sr";
+	const SH = "sh";
+	const ST = "st";
+	const TN = "tn";
+	const SN = "sn";
+	const SD = "sd";
+	const SI = "si";
+	const SS = "ss";
+	const SK = "sk";
+	const SL = "sl";
+	const SO = "so";
+	const ES = "es";
+	const SU = "su";
+	const SW = "sw";
+	const SV = "sv";
+	const TL = "tl";
+	const TG = "tg";
+	const TA = "ta";
+	const TT = "tt";
+	const TE = "te";
+	const TH = "th";
+	const BO = "bo";
+	const TI = "ti";
+	const TO = "to";
+	const TS = "ts";
+	const TR = "tr";
+	const TK = "tk";
+	const TW = "tw";
+	const UG = "ug";
+	const UK = "uk";
+	const UR = "ur";
+	const UZ = "uz";
+	const VI = "vi";
+	const VO = "vo";
+	const CY = "cy";
+	const WO = "wo";
+	const XH = "xh";
+	const YI = "yi";
+	const JI = "ji";
+	const YO = "yo";
+	const ZU = "zu";
 }
 
 class KalturaLicenseType
@@ -809,6 +1016,10 @@ class KalturaLiveStreamAdminEntryOrderBy
 	const UPDATED_AT_DESC = "-updatedAt";
 	const RANK_ASC = "+rank";
 	const RANK_DESC = "-rank";
+	const START_DATE_ASC = "+startDate";
+	const START_DATE_DESC = "-startDate";
+	const END_DATE_ASC = "+endDate";
+	const END_DATE_DESC = "-endDate";
 	const PARTNER_SORT_VALUE_ASC = "+partnerSortValue";
 	const PARTNER_SORT_VALUE_DESC = "-partnerSortValue";
 }
@@ -835,6 +1046,10 @@ class KalturaLiveStreamEntryOrderBy
 	const UPDATED_AT_DESC = "-updatedAt";
 	const RANK_ASC = "+rank";
 	const RANK_DESC = "-rank";
+	const START_DATE_ASC = "+startDate";
+	const START_DATE_DESC = "-startDate";
+	const END_DATE_ASC = "+endDate";
+	const END_DATE_DESC = "-endDate";
 	const PARTNER_SORT_VALUE_ASC = "+partnerSortValue";
 	const PARTNER_SORT_VALUE_DESC = "-partnerSortValue";
 }
@@ -851,54 +1066,6 @@ class KalturaMailJobOrderBy
 	const EXECUTION_ATTEMPTS_DESC = "-executionAttempts";
 	const LOCK_VERSION_ASC = "+lockVersion";
 	const LOCK_VERSION_DESC = "-lockVersion";
-}
-
-class KalturaMailJobStatus
-{
-	const PENDING = 1;
-	const SENT = 2;
-	const ERROR = 3;
-	const QUEUED = 4;
-}
-
-class KalturaMailType
-{
-	const MAIL_TYPE_KALTURA_NEWSLETTER = 10;
-	const MAIL_TYPE_ADDED_TO_FAVORITES = 11;
-	const MAIL_TYPE_ADDED_TO_CLIP_FAVORITES = 12;
-	const MAIL_TYPE_NEW_COMMENT_IN_PROFILE = 13;
-	const MAIL_TYPE_CLIP_ADDED_YOUR_KALTURA = 20;
-	const MAIL_TYPE_VIDEO_ADDED = 21;
-	const MAIL_TYPE_ROUGHCUT_CREATED = 22;
-	const MAIL_TYPE_ADDED_KALTURA_TO_YOUR_FAVORITES = 23;
-	const MAIL_TYPE_NEW_COMMENT_IN_KALTURA = 24;
-	const MAIL_TYPE_CLIP_ADDED = 30;
-	const MAIL_TYPE_VIDEO_CREATED = 31;
-	const MAIL_TYPE_ADDED_KALTURA_TO_HIS_FAVORITES = 32;
-	const MAIL_TYPE_NEW_COMMENT_IN_KALTURA_YOU_CONTRIBUTED = 33;
-	const MAIL_TYPE_CLIP_CONTRIBUTED = 40;
-	const MAIL_TYPE_ROUGHCUT_CREATED_SUBSCRIBED = 41;
-	const MAIL_TYPE_ADDED_KALTURA_TO_HIS_FAVORITES_SUBSCRIBED = 42;
-	const MAIL_TYPE_NEW_COMMENT_IN_KALTURA_YOU_SUBSCRIBED = 43;
-	const MAIL_TYPE_REGISTER_CONFIRM = 50;
-	const MAIL_TYPE_PASSWORD_RESET = 51;
-	const MAIL_TYPE_LOGIN_MAIL_RESET = 52;
-	const MAIL_TYPE_REGISTER_CONFIRM_VIDEO_SERVICE = 54;
-	const MAIL_TYPE_VIDEO_READY = 60;
-	const MAIL_TYPE_VIDEO_IS_READY = 62;
-	const MAIL_TYPE_BULK_DOWNLOAD_READY = 63;
-	const MAIL_TYPE_NOTIFY_ERR = 70;
-	const MAIL_TYPE_ACCOUNT_UPGRADE_CONFIRM = 80;
-	const MAIL_TYPE_VIDEO_SERVICE_NOTICE = 81;
-	const MAIL_TYPE_VIDEO_SERVICE_NOTICE_LIMIT_REACHED = 82;
-	const MAIL_TYPE_VIDEO_SERVICE_NOTICE_ACCOUNT_LOCKED = 83;
-	const MAIL_TYPE_VIDEO_SERVICE_NOTICE_ACCOUNT_DELETED = 84;
-	const MAIL_TYPE_VIDEO_SERVICE_NOTICE_UPGRADE_OFFER = 85;
-	const MAIL_TYPE_ACCOUNT_REACTIVE_CONFIRM = 86;
-	const MAIL_TYPE_SYSTEM_USER_RESET_PASSWORD = 110;
-	const MAIL_TYPE_SYSTEM_USER_RESET_PASSWORD_SUCCESS = 111;
-	const MAIL_TYPE_SYSTEM_USER_NEW_PASSWORD = 112;
-	const MAIL_TYPE_SYSTEM_USER_CREDENTIALS_SAVED = 113;
 }
 
 class KalturaMediaEntryOrderBy
@@ -923,6 +1090,10 @@ class KalturaMediaEntryOrderBy
 	const UPDATED_AT_DESC = "-updatedAt";
 	const RANK_ASC = "+rank";
 	const RANK_DESC = "-rank";
+	const START_DATE_ASC = "+startDate";
+	const START_DATE_DESC = "-startDate";
+	const END_DATE_ASC = "+endDate";
+	const END_DATE_DESC = "-endDate";
 	const PARTNER_SORT_VALUE_ASC = "+partnerSortValue";
 	const PARTNER_SORT_VALUE_DESC = "-partnerSortValue";
 }
@@ -937,6 +1108,12 @@ class KalturaMediaFlavorParamsOutputOrderBy
 
 class KalturaMediaInfoOrderBy
 {
+}
+
+class KalturaMediaParserType
+{
+	const MEDIAINFO = "0";
+	const FFMPEG = "1";
 }
 
 class KalturaMediaType
@@ -970,6 +1147,10 @@ class KalturaMixEntryOrderBy
 	const UPDATED_AT_DESC = "-updatedAt";
 	const RANK_ASC = "+rank";
 	const RANK_DESC = "-rank";
+	const START_DATE_ASC = "+startDate";
+	const START_DATE_DESC = "-startDate";
+	const END_DATE_ASC = "+endDate";
+	const END_DATE_DESC = "-endDate";
 	const PARTNER_SORT_VALUE_ASC = "+partnerSortValue";
 	const PARTNER_SORT_VALUE_DESC = "-partnerSortValue";
 }
@@ -994,14 +1175,6 @@ class KalturaModerationObjectType
 	const USER = 3;
 }
 
-class KalturaNotificationObjectType
-{
-	const ENTRY = 1;
-	const KSHOW = 2;
-	const USER = 3;
-	const BATCH_JOB = 4;
-}
-
 class KalturaNotificationOrderBy
 {
 	const CREATED_AT_ASC = "+createdAt";
@@ -1014,17 +1187,6 @@ class KalturaNotificationOrderBy
 	const EXECUTION_ATTEMPTS_DESC = "-executionAttempts";
 	const LOCK_VERSION_ASC = "+lockVersion";
 	const LOCK_VERSION_DESC = "-lockVersion";
-}
-
-class KalturaNotificationStatus
-{
-	const PENDING = 1;
-	const SENT = 2;
-	const ERROR = 3;
-	const SHOULD_RESEND = 4;
-	const ERROR_RESENDING = 5;
-	const SENT_SYNCH = 6;
-	const QUEUED = 7;
 }
 
 class KalturaNotificationType
@@ -1091,6 +1253,7 @@ class KalturaPartnerType
 	const JOOMLA = 106;
 	const BLACKBOARD = 107;
 	const SAKAI = 108;
+	const ADMIN_CONSOLE = 109;
 }
 
 class KalturaPermissionItemOrderBy
@@ -1156,6 +1319,10 @@ class KalturaPlayableEntryOrderBy
 	const UPDATED_AT_DESC = "-updatedAt";
 	const RANK_ASC = "+rank";
 	const RANK_DESC = "-rank";
+	const START_DATE_ASC = "+startDate";
+	const START_DATE_DESC = "-startDate";
+	const END_DATE_ASC = "+endDate";
+	const END_DATE_DESC = "-endDate";
 	const PARTNER_SORT_VALUE_ASC = "+partnerSortValue";
 	const PARTNER_SORT_VALUE_DESC = "-partnerSortValue";
 }
@@ -1172,6 +1339,10 @@ class KalturaPlaylistOrderBy
 	const UPDATED_AT_DESC = "-updatedAt";
 	const RANK_ASC = "+rank";
 	const RANK_DESC = "-rank";
+	const START_DATE_ASC = "+startDate";
+	const START_DATE_DESC = "-startDate";
+	const END_DATE_ASC = "+endDate";
+	const END_DATE_DESC = "-endDate";
 	const PARTNER_SORT_VALUE_ASC = "+partnerSortValue";
 	const PARTNER_SORT_VALUE_DESC = "-partnerSortValue";
 }
@@ -1183,6 +1354,12 @@ class KalturaPlaylistType
 	const EXTERNAL = 101;
 }
 
+class KalturaReportOrderBy
+{
+	const CREATED_AT_ASC = "+createdAt";
+	const CREATED_AT_DESC = "-createdAt";
+}
+
 class KalturaReportType
 {
 	const TOP_CONTENT = 1;
@@ -1192,17 +1369,7 @@ class KalturaReportType
 	const TOP_CONTRIBUTORS = 5;
 	const TOP_SYNDICATION = 6;
 	const CONTENT_CONTRIBUTIONS = 7;
-}
-
-class KalturaSchedulerStatusType
-{
-	const RUNNING_BATCHES_COUNT = 1;
-	const RUNNING_BATCHES_CPU = 2;
-	const RUNNING_BATCHES_MEMORY = 3;
-	const RUNNING_BATCHES_NETWORK = 4;
-	const RUNNING_BATCHES_DISC_IO = 5;
-	const RUNNING_BATCHES_DISC_SPACE = 6;
-	const RUNNING_BATCHES_IS_RUNNING = 7;
+	const WIDGETS_STATS = 8;
 }
 
 class KalturaSchemaType
@@ -1210,6 +1377,9 @@ class KalturaSchemaType
 	const SYNDICATION = "syndication";
 	const SERVE_API = "cuePoint.serveAPI";
 	const INGEST_API = "cuePoint.ingestAPI";
+	const BULK_UPLOAD_XML = "bulkUploadXml.bulkUploadXML";
+	const BULK_UPLOAD_RESULT_XML = "bulkUploadXml.bulkUploadResultXML";
+	const DROP_FOLDER_XML = "dropFolderXmlBulkUpload.dropFolderXml";
 }
 
 class KalturaSearchConditionComparison
@@ -1261,11 +1431,12 @@ class KalturaSiteRestrictionType
 
 class KalturaSourceType
 {
-	const FILE = 1;
-	const WEBCAM = 2;
-	const URL = 5;
-	const SEARCH_PROVIDER = 6;
-	const AKAMAI_LIVE = 29;
+	const FILE = "1";
+	const WEBCAM = "2";
+	const URL = "5";
+	const SEARCH_PROVIDER = "6";
+	const AKAMAI_LIVE = "29";
+	const MANUAL_LIVE_STREAM = "30";
 }
 
 class KalturaStatsEventType
@@ -1380,6 +1551,12 @@ class KalturaStatsKmcEventType
 	const REPORTS_AND_ANALYTICS_BANDWIDTH_USAGE_VIEW_YEARLY = 1087;
 }
 
+class KalturaStorageProfileDeliveryStatus
+{
+	const ACTIVE = 1;
+	const BLOCKED = 2;
+}
+
 class KalturaStorageProfileOrderBy
 {
 	const CREATED_AT_ASC = "+createdAt";
@@ -1394,6 +1571,7 @@ class KalturaStorageProfileProtocol
 	const FTP = 1;
 	const SCP = 2;
 	const SFTP = 3;
+	const S3 = 6;
 }
 
 class KalturaStorageProfileStatus
@@ -1437,6 +1615,15 @@ class KalturaThumbAssetOrderBy
 	const UPDATED_AT_DESC = "-updatedAt";
 	const DELETED_AT_ASC = "+deletedAt";
 	const DELETED_AT_DESC = "-deletedAt";
+}
+
+class KalturaThumbAssetStatus
+{
+	const ERROR = -1;
+	const QUEUED = 0;
+	const READY = 2;
+	const DELETED = 3;
+	const IMPORTING = 7;
 }
 
 class KalturaThumbCropType
@@ -1511,6 +1698,7 @@ class KalturaUiConfObjType
 	const CLIENTSIDE_ENCODER = 15;
 	const KMC_GENERAL = 16;
 	const KMC_ROLES_AND_PERMISSIONS = 17;
+	const CLIPPER = 18;
 }
 
 class KalturaUiConfOrderBy
@@ -1542,6 +1730,16 @@ class KalturaUploadTokenStatus
 	const CLOSED = 3;
 	const TIMED_OUT = 4;
 	const DELETED = 5;
+}
+
+class KalturaUserAgentRestrictionType
+{
+	const RESTRICT_LIST = 0;
+	const ALLOW_LIST = 1;
+}
+
+class KalturaUserLoginDataOrderBy
+{
 }
 
 class KalturaUserOrderBy

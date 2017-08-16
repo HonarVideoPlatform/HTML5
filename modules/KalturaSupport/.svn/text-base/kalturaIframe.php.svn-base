@@ -113,26 +113,21 @@ class kalturaIframe {
 
 	// Returns a simple image with a direct link to the asset
 	private function getFileLinkHTML(){
-		try {
-			$sources =  $this->getResultObject()->getSources();
-			// If no sources are found use the error video source: 
-			if( count( $sources ) == 0 ){
-				$sources = $this->getResultObject()->getErrorVideoSources();
-			}
-			$flavorUrl = $this->getResultObject()->getSourceForUserAgent( $sources );
-		} catch ( Exception $e ){
-			$this->fatalError( $e->getMessage() );
-		}
+		
+		$params = $this->getResultObject()->getUrlParameters();
+		$downloadPath = str_replace( 'mwEmbedFrame.php', 'modules/KalturaSupport/download.php', $_SERVER['SCRIPT_NAME']);
+		$downloadUrl = $downloadPath . '/wid/' . $params['wid'] . '/uiconf_id/' . $params['uiconf_id'] . '/entry_id/' . $params['entry_id'];
+
 		// The outer container:
 		$o='<div id="directFileLinkContainer">';
 			// TODO once we hook up with the kaltura client output the thumb here:
 			// ( for now we use javascript to append it in there )
-			$o.='<div id="directFileLinkThumb" ></div>';
-			$o.='<a href="' . $flavorUrl . '" id="directFileLinkButton" target="_new"></a>';
+			$o.='<div id="directFileLinkThumb"></div>';
+			$o.='<a href="' . $downloadUrl . '" id="directFileLinkButton" target="_blank"></a>';
 		$o.='</div>';
-
 		return $o;
 	}
+	
 	private function getPlaylistPlayerSizeCss(){
 		$width = 400;
 		$height = 300;
@@ -182,6 +177,9 @@ class kalturaIframe {
 				'</span>
 			</div>';
 	}
+	/*
+	 * TODO: need to remove all source logic (not needed)
+	 */
 	private function getVideoHTML( $playerStyle = ''  ){
 		$videoTagMap = array(
 			'entry_id' => 'kentryid',
@@ -203,7 +201,7 @@ class kalturaIframe {
 		$acStatus = $this->getResultObject()->isAccessControlAllowed( $resultObject );
 		if( $acStatus !== true ){
 			$this->playerError = $acStatus;
-			$sources = $this->getResultObject()->getBlackVideoSources();
+			//$sources = $this->getResultObject()->getBlackVideoSources();
 		} else {	
 			try {
 				// We should grab the thumbnail url from our entry to get the latest version of the thumbnail
@@ -213,11 +211,11 @@ class kalturaIframe {
 					$posterUrl = $this->getResultObject()->getBlackPoster();
 				}
 				// get Player sources: 
-				$sources = $this->getResultObject()->getSources();
+				//$sources = $this->getResultObject()->getSources();
 				// If we have an error, show it
 				if( $this->getResultObject()->getError() ) {
 					$this->playerError = $this->getResultObject()->getError();
-					$sources = $this->getResultObject()->getBlackVideoSources();
+					//$sources = $this->getResultObject()->getBlackVideoSources();
 				}
 			} catch ( Exception $e ){
 				// xxx log an empty entry id lookup!
@@ -262,6 +260,7 @@ class kalturaIframe {
 		
 		// Output each source as a child element ( for javascript off browsers to have a chance
 		// to playback the content
+		/* commented out for now, apperently not needed.
 		foreach( $sources as $source ){
 			// Android has issues with type attribute on source element
 			$o.= "\n\t\t" .'<source ' .
@@ -273,7 +272,7 @@ class kalturaIframe {
 			}
 			$o.= '></source>';
 		}
-
+		*/
 		// To be on the safe side include the flash player and
 		// direct file link as a child of the video tag
 		// ( if javascript is "off" and they don't have video tag support for example )
@@ -283,7 +282,6 @@ class kalturaIframe {
 		);
 
 		$o.= "\n" . "</video>\n";
-		$o.= "<img src='".$posterUrl."' id='directFileLinkThumb' alt='' onclick='return false;' />";
 		
 		// Wrap in a videoContainer
 		return  '<div id="videoContainer" > ' . $o . '</div>';
@@ -299,16 +297,23 @@ class kalturaIframe {
 		$o = '<object id="' . htmlspecialchars( $playerId ) . '" name="' . $playerId . '" ' .
 				'type="application/x-shockwave-flash" allowFullScreen="true" '.
 				'allowNetworking="all" allowScriptAccess="always" height="100%" width="100%" style="height:100%;width:100%" '.
+				'bgcolor="#000000" ' .
 				'xmlns:dc="http://purl.org/dc/terms/" '.
 				'xmlns:media="http://search.yahoo.com/searchmonkey/media/" '.
 				'rel="media:video" '.
 				'resource="' . htmlspecialchars( $this->getSwfUrl() ) . '" '.
-				'data="' . htmlspecialchars( $this->getSwfUrl() ) . '"> '.
-				'<param name="wmode" value="opaque" />' .
-				'<param name="allowFullScreen" value="true" /><param name="allowNetworking" value="all" />' .
-				'<param name="allowScriptAccess" value="always" /><param name="bgcolor" value="#000000" />'.
-				'<param name="flashVars" value="';
+				'data="' . htmlspecialchars( $this->getSwfUrl() ) . '"> ';
 		
+		// check for wmod param:
+		if( isset( $_REQUEST['wmode'] ) && ( $_REQUEST['wmode'] == 'opaque' ||  $_REQUEST['wmode'] =='transparent' ) ){
+			$o.= '<param name="wmode" value="transparent" />';
+		} else {
+			$o.= '<param name="wmode" value="direct" />';
+		}
+		
+		$o.= '<param name="allowFullScreen" value="true" /><param name="allowNetworking" value="all" />' .
+			'<param name="allowScriptAccess" value="always" /><param name="bgcolor" value="#000000" />'.
+			'<param name="flashVars" value="';
 		$o.= $this->getFlashVarsString() ;
 		// close the object tag add the movie param and childHTML: 
 		$o.='" /><param name="movie" value="' . htmlspecialchars( $this->getSwfUrl() ) . '" />'.
@@ -330,17 +335,16 @@ class kalturaIframe {
 	 * Get custom player includes for css and javascript
 	 */
 	private function getCustomPlayerIncludesJSON(){
+		// Try to get uiConf
 		if( ! $this->getResultObject()->getUiConf() ){
 			return false;
 		}
 		
-		// Try to get uiConf
-		$xml = $this->getResultObject()->getUiConfXML();
 		$resourceIncludes = array();
-		$playerConfig =  $this->getResultObject()->playerConfig;
 		
 		// vars
-		foreach( $playerConfig['vars'] as $key => $value ){
+		$uiVars = $this->getResultObject()->getWidgetUiVars();
+		foreach( $uiVars as $key => $value ){
 			// Check for valid plugin types: 
 			$resource = array();
 			if( strpos( $key, 'IframeCustomPluginJs' ) === 0 ){
@@ -357,10 +361,9 @@ class kalturaIframe {
 			$resourceIncludes[] = $resource;
 		}
 		
-		//$resourceIncludes[] = array( 'src'=> '/testOverlay.js', 'type' => 'js' );
-		
 		// plugins
-		foreach( $playerConfig['plugins'] as $pluginId => $plugin ){
+		$plugins = $this->getResultObject()->getWidgetPlugins();
+		foreach( $plugins as $pluginId => $plugin ){
 			foreach( $plugin as $attr => $value ){
 				$resource = array();
 				if( strpos( $attr, 'iframeHTML5Js' ) === 0 ){
@@ -380,7 +383,8 @@ class kalturaIframe {
 		return json_encode( $resourceIncludes );
 	}
 	/** 
-	 * Gets a series of mw.setConfig calls set via the uiConf of the kaltura player 
+	 * Gets a series of mw.setConfig calls set via the uiConf of the kaltura player
+	 * TODO: we should use getWidgetUiVars instead of parsing the XML
 	 * */
 	private function getCustomPlayerConfig(){
 		if( ! $this->getResultObject()->getUiConf() ){
@@ -841,9 +845,6 @@ class kalturaIframe {
 				mw.ready(function(){
 					// Try again to remove the flash player if not already removed: 
 					$('#kaltura_player_iframe_no_rewrite').remove();
-
-					// Remove thumbnail from the iframe
-					$('#directFileLinkThumb').remove();
 					
 					var embedPlayer = $( '#<?php echo htmlspecialchars( $this->getIframeId() )?>' )[0];
 					// Try to seek to the IframeSeekOffset time:

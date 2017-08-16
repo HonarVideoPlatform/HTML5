@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.4/modules/KalturaSupport/kaltura_client_v3/KalturaPlugins
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.5/modules/KalturaSupport/kaltura_client_v3/KalturaPlugins
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-01-17T09:43:03.002421Z
-7146
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T22:44:11.000000Z
-dd6d21a4d4e98ab7eaa93c873055dc52
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:36.000000Z
+44af89ca867f874389c014e01b3991b8
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -58,7 +58,7 @@ rany
 
 
 
-6818
+9141
 
 KalturaAdCuePointClientPlugin.php
 file
@@ -66,10 +66,10 @@ file
 
 
 
-2017-07-03T22:44:11.000000Z
-ffa636bda0e229e1e36e8c246b0119f5
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:36.000000Z
+0a0cbcebcfa6bd15ba35a5c6e3fecefa
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -92,7 +92,7 @@ rany
 
 
 
-2736
+4250
 
 KalturaCaptionClientPlugin.php
 file
@@ -100,10 +100,10 @@ file
 
 
 
-2017-07-03T22:44:11.000000Z
-f5378c9f5af25623838020ff0ecfef73
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:36.000000Z
+eb8614eddd46e5c10b1f6ccfad784c6d
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -126,7 +126,75 @@ rany
 
 
 
-11789
+14192
+
+KalturaDropFolderClientPlugin.php
+file
+
+
+
+
+2017-07-03T22:44:36.000000Z
+dc310678fe55c3546b2dc982e4e12d56
+2012-01-17T08:53:52.867228Z
+7145
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+23088
+
+KalturaDropFolderXmlBulkUploadClientPlugin.php
+file
+
+
+
+
+2017-07-03T22:44:36.000000Z
+4dbb59923db7c25a06efbec54de53337
+2012-01-17T08:53:52.867228Z
+7145
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2443
 
 KalturaAuditClientPlugin.php
 file
@@ -134,10 +202,10 @@ file
 
 
 
-2017-07-03T22:44:11.000000Z
-2c49bfa6795fb804326a5959d40d5718
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:36.000000Z
+9c54002325a1bfa6169808477b4a0945
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -160,41 +228,7 @@ rany
 
 
 
-10688
-
-KalturaStatskeyClientPlugin.php
-file
-
-
-
-
-2017-07-03T22:44:11.000000Z
-b494ceb61d4a93dfec8cfde2adced5c5
-2012-01-17T09:43:03.002421Z
-7146
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2227
+12028
 
 KalturaContentDistributionClientPlugin.php
 file
@@ -202,10 +236,10 @@ file
 
 
 
-2017-07-03T22:44:11.000000Z
-fc48d07b628e616d0681a9c3d1102466
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:36.000000Z
+1a7753f8edd3be4eefc97cce5c3ea862
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -228,41 +262,7 @@ rany
 
 
 
-123003
-
-KalturaAnnotationClientPlugin.php
-file
-
-
-
-
-2017-07-03T22:44:11.000000Z
-12be3a1a781facbec50ed2f40b9bcbf8
-2012-01-17T09:43:03.002421Z
-7146
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-6707
+51477
 
 KalturaAdminConsoleClientPlugin.php
 file
@@ -270,10 +270,10 @@ file
 
 
 
-2017-07-03T22:44:11.000000Z
-5fc31795a0b23ef0a097206ed7c6af15
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:36.000000Z
+1d03dfc5723f192344238003960058bf
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -296,7 +296,7 @@ rany
 
 
 
-11637
+14564
 
 KalturaFileSyncClientPlugin.php
 file
@@ -304,10 +304,10 @@ file
 
 
 
-2017-07-03T22:44:11.000000Z
-9daba6f255e4397766fc1c11f2c27f06
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:36.000000Z
+59f51d7a3a4ed4007f5a12bc5f495d68
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -330,7 +330,7 @@ rany
 
 
 
-7230
+5011
 
 KalturaShortLinkClientPlugin.php
 file
@@ -338,10 +338,10 @@ file
 
 
 
-2017-07-03T22:44:11.000000Z
-ee11caec678c03c8e0186a62131e79a2
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:36.000000Z
+3902ed44f8b5e31f6690e6fe15a4e95b
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -364,7 +364,7 @@ rany
 
 
 
-6595
+8099
 
 KalturaVirusScanClientPlugin.php
 file
@@ -372,10 +372,10 @@ file
 
 
 
-2017-07-03T22:44:11.000000Z
-d1c98c37bd57dea633034e229be75e7d
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:36.000000Z
+d306dcaf4f192b05f458d1eb14d5b893
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -398,41 +398,7 @@ rany
 
 
 
-58142
-
-KalturaMultiCentersClientPlugin.php
-file
-
-
-
-
-2017-07-03T22:44:11.000000Z
-bc8961db81679ccd02452e0c3f3bc382
-2012-01-17T09:43:03.002421Z
-7146
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-53073
+8950
 
 KalturaDocumentClientPlugin.php
 file
@@ -440,10 +406,10 @@ file
 
 
 
-2017-07-03T22:44:11.000000Z
-ac619c9dbe25bef0bda9fababdf0f86d
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:36.000000Z
+6c4cf2d7f67e016a38b019cb4ba33a6f
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -466,7 +432,7 @@ rany
 
 
 
-11301
+13329
 
 KalturaMetadataClientPlugin.php
 file
@@ -474,10 +440,10 @@ file
 
 
 
-2017-07-03T22:44:11.000000Z
-334303f2830da8f33d4e49b9c04fd6fd
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:36.000000Z
+f4c254908befe0cf0cdd30fe8ec122b9
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -500,7 +466,7 @@ rany
 
 
 
-75790
+22798
 
 KalturaSystemPartnerClientPlugin.php
 file
@@ -508,10 +474,10 @@ file
 
 
 
-2017-07-03T22:44:11.000000Z
-f1010085205becf21eabc2a231d4173e
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:36.000000Z
+05f19856a5ea6d0c7dca5a694626d97f
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -534,41 +500,7 @@ rany
 
 
 
-11681
-
-KalturaKalturaInternalToolsClientPlugin.php
-file
-
-
-
-
-2017-07-03T22:44:11.000000Z
-faa3221ced2b9b6112ba585b8b6e3770
-2012-01-17T09:43:03.002421Z
-7146
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3778
+15673
 
 KalturaCodeCuePointClientPlugin.php
 file
@@ -576,10 +508,10 @@ file
 
 
 
-2017-07-03T22:44:11.000000Z
-f5f143c7a1886bbb614e9c1a317f811b
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:36.000000Z
+0516dc17e9ea69ff0acff46df0089826
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -602,7 +534,75 @@ rany
 
 
 
-1661
+4112
+
+KalturaKalturaInternalToolsClientPlugin.php
+file
+
+
+
+
+2017-07-03T22:44:36.000000Z
+de7593ef5d8cd7993817866d03e1bbc6
+2012-01-17T08:53:52.867228Z
+7145
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5214
+
+KalturaCaptionSearchClientPlugin.php
+file
+
+
+
+
+2017-07-03T22:44:36.000000Z
+583a5a6737a732a1b4daa46cbf7559ff
+2012-01-17T08:53:52.867228Z
+7145
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5348
 
 KalturaCuePointClientPlugin.php
 file
@@ -610,10 +610,10 @@ file
 
 
 
-2017-07-03T22:44:11.000000Z
-a21e180cad358d62f81997c009c719b3
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:36.000000Z
+d46438c8dd9ab8e5b933dd7d87df385c
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -636,5 +636,5 @@ rany
 
 
 
-8891
+10592
 

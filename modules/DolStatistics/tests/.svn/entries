@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.4/modules/DolStatistics/tests
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.5/modules/DolStatistics/tests
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-01-17T09:43:03.002421Z
-7146
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -26,16 +26,16 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-DOL_Statistics.html
+DOLStatisticsPlayer.html
 file
 
 
 
 
-2017-07-03T22:44:07.000000Z
-711d9e58b4f6d6d17ff3eed93510e4ad
-2012-01-17T09:43:03.002421Z
-7146
+2017-07-03T22:44:31.000000Z
+bffdd129a2db4c1cb449352b608ed6f8
+2012-01-17T08:53:52.867228Z
+7145
 rany
 
 
@@ -58,5 +58,39 @@ rany
 
 
 
-2472
+1487
+
+DOLStatisticsPlaylist.html
+file
+
+
+
+
+2017-07-03T22:44:31.000000Z
+a9bbd9a1f332e9ef1373bb70ebf68626
+2012-01-17T08:53:52.867228Z
+7145
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1689
 
