@@ -268,15 +268,17 @@ mw.KWidgetSupport.prototype = {
 		if( playerData.playlistData ){
 			embedPlayer.kalturaPlaylistData = playerData.playlistData;
 		}
-		_this.handleUiConf( embedPlayer, callback );
-		
-		// Trigger the early player events ( after uiConf handling has a chance to setup bindings 
-		if( embedPlayer.kalturaPlayerMetaData ){
-			$( embedPlayer ).trigger( 'KalturaSupport_EntryDataReady', embedPlayer.kalturaPlayerMetaData );
-		}
-		if( embedPlayer.kalturaEntryMetaData ){
-			$( embedPlayer ).trigger( 'KalturaSupport_MetadataReceived', embedPlayer.kalturaEntryMetaData );
-		}
+		_this.handleUiConf( embedPlayer, function(){
+			// Trigger the early player events ( after uiConf handling has a chance to setup bindings 
+			if( embedPlayer.kalturaPlayerMetaData ){
+				$( embedPlayer ).trigger( 'KalturaSupport_EntryDataReady', embedPlayer.kalturaPlayerMetaData );
+			}
+			if( embedPlayer.kalturaEntryMetaData ){
+				$( embedPlayer ).trigger( 'KalturaSupport_MetadataReceived', embedPlayer.kalturaEntryMetaData );
+			}
+			// issue callback
+			callback();
+		} );
 	},
 	addPlayerMethods: function( embedPlayer ){
 		var _this = this;

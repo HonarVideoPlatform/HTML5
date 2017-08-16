@@ -2,7 +2,7 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6h/modules/SmilPlayer/tests/panzoom
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6i/modules/SmilPlayer/tests/panzoom
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
@@ -32,7 +32,7 @@ file
 
 
 
-2017-07-03T23:01:15.000000Z
+2017-07-03T23:06:37.000000Z
 a09484c20e6cc9322de52a4fd3706b9c
 2012-03-18T17:15:19.535554Z
 7349
@@ -66,7 +66,7 @@ file
 
 
 
-2017-07-03T23:01:15.000000Z
+2017-07-03T23:06:37.000000Z
 7c567a065d77c2fc23418f8959a1d0fd
 2012-03-18T17:15:19.535554Z
 7349

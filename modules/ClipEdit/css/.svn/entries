@@ -2,7 +2,7 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6h/modules/ClipEdit/css
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6i/modules/ClipEdit/css
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
@@ -35,7 +35,7 @@ file
 
 
 
-2017-07-03T23:02:00.000000Z
+2017-07-03T23:06:43.000000Z
 2563cec7debbeb96877648945cd6615c
 2012-03-18T17:15:19.535554Z
 7349
