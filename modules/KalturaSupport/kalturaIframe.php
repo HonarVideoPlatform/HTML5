@@ -2,8 +2,6 @@
 /**
  * KalturaIframe support
  */
-
-define( 'KALTURA_GENERIC_SERVER_ERROR', "Error getting sources from server, something maybe broken or server is under high load. Please try again.");
 	
 // Setup the kalturaIframe
 global $wgKalturaIframe;
@@ -709,8 +707,8 @@ class kalturaIframe {
 		?>
 		var isHTML5 = kIsHTML5FallForward();
 		if( window.kUserAgentPlayerRules ) {
-			var playerMode = window.checkUserAgentPlayerRules( window.kUserAgentPlayerRules[ '<?php echo $this->getResultObject()->getUiConfId() ?>' ] );
-			if( playerMode == 'leadWithHTML5' ){
+			var playerAction = window.checkUserAgentPlayerRules( window.kUserAgentPlayerRules[ '<?php echo $this->getResultObject()->getUiConfId() ?>' ] );
+			if( playerAction.mode == 'leadWithHTML5' ){
 				isHTML5 = true;
 			}
 		}

@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4c10/modules/Sequencer/remotes/images
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.5/modules/MiroSubs/mirosubs/media/js/widget/testing
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-10-06T10:57:25.454181Z
-6622
+2012-03-18T10:15:32.840794Z
+7348
 rany
 
 
@@ -26,18 +26,17 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-kaltura_logo_transparent_large.png
+events.js
 file
 
 
 
 
-2017-07-03T19:51:16.000000Z
-27719432f809980ca938e9ffcb26bfeb
-2011-10-06T10:57:25.454181Z
-6622
+2017-07-03T20:24:10.000000Z
+d14f3b4131c47992e071662eacec8d6b
+2012-03-18T10:15:32.840794Z
+7348
 rany
-has-props
 
 
 
@@ -58,5 +57,40 @@ has-props
 
 
 
-4429
+
+2199
+
+stubvideoplayer.js
+file
+
+
+
+
+2017-07-03T20:24:10.000000Z
+40859f880c74c9e5a37cfa51c3129142
+2012-03-18T10:15:32.840794Z
+7348
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1996
 
