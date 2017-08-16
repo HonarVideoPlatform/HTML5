@@ -2,7 +2,7 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6d/modules/NielsenVideoCensus
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6e/modules/NielsenVideoCensus
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
@@ -32,7 +32,7 @@ file
 
 
 
-2017-07-03T22:50:39.000000Z
+2017-07-03T22:53:38.000000Z
 8ea6247b968e93fa3e9da4fd282315cf
 2012-03-18T17:15:19.535554Z
 7349
@@ -69,7 +69,7 @@ file
 
 
 
-2017-07-03T22:50:39.000000Z
+2017-07-03T22:53:38.000000Z
 696ca23ca30538c47725de1785435900
 2012-03-18T17:15:19.535554Z
 7349
