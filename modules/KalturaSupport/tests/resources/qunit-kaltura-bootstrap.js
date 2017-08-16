@@ -58,13 +58,13 @@ if( window.QUnit ){
 	var mediaReadyAlreadyCalled = false;
 	// Utility function for entry ready testing handler
 	window['kalturaQunitMediaReady'] = function(){
-		// Run in async call to ensure non-blocking build out is in dom
+		// run in async call to ensure non-blocking build out is in dom
 		setTimeout(function(){
 			while( mediaReadyCallbacks.length ){
 				mediaReadyCallbacks.shift()();
 			}
 			mediaReadyAlreadyCalled = true;
-		}, 0 );
+		}, 10 );
 	};
 	window['kalturaQunitWaitForPlayer'] = function( callback ){		
 		if( mediaReadyAlreadyCalled ){

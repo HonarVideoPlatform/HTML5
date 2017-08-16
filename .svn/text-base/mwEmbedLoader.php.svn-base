@@ -68,10 +68,7 @@ if( isset( $_GET['debug'] ) || $wgEnableScriptDebug ){
 
 	// Create cache directory if not exists
 	if( ! file_exists( $wgScriptCacheDirectory ) ) {
-		$created = mkdir( $wgScriptCacheDirectory );
-		if( ! $created ) {
-			echo "if( console ){ console.log('Error in creating cache directory: ". $wgScriptCacheDirectory . "'); }";
-		}
+		mkdir( $wgScriptCacheDirectory );
 	}
 	
 	$loaderCacheFile = $wgScriptCacheDirectory . '/loader_' . $wgHTTPProtocol . '.min.' . $wgMwEmbedVersion . '.js';

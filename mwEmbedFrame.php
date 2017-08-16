@@ -68,6 +68,10 @@ class mwEmbedFrame {
 
 	// Parse the embedFrame request and sanitize input
 	private function parseRequest(){
+		if( isset($_REQUEST['iaid'])  &&  include('/petabox/setup.inc') ){
+		  $this->playerIframeId .= Video::mwEmbedSetup(); // archive.org media (in JS, this is the "mw.IA" var)
+		}
+          
 		// Check for / attribute type request and update "REQUEST" global 
 		// ( uses kaltura standard entry_id/{entryId} request )
 		// normalize to the REQUEST object
@@ -135,7 +139,11 @@ class mwEmbedFrame {
 		// Output each source
 		if( count( $this->sources ) ){
 			foreach($this->sources as $src ){
-				$o.= '<source src="' . htmlspecialchars( $src ) . '"></source>';
+                          $ute = (isset($_REQUEST['iaid'])  && //Internet Archive
+                                  ($suffix = strrchr($src,'.'))  &&
+                                  ($suffix=='.ogv' || $suffix=='.mp4') ?
+                                  ' URLTimeEncoding="true"' : '');
+				$o.= '<source src="' . htmlspecialchars( $src ) . '"'.$ute.'></source>';
 			}
 		}
 		$o.= '</video>';

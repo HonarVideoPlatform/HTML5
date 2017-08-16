@@ -55,7 +55,7 @@ window.restoreKalturaKDPCallback = function(){
 	if( window.KalturaKDPCallbackReady ){
 		window.jsCallbackReady = window.KalturaKDPCallbackReady;
 		window.KalturaKDPCallbackReady = null;
-		if( window.KalturaKDPCallbackAlreadyCalled && window.KalturaKDPCallbackAlreadyCalled.length ){
+		if( window.KalturaKDPCallbackAlreadyCalled.length ){
 			for( var i =0 ; i < window.KalturaKDPCallbackAlreadyCalled.length; i++){
 				var playerId = window.KalturaKDPCallbackAlreadyCalled[i];
 				window.jsCallbackReady( playerId );
@@ -859,6 +859,12 @@ function kAddScript( callback ){
 		  'mw.KWidgetSupport',
 		  'mw.KAnalytics',
 		  'mw.KDPMapping',
+		  'mw.KAds',
+		  'mw.KAdPlayer',
+		  'mw.AdTimeline', 
+		  'mw.BaseAdPlugin',
+		  'mw.AdLoader',
+		  'mw.VastAdParser',
 		  'mw.KCuePoints',
 		  'mw.KTimedText',
 		  'mw.KLayout',
@@ -1224,9 +1230,6 @@ function kGetKalturaEmbedSettings( swfUrl, flashvars ){
 			embedSettings.wid = '_' + val;
 			embedSettings.p = val;
 		}
-		if( key == 'referenceid' ){
-			embedSettings.reference_id = val;
-		}
 	}
 
 	// Always pass cache_st
@@ -1271,6 +1274,7 @@ window.kWidget = {
 	 * TODO move kalturaIframeEmbed to this method and have kalturaIframeEmbed call KWidget.embed : 
 	 */
 	embed: function( targetId, settings ){
+		
 		// Supports passing settings object as the first parameter
 		if( typeof targetId === 'object' ) {
 			settings = targetId;
@@ -1279,14 +1283,7 @@ window.kWidget = {
 			}
 			targetId = settings.targetId;
 		}
-		if( settings.readyCallback ){
-			// Only add the ready callback for the current targetId being rewritten. 
-			this.addReadyCallback( function( videoId ){
-				if( targetId == videoId ){
-					settings.readyCallback( videoId )
-				}
-			});
-		}
+
 		kalturaIframeEmbed( targetId, settings );
 	},
 	/**
@@ -1300,7 +1297,7 @@ window.kWidget = {
 				readyCallback( wid );
 			}
 		}
-		// Add the callback to the readyCallbacks array for any other players that become ready
+		// add the callback to the readyCallbacks array for any other players that become ready
 		this.readyCallbacks.push( readyCallback );
 	},
 	/**

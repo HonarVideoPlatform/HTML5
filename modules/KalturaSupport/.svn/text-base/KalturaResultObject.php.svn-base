@@ -697,7 +697,7 @@ class KalturaResultObject {
 		}
 
 		// Check for no cache flag
-		if( isset( $_REQUEST['nocache'] ) && $_REQUEST['nocache'] == 'true' ) {
+		if( isset( $_REQUEST['nocache'] ) && $_REQUEST['nocache'] == true ) {
 			$this->noCache = true;
 		}
 
@@ -748,8 +748,8 @@ class KalturaResultObject {
 		} else {
 			return $this->getEntryResult();
 		}
-	}
 	
+	}
 	function getUiConfResult(){
 		// no need to call this.. the getters don't have clean lazy init and . 
 		// $this->loadUiConf

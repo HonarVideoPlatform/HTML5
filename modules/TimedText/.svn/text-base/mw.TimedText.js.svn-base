@@ -116,13 +116,9 @@ mw.includeAllModuleMessages();
 			// Add player bindings
 			this.addPlayerBindings();
 		},
-		destroy: function(){
+		destroy:function(){
 			// remove any old player bindings; 
-			$( this.embedPlayer ).unbind( this.bindPostFix );
-			// Clear out enabled sources:
-			this.enabledSources = [];
-			// Clear out text sources:
-			this.textSources = [];
+			$( this.embedPlayer ).unbind( this.bindPostFix )
 		},
 		/**
 		 * Add timed text related player bindings
@@ -307,18 +303,12 @@ mw.includeAllModuleMessages();
 		 * @param size {object} The size of the target player area width and height
 		 */
 		getInterfaceSizePercent: function( size ) {
-			// This is a ugly hack we should read "original player size" and set based 
-			// on some standard ish normal 31 columns 15 rows 
-			var sizeFactor = 4;
-			if( size.height / size.width < .7 ){
-				sizeFactor = 6;
-			}
-			var textSize = size.width / sizeFactor;
+			var textSize = size.width / 4;
 			if( textSize < 95 ){
 				textSize = 95;
 			}
-			if( textSize > 150 ){
-				textSize = 150;
+			if( textSize > 200 ){
+				textSize = 200;
 			}
 			return textSize;
 		},

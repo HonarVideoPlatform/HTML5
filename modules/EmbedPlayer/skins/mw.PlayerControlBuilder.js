@@ -382,10 +382,9 @@ mw.PlayerControlBuilder.prototype = {
 		this.fullscreenMode = true;
 		var triggerOnOpenFullScreen = true;
 		if( !mw.getConfig('EmbedPlayer.IsIframeServer' ) ){
-			var vid = this.embedPlayer.getPlayerElement();
 			if( mw.getConfig('EmbedPlayer.EnableIpadNativeFullscreen')
 					&&
-				vid && vid.webkitSupportsFullscreen 
+				this.embedPlayer.getPlayerElement().webkitSupportsFullscreen 
 			){
 				this.embedPlayer.getPlayerElement().webkitEnterFullscreen();
 				triggerOnOpenFullScreen = false;
@@ -432,7 +431,6 @@ mw.PlayerControlBuilder.prototype = {
 
 		// Get the base offset:
 		this.windowOffset = this.getWindowOffset();
-		
 		// Change the z-index of the interface
 		$interface.css( {
 			'position' : 'fixed',
@@ -529,18 +527,10 @@ mw.PlayerControlBuilder.prototype = {
 		// Bind resize resize window to resize window
 		$( window ).resize( function() {
 			if( _this.fullscreenMode ){
-				// don't resize bellow original size: 
-				var targetSize = {
+				embedPlayer.resizePlayer({
 					'width' : $( window ).width(),
 					'height' : $( window ).height()
-				};
-				if( targetSize.width < embedPlayer.getWidth() ){
-					targetSize.width = embedPlayer.getWidth();
-				}
-				if( targetSize.height < embedPlayer.getHeight() ){
-					targetSize.height =  embedPlayer.getHeight();
-				}
-				embedPlayer.resizePlayer( targetSize );
+				});
 			}
 		});
 

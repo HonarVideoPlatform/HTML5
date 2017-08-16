@@ -530,27 +530,17 @@
 						callback( {}, embedPlayer.id );
 					});
 					break;
-				case 'playerReady': 
-					b( 'playerReady' );
-					break;
 				case 'volumeChanged': 
 					b( 'volumeChanged', function(event, percent){
 						callback( {'newVolume' : percent }, embedPlayer.id );
 					});
 					break;
 				case 'playerStateChange':
-					// right before we start loading sources ( we enter a loading state )
-					b( 'preCheckPlayerSources', function(){
-						callback( 'loading', embedPlayer.id );
-					})
-					b( 'playerReady', function(){
-						callback( 'ready', embedPlayer.id );
-					});
+					// TODO add in other state changes
 					b( 'onpause', function(){
 						callback( 'paused', embedPlayer.id );
 					});
 					b( 'onplay', function(){
-						// Go into playing state: 
 						callback( 'playing', embedPlayer.id );
 					});
 					break;
@@ -563,7 +553,6 @@
 				case 'doPause':
 					b( "onpause" );
 					break;
-				// TODO move ad Support events to the sequence proxy ( not in core KDPMapping )
 				case 'adStart':
 					b('AdSupport_StartAdPlayback');	
 					break;
@@ -573,19 +562,19 @@
 				// Pre sequences: 
 				case 'preSequenceStart':
 				case 'pre1start':
-					b( 'AdSupport_PreSequence');
+					b( 'preSequence');
 					break;
 				case 'preSequenceComplete':
-					b( 'AdSupport_PreSequenceComplete');
+					b( 'preSequenceComplete');
 					break;
 				
 				// Post sequences:
 				case 'post1start':
 				case 'postSequenceStart':
-					b( 'AdSupport_PostSequence');
+					b( 'postSequence');
 					break;
 				case 'postSequenceComplete':
-					b( 'AdSupport_PostSequenceComplete' );
+					b( 'postSequenceComplete' );
 					break;
 				case 'playerPlayed':
 				case 'play':

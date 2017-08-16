@@ -87,6 +87,7 @@
 mw.addAdTimeline = function( embedPlayer ){
 	embedPlayer.adTimeline = new mw.AdTimeline( embedPlayer );
 };
+
 mw.AdTimeline = function(embedPlayer) {
 	return this.init(embedPlayer);
 };
@@ -145,9 +146,6 @@ mw.AdTimeline.prototype = {
 		
 		// On play preSequence
 		embedPlayer.bindHelper( 'preSequence' + _this.bindPostfix, function() {
-			// Start of preSequence			
-			embedPlayer.triggerHelper( 'AdSupport_PreSequence');
-			
 			mw.log( "AdTimeline:: First Play Start / bind Ad timeline ( " );
 			embedPlayer.pauseLoading();
 			embedPlayer.sequenceProxy.isInSequence = true;
@@ -164,21 +162,20 @@ mw.AdTimeline.prototype = {
 							embedPlayer.sequenceProxy.isInSequence = false;
 							
 							// trigger the preSequenceComplete event
-							embedPlayer.triggerHelper( 'AdSupport_PreSequenceComplete' );
+							embedPlayer.triggerHelper( 'preSequenceComplete' );
 							
 							// Avoid function stack
 							setTimeout(function(){ 
 								// trigger another onplay ( to match the kaltura kdp ) on play event
-								// after the ad plays are complete 
+								// after the ad plays are compelete
 								if( _this.displayedSlotCount > 0 ){
 									// reset displaySlotCount: 
 									 _this.displayedSlotCount=0;
 									// Restore the player if we played an ad: 
 									_this.restorePlayer();
+									
+									embedPlayer.triggerHelper( 'onplay' );
 								}
-								// Trigger onplay ( even if there were no ads ) 
-								embedPlayer.triggerHelper( 'onplay' );
-								
 								// Continue playback
 								embedPlayer.play();
 							},0);
@@ -209,13 +206,13 @@ mw.AdTimeline.prototype = {
 			setTimeout(function(){
 				// Trigger the postSequenceStart event
 				// start the postSequence: 
-				embedPlayer.triggerHelper( 'AdSupport_PostSequence' );
+				embedPlayer.triggerHelper( 'postSequence' );
 				embedPlayer.sequenceProxy.isInSequence = true;
 				_this.displaySlots( 'postroll', function(){
 					// Turn off preSequence
 					embedPlayer.sequenceProxy.isInSequence = false;
 					// Trigger the postSequenceComplete event
-					embedPlayer.triggerHelper( 'AdSupport_PostSequenceComplete' );
+					embedPlayer.triggerHelper( 'postSequenceComplete' );
 
 					/** TODO support postroll bumper and leave behind */
 					if( playedAnAdFlag ){
