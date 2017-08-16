@@ -483,37 +483,11 @@ mw.EmbedPlayer.prototype = {
 		if( targetPlayer.id != this.selectedPlayer.id ){
 			this.selectedPlayer = targetPlayer;
 			this.updatePlaybackInterface( function(){
-				// Workaround for hiding quicktime logo
-				if ( mw.isIpad() ) {
-					var vid = this.getPlayerElement();
-					if ( vid ) {
-						$( vid ).css( {
-							'-webkit-transform' : 'translateX(-4048px)',
-							'position' : 'absolute',
-							'left' : '-4048px'
-						} );
-					}
-				}
-				setTimeout( function() { 
-					_this.playerSwichSource( source, switchCallback, doneCallback );
-				}, 50 );
+				_this.playerSwichSource( source, switchCallback, doneCallback );
 			});
 		} else {
 			// Call the player switch directly:
-			if ( mw.isIpad() ) {
-				var vid = this.getPlayerElement();
-				if ( vid ) {
-					$( vid ).css( {
-						'-webkit-transform' : 'translateX(-4048px)',
-						'position' : 'absolute',
-						'left' : '-4048px'
-					} );
-				}
-			}
-			setTimeout( function() {
-				_this.playerSwichSource( source, switchCallback, doneCallback );
-			}, 50);
-			
+			_this.playerSwichSource( source, switchCallback, doneCallback );
 		}
 	},
 	/**
