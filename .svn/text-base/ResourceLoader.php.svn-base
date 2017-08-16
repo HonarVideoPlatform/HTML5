@@ -473,7 +473,9 @@ class ResourceLoader {
 		$port = ( $_SERVER['SERVER_PORT'] == $protocol_port ) ? '' : ':' . $_SERVER['SERVER_PORT'];
 
 		// php_self is the URL that invoked this script, without CGI parameters or fragment.
-		return $protocol . '://' . $_SERVER['HTTP_HOST'] . $port . $_SERVER['PHP_SELF'];
+		//return $protocol . '://' . $_SERVER['HTTP_HOST'] . $port . $_SERVER['PHP_SELF'];
+		global $wgCDNAssetPath;
+		return $wgCDNAssetPath. $port .$_SERVER['PHP_SELF'];
 	}
 
 
@@ -492,9 +494,11 @@ class ResourceLoader {
 			header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
 			header("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); // Date in the past
 		}else{
-			// Cache for 1 day ( we update the request urid so this has a long expire delay )
-			$one_day = 60 * 60 * 24;
-			header( "Expires: " . gmdate( "D, d M Y H:i:s", time() + $one_day ) . " GM" );
+			// Cache for 30 days ( we update the request urid so this has a long expire delay )
+			$max_age = 86400 * 30;
+			header("Cache-Control: private, max-age=$max_age, max-stale=0");
+			header("Expires: " . gmdate( "D, d M Y H:i:s", time() + $max_age ) . " GMT" );
+			header("Last-Modified: " . gmdate('D, d M Y H:i:s', time()) . ' GMT');
 		}
 	}
 

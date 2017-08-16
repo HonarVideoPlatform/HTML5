@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.9a/tests
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.13/tests
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-11-08T17:32:59.801837Z
-6828
+2011-10-30T18:09:59.818496Z
+6764
 rany
 
 
@@ -26,113 +26,26 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-selenium_settings.ini
-file
-
-
-
-
-2017-07-03T22:47:29.000000Z
-42b972eb1302d451e428345135920bd4
-2011-11-08T17:32:59.801837Z
-6828
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-490
-
-RunSeleniumTests.php
-file
-
-
-
-
-2017-07-03T22:47:29.000000Z
-0c5b51c303519e6a0f1cf53cc275488b
-2011-11-08T17:32:59.801837Z
-6828
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-10334
-
 media
+dir
+
+qunit
+dir
+
+qunit-tests
 dir
 
 selenium
 dir
 
-test_all_environments.sh
-file
-
-
-
-
-2017-07-03T22:47:29.000000Z
-a4bc4404d58e9adb5260a1f61b42eb05
-2011-11-08T17:32:59.801837Z
-6828
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1278
+test_files
+dir
+
+jslib
+dir
+
+selenium_tests
+dir
 
 svn_watcher.sh
 file
@@ -140,10 +53,10 @@ file
 
 
 
-2017-07-03T22:47:29.000000Z
+2017-07-03T22:53:41.000000Z
 3afc239578ac29b1da9da1ad451ec816
-2011-11-08T17:32:59.801837Z
-6828
+2011-10-30T18:09:59.818496Z
+6764
 rany
 
 
@@ -168,50 +81,16 @@ rany
 
 2608
 
-selenium_settings.ini.php52.sample
-file
-
-
-
-
-2017-07-03T22:47:29.000000Z
-68ed95530c143dbd0e25fd20fa7bb2fb
-2011-11-08T17:32:59.801837Z
-6828
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-530
-
 README
 file
 
 
 
 
-2017-07-03T22:47:29.000000Z
+2017-07-03T22:53:41.000000Z
 1c796ab09a5bb1ff0337b8524f16335b
-2011-11-08T17:32:59.801837Z
-6828
+2011-10-30T18:09:59.818496Z
+6764
 rany
 
 
@@ -238,87 +117,4 @@ rany
 
 selenium_framework
 dir
-
-selenium_settings.ini.sample
-file
-
-
-
-
-2017-07-03T22:47:29.000000Z
-5170240cd2e83b2d5dc70f1d1df62f27
-2011-11-08T17:32:59.801837Z
-6828
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1161
-
-qunit-tests
-dir
-
-qunit
-dir
-
-test_files
-dir
-
-selenium_tests
-dir
-
-jslib
-dir
-
-selenium_settings_grid.ini.sample
-file
-
-
-
-
-2017-07-03T22:47:29.000000Z
-6cfe704da118ef1418211b0c118c6a81
-2011-11-08T17:32:59.801837Z
-6828
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-400
 

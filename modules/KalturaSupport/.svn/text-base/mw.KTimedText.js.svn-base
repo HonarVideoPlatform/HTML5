@@ -18,7 +18,7 @@
 		
 			// Check for kaltura plugin representation of offset:
 			if( _this.kVars.timeOffset ){
-				this.timeOffset = _this.kVars.timeOffset;
+				_this.timeOffset = _this.kVars.timeOffset;
 			}
 
 			// Inherit the timed text support via the base TimedText module:
@@ -92,7 +92,7 @@
 				'filter:entryIdEqual' : _this.embedPlayer.kentryid,
 				'filter:statusEqual' : 2
 			}, function( data ) {
-				mw.log( "KTimedText:: sources loaded: " + data.totalCount);
+				mw.log( "KTimedText:: sources loaded: " + data.totalCount, data.objects);
 				// TODO is this needed does the api not return an empty set?
 				if( data.totalCount > 0 ) {
 					callback( data.objects );
@@ -170,8 +170,9 @@
 				'captionAssetId': captionId,
 				'ks': this.ksCache
 			};
+			var kalsig = this.getKalturaClient().getSignature( params );
 			var baseUrl = mw.getConfig('Kaltura.ServiceUrl') + mw.getConfig('Kaltura.ServiceBase').replace('index.php', '');
-			return baseUrl + 'caption_captionasset&' + $.param( params ) + '&.' + type;
+			return baseUrl + 'caption_captionasset&' + $.param( params ) + '&kalsig=' + kalsig + '&.' + type;
 		}
 	};
 

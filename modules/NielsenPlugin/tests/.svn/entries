@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.9a/modules/NielsenPlugin/tests
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.13/modules/NielsenPlugin/tests
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-11-08T17:32:59.801837Z
-6828
+2011-10-30T18:09:59.818496Z
+6764
 rany
 
 
@@ -26,16 +26,84 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
+IntegrationVastNielsen.html
+file
+
+
+
+
+2017-07-03T22:55:14.000000Z
+e45d4746c421cdce3b4b90837b647572
+2011-10-30T18:09:59.818496Z
+6764
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+19945
+
+IntegrationFreeWheelNielsen.html
+file
+
+
+
+
+2017-07-03T22:55:14.000000Z
+83665b76d0ddb3ea5d299cec10e11ca7
+2011-10-30T18:09:59.818496Z
+6764
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+18218
+
 NielsenPluginPlayer.html
 file
 
 
 
 
-2017-07-03T22:47:53.000000Z
+2017-07-03T22:55:14.000000Z
 d2f4fb331e080ed2e280367cf112412e
-2011-11-08T17:32:59.801837Z
-6828
+2011-10-30T18:09:59.818496Z
+6764
 rany
 
 

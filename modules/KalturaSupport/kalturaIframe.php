@@ -194,7 +194,7 @@ class kalturaIframe {
 				'</span>
 			</div>';
 	}
-	private function getVideoHTML( $playerSize = 'width:100%;height:100%;'  ){
+	private function getVideoHTML( $playerSize = ''  ){
 		$videoTagMap = array(
 			'entry_id' => 'kentryid',
 			'uiconf_id' => 'kuiconfid',
@@ -236,17 +236,15 @@ class kalturaIframe {
 			}
 		}
 
-		// Add default video tag with 100% width / height
 		// NOTE: special persistentNativePlayer class will prevent the video from being swapped
 		// so that overlays work on the iPad.
-		$playerPostion = ($this->isAndroid()) ? '' : 'position: absolute;';
 		$o = "\n\n\t" .'<video class="persistentNativePlayer" ';
 		// output the poster if set: 
 		if( $posterUrl ){
 			$o.='poster="' . htmlspecialchars( $posterUrl ) . '" ';
 		}
 		$o.='id="' . htmlspecialchars( $this->getIframeId() ) . '" ' .
-			'style="' . $playerPostion . $playerSize . '" ';
+			'style="' . $playerSize . '" ';
 
 		$urlParams = $this->getResultObject()->getUrlParameters();
 		
@@ -271,9 +269,8 @@ class kalturaIframe {
 		// to playback the content
 		foreach( $sources as $source ){
 			// Android has issues with type attribute on source element
-			$type = ($this->isAndroid() ) ? '' : 'type="' . htmlspecialchars( $source['type'] ) . '" ';
 			$o.= "\n\t\t" .'<source ' .
-					$type .
+					'type="' . htmlspecialchars( $source['type'] ) . '" ' . 
 					'src="' . $source['src'] . '" '.
 					'data-flavorid="' . htmlspecialchars( $source['data-flavorid'] ) . '" '.
 				'></source>';
@@ -388,7 +385,7 @@ class kalturaIframe {
 		}
 		$o = '';
 		$xml = $this->getResultObject()->getUiConfXML();
-		foreach ($xml->uiVars->var as $var ){
+		foreach ( $xml->uiVars->var as $var ){
 			if( isset( $var['key'] ) && isset( $var['value'] ) 
 				&& $var['key'] != 'Mw.CustomResourceIncludes' 
 			){
@@ -396,17 +393,18 @@ class kalturaIframe {
 				// check for boolean attributes: 
 				if( $var['value'] == 'false' || $var['value'] == 'true' ){
 					$o.=  $var['value'];
-				}else {
+				} else if( substr($var['value'][0], 0, 1 ) == '{' 
+					&&  substr($var['value'], -1, 1 ) == '}' 
+					&& json_decode( $var['value'] ) !== null
+				){ // check for json valuse
+					$o.= $var['value'];
+				} else { //escape string values:
 					$o.= "'" . htmlspecialchars( addslashes( $var['value'] ) ) . "'";
 				}
 				$o.= ");\n";
 			}
 		}
 		return $o;
-	}
-	private function isAndroid() {
-		$ua = strtolower( $this->getResultObject()->getUserAgent() );
-		return strpos($ua, "android");
 	}
 	private function checkIframePlugins(){
 		try{
@@ -430,7 +428,7 @@ class kalturaIframe {
 	private function getSwfUrl(){
 		$swfUrl = $this->getResultObject()->getServiceConfig('ServiceUrl') . '/index.php/kwidget';
 		// pass along player attributes to the swf:
-		$urlParams = $this->getResultObject()->getUrlParameters();	
+		$urlParams = $this->getResultObject()->getUrlParameters();
 		foreach($urlParams as $key => $val ){
 			if( $val != null && $key != 'flashvars' ){
 				$swfUrl.='/' . $key . '/' . $val;
@@ -609,14 +607,26 @@ class kalturaIframe {
 					$this->getVideoHTML( $this->getPlaylistPlayerSizeCss() ) 
 				);
 			} else {
-				if( $this->isAndroid() ) {
-					echo $this->getVideoHTML( $this->getPlayerSizeCss() );
-				} else {
-					echo $this->getVideoHTML();
-				}
+				// For the actual video tag we need to use a document.write since android dies 
+				// on some video tag properties
+				?>
+				<script type="text/javascript">
+					var videoTagHTML = <?php echo json_encode( $this->getVideoHTML() ) ?>;
+					// Android can't handle position:absolute style on video tags and requires an absolute size: 
+					if( navigator.userAgent.indexOf('Android' ) !== -1 ){
+						// Also android does not like "type" on source tags
+						videoTagHTML= videoTagHTML.replace(/type=\"[^\"]*\"/g, '');
+						styleValue = '<?php echo $this->getPlayerSizeCss(); ?>';
+					} else {
+						// iOS and other OSs are fine with 100% size and position:abolute;
+						styleValue = 'position:absolute;width:100%;height:100%';
+					}
+					videoTagHTML = videoTagHTML.replace(/style=\"\"/, 'style="' + styleValue + '"');
+					document.write( videoTagHTML );
+				</script>
+				<?php
 			} 
 		}
-		//exit();
 		?>
 		<script type="text/javascript">
 			// In same page iframe mode the script loading happens inline and not all the settings get set in time
@@ -666,7 +676,7 @@ class kalturaIframe {
 				// Parse any configuration options passed in via hash url:
 				if( hashString ){
 					var hashObj = JSON.parse(
-						decodeURIComponent( hashString.replace( /^#/, '' ) )
+						unescape( hashString.replace( /^#/, '' ) )
 					);
 					if( hashObj.mwConfig ){
 						mw.setConfig( hashObj.mwConfig );
@@ -714,9 +724,8 @@ class kalturaIframe {
 				
 				// Set uiConf global vars for this player ( overides iframe based hash url config )
 				<?php 
-				echo $this->getCustomPlayerConfig();
+					echo $this->getCustomPlayerConfig();
 				?>
-				
 				// Remove the fullscreen option if we are in an iframe: 
 				if( mw.getConfig('EmbedPlayer.IsFullscreenIframe') ){
 					mw.setConfig('EmbedPlayer.EnableFullscreen', false );
@@ -781,14 +790,19 @@ class kalturaIframe {
 					if( mw.getConfig('EmbedPlayer.IframeIsPlaying') ){
 						embedPlayer.play();
 					}
-					// Bind window resize to reize the player:
-					$( window ).resize( function(){
+					function doResizePlayer(){
 						$( '#<?php echo htmlspecialchars( $this->getIframeId() )?>' )
 							.get(0).resizePlayer({
 								'width' : $(window).width(),
 								'height' : $(window).height()
 							});
-					});				    
+					}
+					// Bind window resize to reize the player:
+					$( window ).resize( doResizePlayer );
+					// Resize the player per player on ready
+					if( mw.getConfig('EmbedPlayer.IsFullscreenIframe') ){
+						doResizePlayer();
+					}
 				});
 		} else {
 			// Remove the video tag and output a clean "object" or file link

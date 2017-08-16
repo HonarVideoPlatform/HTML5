@@ -104,6 +104,8 @@ mw.AdTimeline.prototype = {
 	firstPlay: true,
 	
 	bindPostfix: '.AdTimeline',
+	
+	trackingBindPostfix: '.AdTracking',
 
 	/**
 	 * @constructor
@@ -193,8 +195,8 @@ mw.AdTimeline.prototype = {
 				// Turn off preSequence
 				embedPlayer.sequenceProxy.isInSequence = false;
 				// Trigger the postSequenceComplete event
-				$(embedPlayer).trigger( 'postSequenceComplete' );
-				
+				$( embedPlayer ).trigger( 'postSequenceComplete' );
+
 				/** TODO support postroll bumper and leave behind */
 				embedPlayer.switchPlaySrc( _this.originalSrc, function(){
 					_this.restorePlayer();
@@ -224,7 +226,6 @@ mw.AdTimeline.prototype = {
 	 */
 	displaySlots: function( slotType, doneCallback ){
 		var _this = this;
-		
 		// Setup a sequence timeline set: 
 		var sequenceProxy = {};
 		
@@ -237,7 +238,7 @@ mw.AdTimeline.prototype = {
 			keyList.push( k );
 		});
 		
-		mw.log( "AdTimeline:: displaySlots: " + slotType + ' found: ' + keyList.length + ' ad callback slots' );
+		mw.log( "AdTimeline:: displaySlots: " + slotType + ' found sequenceProxy length: ' + keyList.length );
 		
 		// if don't have any ads issue the callback directly:
 		if( !keyList.length ){
@@ -245,9 +246,7 @@ mw.AdTimeline.prototype = {
 			return ;
 		}
 		
-		// Update the interface for ads: 
-		this.updateUiForAdPlayback();
-		
+		// Sort the sequence proxy key list: 
 		keyList.sort();
 		var seqInx = 0;
 		// Run each sequence key in order:
@@ -256,7 +255,6 @@ mw.AdTimeline.prototype = {
 			_this.embedPlayer.sequenceProxy.isInSequence = true;
 			var key = keyList[ seqInx ] ;
 			if( !sequenceProxy[key] ){
-				_this.embedPlayer.sequenceProxy.isInSequence = false;
 				doneCallback();
 				return ;
 			}
@@ -264,25 +262,32 @@ mw.AdTimeline.prototype = {
 			sequenceProxy[ key ]( function(){
 				// done with the current proxy call next
 				seqInx++;
+				// Trigger the EndAdPlayback between each ad in the sequence proxy 
+				// ( if we have more ads to go )
+				if( sequenceProxy[ keyList[ seqInx ] ] ){
+					$( _this.embedPlayer ).trigger( 'AdSupport_EndAdPlayback');
+				}
 				// call with a timeout to avoid function stack
 				setTimeout(function(){
 					runSequeceProxyInx( seqInx );
 				},0);
 			});
-			// Trigger an ad start event once we execute the sequenceProxy
-			setTimeout(function(){
-				$( _this.embedPlayer ).trigger( 'AdSupport_StartAdPlayback', slotType );
-			},0);
+			
+			// Update the interface for ads: 
+			_this.updateUiForAdPlayback();
 		};
 		runSequeceProxyInx( seqInx );
 	},
 	updateUiForAdPlayback: function( slotType ){
+		var embedPlayer = this.embedPlayer;
 		// Stop the native embedPlayer events so we can play the preroll and bumper
-		this.embedPlayer.stopEventPropagation();
+		embedPlayer.stopEventPropagation();
 		// TODO read the add disable control bar to ad config and check that here. 
-		this.embedPlayer.disableSeekBar();
+		embedPlayer.disableSeekBar();
 		// update the interface to play state:
-		this.embedPlayer.playInterfaceUpdate();
+		embedPlayer.playInterfaceUpdate();
+		// Trigger an ad start event once we enter an ad state
+		$( embedPlayer ).trigger( 'AdSupport_StartAdPlayback', slotType );
 	},
 	/**
 	 * Restore a player from ad state
@@ -321,6 +326,7 @@ mw.AdTimeline.prototype = {
 		adSlot.doneCallback = displayDoneCallback;
 		
 		adSlot.playbackDone = function(){
+			mw.log("AdTimeline:: display: adSlot.playbackDone" );
 			// Remove notice if present: 
 			$('#' + _this.embedPlayer.id + '_ad_notice' ).remove();
 			// Remove skip button if present: 
@@ -427,6 +433,12 @@ mw.AdTimeline.prototype = {
 		if( adConf.clickThrough ){	
 			var clickedBumper = false;
 			$( _this.embedPlayer ).bind( 'click.ad', function(){
+				// Show the control bar with a ( force on screen option for iframe based clicks on ads ) 
+				_this.embedPlayer.controlBuilder.showControlBar( true );
+				$( _this.embedPlayer ).bind('play.adClick', function(){
+					$( _this.embedPlayer ).unbind('play.adClick');
+					_this.embedPlayer.controlBuilder.restoreControlsHover();
+				})
 				// try to do a popup:
 				if(!clickedBumper){
 					clickedBumper = true;
@@ -436,8 +448,6 @@ mw.AdTimeline.prototype = {
 				return true;							
 			});
 		}
-		// Stop event propagation: 
-		_this.updateUiForAdPlayback( adSlot.type );
 		
 		// Play the source then run the callback
 		_this.embedPlayer.switchPlaySrc( targetSrc, 
@@ -493,7 +503,9 @@ mw.AdTimeline.prototype = {
 							.css('cursor', 'pointer')
 							.css( adSlot.skipBtn.css )				
 							.click(function(){
-								$( _this.embedPlayer ).unbind( 'click.ad' );	
+								$( _this.embedPlayer ).unbind( 'click.ad' );
+								// unbind any vast tracking: 
+								$( _this.getNativePlayerElement() ).unbind( _this.trackingBindPostfix );
 								adSlot.playbackDone();
 							})
 					);
@@ -653,7 +665,7 @@ mw.AdTimeline.prototype = {
 	bindTrackingEvents: function ( trackingEvents ){
 		var _this = this;
 		var videoPlayer = _this.getNativePlayerElement();
-		var bindPostfix = '.adTracking';
+		var bindPostfix = _this.trackingBindPostfix;
 		// unbind any existing adTimeline events
 		$( videoPlayer).unbind( bindPostfix );
 		
@@ -669,7 +681,7 @@ mw.AdTimeline.prototype = {
 			// See if we have any beacons by that name: 
 			for(var i =0;i < trackingEvents.length; i++){
 				if( eventName == trackingEvents[ i ].eventName ){
-					mw.log("kAds:: sendBeacon: " + eventName );
+					mw.log("AdTimeline:: sendBeacon: " + eventName + ' to: ' + trackingEvents[ i ].beaconUrl );
 					mw.sendBeaconUrl( trackingEvents[ i ].beaconUrl );
 				};
 			};			
@@ -681,17 +693,17 @@ mw.AdTimeline.prototype = {
 			// stop monitor
 			clearInterval( monitorInterval );
 			// clear any bindings 
-			$( videoPlayer).unbind( bindPostfix);
+			$( videoPlayer).unbind( bindPostfix );
 		});
 		
 		// On pause / resume: 
 		$( videoPlayer ).bind( 'pause' + bindPostfix, function(){
-			sendBeacon( 'pause' );
+			sendBeacon( 'pause', true );
 		});
 		
 		// On resume: 
 		$( videoPlayer ).bind( 'onplay' + bindPostfix, function(){
-			sendBeacon( 'resume' );
+			sendBeacon( 'resume', true );
 		});
 		
 		var time = 0;

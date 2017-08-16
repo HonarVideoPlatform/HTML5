@@ -61,7 +61,10 @@ mw.KAds.prototype = {
 		// We can add this binding here, because we will always have vast in the uiConf when having cue points
 		// Catch Ads from adOpportunity event
 		$( embedPlayer ).bind('KalturaSupport_AdOpportunity' + _this.bindPostfix, function( event, cuePointWrapper ) {
-			_this.loadAd( cuePointWrapper );
+			// TODO we really need a better way to identify VAST vs "other provider" 
+			if( cuePointWrapper.cuePoint.tags == "" ){
+				_this.loadAd( cuePointWrapper );
+			}
 		});
 
 	},
@@ -95,10 +98,13 @@ mw.KAds.prototype = {
 		var cuePoint = cuePointWrapper.cuePoint;
 		var adType = this.embedPlayer.kCuePoints.getAdSlotType( cuePointWrapper );
 		var adDuration = Math.round( cuePoint.duration / 1000);
+		
 		// Check if cue point already displayed
 		if( $.inArray( cuePoint.id, _this.displayedCuePoints) >= 0 ) {
 			return ;
 		}
+		// Add cuePoint Id to displayed cuePoints array
+		_this.displayedCuePoints.push( cuePoint.id );		
 		
 		mw.log('kAds::loadAd:: load ' + adType + ', duration: ' + adDuration, cuePoint);
 
@@ -110,6 +116,12 @@ mw.KAds.prototype = {
 		// If ad type is midroll pause the video
 		if( adType == 'midroll' ) {
 			_this.embedPlayer.pauseLoading();
+		}
+
+		if( adType == 'postroll' ) {
+			setTimeout(function() {
+				_this.embedPlayer.pauseLoading();
+			}, 100);
 		}
 		
 		if( cuePoint.sourceUrl ) {
@@ -142,8 +154,6 @@ mw.KAds.prototype = {
 				var doneCallback = function() {
 					// continue playback ( if not already playing ) 
 					embedPlayer.play();
-					// Add cuePoint Id to displayed cuePoints array
-					_this.displayedCuePoints.push( cuePoint.id );
 					
 					var vid = embedPlayer.getPlayerElement();
 					// Check if the src does not match original src if

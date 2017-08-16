@@ -1283,6 +1283,7 @@ mw.EmbedPlayer.prototype = {
 
 			// TOOD we should improve the end event flow
 			this.stopEventPropagation();
+			mw.log("EmbedPlayer:: trigger: ended");
 			$( this ).trigger( 'ended' );
 			this.restoreEventPropagation();
 			
@@ -1293,7 +1294,6 @@ mw.EmbedPlayer.prototype = {
 			if( this.onDoneInterfaceFlag ){
 				mw.log("EmbedPlayer::onDoneInterfaceFlag=true do interface done");
 				this.stop();
-				// restore event propagation
 				
 				// Check if we have the "loop" property set
 				if( this.loop ) {
@@ -1315,6 +1315,7 @@ mw.EmbedPlayer.prototype = {
 				//this.controlBuilder.onClipDone();
 
 				// An event for once the all ended events are done.
+				mw.log("EmbedPlayer:: trigger: onEndedDone");
 				$( this ).trigger( 'onEndedDone' );
 			}
 		}
@@ -1367,11 +1368,6 @@ mw.EmbedPlayer.prototype = {
 				'left' : '0px',
 				'background': null
 			});
-
-			if( this.isPersistentNativePlayer() && !_this.controlBuilder.isOverlayControls() ){
-				// if Persistent native player always give it the player height
-				$('#' + this.pid ).css('height', this.height - _this.controlBuilder.height );
-			}
 			$( this ).show();
 		}
 		if(  !this.useNativePlayerControls() && !this.isPersistentNativePlayer() && !_this.controlBuilder.isOverlayControls() ){
@@ -1379,20 +1375,15 @@ mw.EmbedPlayer.prototype = {
 			$(this).css('height', this.height - _this.controlBuilder.height );
 		}
 
-		// Update Thumbnail for the "player"
-		this.updatePosterHTML();
 
 		// Add controls if enabled:
-		if ( this.useNativePlayerControls() ) {
-			// Need to think about this some more...
-			// Interface is hidden if controls are "off"
-			this.$interface.hide();
-		} else {
-			if( this.controls ){
-				this.controlBuilder.addControls();
-			}
+		if ( ! this.useNativePlayerControls() && this.controls ) {
+			this.controlBuilder.addControls();
 		}
 
+		// Update Thumbnail for the "player"
+		this.updatePosterHTML();
+		
 		// Update temporal url if present
 		this.updateTemporalUrl();
 		
@@ -1506,8 +1497,9 @@ mw.EmbedPlayer.prototype = {
 		mw.log("EmbedPlayer::showPluginMissingHTML");
 		// Hide loader
 		this.hidePlayerSpinner();
+		
 		// Set the top level container to relative position:
-		$(this).css('position', 'relative');
+		$( this ).css('position', 'relative');
 		
 		// Control builder ( for play button )
 		this.controlBuilder = new mw.PlayerControlBuilder( this );					
@@ -1886,23 +1878,10 @@ mw.EmbedPlayer.prototype = {
 		}
 		return ;
 	},
-	// Add a play button to the interface if no interface is present add it as a sibling: 
+	// Add a play button 
 	addPlayBtnLarge:function(){
-		var _this = this;
-		$playButton = this.controlBuilder.getComponent('playButtonLarge');
-		if( this.$interface ){
-			this.$interface.append( $playButton );
-		}else {
-			var $pid = $( '#' + _this.pid );
-			$pid.siblings('.play-btn-large').remove();
-			$pid.after(
-				$playButton
-				.css({
-					'left' : parseInt( $pid.position().left ) + parseInt( $playButton.css('left') ),
-					'top' : parseInt( $pid.position().top ) +  parseInt( $playButton.css('top') )
-				})
-			);
-		}
+		$playButton = this.controlBuilder.getComponent( 'playButtonLarge' );
+		this.$interface.append( $playButton );
 	},
 	/**
 	 * Should be set via native embed support
@@ -1932,28 +1911,17 @@ mw.EmbedPlayer.prototype = {
 			break;
 		}
 	},
-
 	/**
 	 * Get the share embed object code
 	 * 
 	 * NOTE this could probably share a bit more code with getShareEmbedVideoJs
 	 */
 	getShareIframeObject: function(){
-
-		var iframeUrl = false;
+		// todo move to getShareIframeSrc
         if (typeof(mw.IA) != 'undefined'){
         	return mw.IA.embedCode();
-        } else {
-        	$( this ).trigger( 'GetShareIframeSrc', function( localIframeSrc ){
-				if( iframeUrl){
-					mw.log("Error multiple modules binding GetShareIframeSrc" );
-				}
-				iframeUrl = localIframeSrc;
-        	});
         }
-		if( !iframeUrl ){
-			iframeUrl = this.getIframeSourceUrl();
-		}
+		iframeUrl = this.getIframeSourceUrl();
 
 		// Set up embedFrame src path
 		var embedCode = '&lt;iframe src=&quot;' + mw.escapeQuotesHTML( iframeUrl ) + '&quot; ';
@@ -1970,11 +1938,19 @@ mw.EmbedPlayer.prototype = {
 		return embedCode;
 	},
 	getIframeSourceUrl: function(){
-		var iframeUrl = '';
-
+		var iframeUrl = false;
+		$( this ).trigger( 'getShareIframeSrc', function( localIframeSrc ){
+			if( iframeUrl){
+				mw.log("Error multiple modules binding getShareIframeSrc" );
+			}
+			iframeUrl = localIframeSrc;
+    	});
+		if( iframeUrl ){
+			return iframeUrl;
+		}
 		// old style embed:
 		var iframeUrl = mw.getMwEmbedPath() + 'mwEmbedFrame.php?';
-		var params = {'src[]':[]};
+		var params = { 'src[]' : [] };
 
 		// TODO move to mediaWiki Support module
 		if( this.apiTitleKey ) {
@@ -2500,13 +2476,13 @@ mw.EmbedPlayer.prototype = {
 
 		// update the mute state from the player element
 		if( _this.muted != _this.getPlayerElementMuted() && ! _this.isStopped() ){
-//			mw.log( "EmbedPlayer::monitor: muted does not mach embed player" );
+			//	mw.log( "EmbedPlayer::monitor: muted does not mach embed player" );
 			_this.toggleMute();
 			// Make sure they match:
 			_this.muted = _this.getPlayerElementMuted();
 		}
 
-
+		// mw.log( 'ct: ' + this.currentTime + ' d:' + this.duration + ' us:' + this.userSlide + ' seek:' + this.seeking );
 		if ( this.currentTime >= 0 && this.duration ) {
 			if ( !this.userSlide && !this.seeking ) {
 				if ( parseInt( this.startOffset ) != 0 ) {
@@ -2569,7 +2545,7 @@ mw.EmbedPlayer.prototype = {
 			this.stopMonitor();
 		}
 
-		//mw.log('trigger:monitor:: ' + this.currentTime  + ' propagate events: ' + _this._propagateEvents);
+		//	mw.log('EmbedPlayer:: monitor ' + this.currentTime  + ' propagate events: ' + _this._propagateEvents);
 		if( _this._propagateEvents ){
 			$( this ).trigger( 'monitorEvent' );
 		}

@@ -19,6 +19,9 @@ $wgKalturaServiceUrl = $wgHTTPProtocol . '://' . $kConf->get('www_host');
 // Default Kaltura CDN url:
 $wgKalturaCDNUrl = $wgHTTPProtocol. '://' . $kConf->get('cdn_host_https');
 
+// Default Asset CDN Path (used in ResouceLoader.php):
+$wgCDNAssetPath = $wgKalturaCDNUrl;
+
 // Default Kaltura service url:
 $wgKalturaServiceBase = '/api_v3/index.php?service=';
 

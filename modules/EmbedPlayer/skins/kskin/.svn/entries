@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.9a/modules/EmbedPlayer/skins/kskin
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6g/modules/MiroSubs/mirosubs/media/images/prettyPhoto/light_rounded
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-11-08T17:32:59.801837Z
-6828
+2012-03-18T17:15:19.535554Z
+7349
 rany
 
 
@@ -26,20 +26,18 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-images
-dir
-
-mw.style.PlayerSkinKskin.css
+btnPrevious.png
 file
 
 
 
 
-2017-07-03T22:47:30.000000Z
-49a7ca58974e01db9ab0f5c5afb3dfd4
-2011-11-08T17:32:59.801837Z
-6828
+2017-07-03T22:59:38.000000Z
+9ad8565740908ecab23ff67990e590cc
+2012-03-18T17:15:19.535554Z
+7349
 rany
+has-props
 
 
 
@@ -60,20 +58,20 @@ rany
 
 
 
-
-7771
+1442
 
-mw.PlayerSkinKskin.js
+btnNext.png
 file
 
 
 
 
-2017-07-03T22:47:30.000000Z
-56780ecab23a6f6adeea5ea03c61e90a
-2011-11-08T17:32:59.801837Z
-6828
+2017-07-03T22:59:38.000000Z
+0a89018b6e4a1492623ca2b608b606ff
+2012-03-18T17:15:19.535554Z
+7349
 rany
+has-props
 
 
 
@@ -94,6 +92,73 @@ rany
 
 
 
+1411
+
+sprite.png
+file
 
-11650
+
+
+
+2017-07-03T22:59:38.000000Z
+68864373d6162e3865adb6d749dca094
+2012-03-18T17:15:19.535554Z
+7349
+rany
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+4008
+
+loader.gif
+file
+
+
+
+
+2017-07-03T22:59:38.000000Z
+df46993044576f83f2c2cc1a64e18f31
+2012-03-18T17:15:19.535554Z
+7349
+rany
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2545
 

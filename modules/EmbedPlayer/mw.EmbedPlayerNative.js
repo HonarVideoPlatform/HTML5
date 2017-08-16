@@ -413,7 +413,7 @@ mw.EmbedPlayerNative = {
 			}
 			// Enforce a specific amount of decimal digits
 			// http://blog.millermedeiros.com/2011/03/html5-video-issues-on-the-ipad-and-how-to-solve-them/
-			time = time.toFixed(1);
+			time = parseFloat(time).toFixed(1);
 			var once = function( event ) {
 				if( callback ){
 					callback();
@@ -478,6 +478,7 @@ mw.EmbedPlayerNative = {
 		var _this = this;
 		var vid = this.getPlayerElement();
 		
+		var switchBindPostfix = '.switchPlaySrc';
 		// Make sure the switch source is different: 
 		if( !src || src == vid.src ){
 			if( switchCallback ){
@@ -499,8 +500,8 @@ mw.EmbedPlayerNative = {
 	
 		if ( vid ) {
 			try {
-				// Remove all native player bindings
-				$(vid).unbind();
+				// Remove all switch player bindings
+				$( vid ).unbind( switchBindPostfix );
 				vid.pause();
 				var orginalControlsState = vid.controls;
 				// Hide controls ( to not display native play button while switching sources ) 
@@ -526,18 +527,23 @@ mw.EmbedPlayerNative = {
 						// Wait another 100ms then bind the end event and any custom events
 						// for the switchCallback
 						setTimeout(function() {
-							var vid = _this.getPlayerElement();			
+							var vid = _this.getPlayerElement();
+							// dissable seeking ( if we were in a seeking state before the switch )
+							_this.seeking = false;
 							// Restore controls 
 							vid.controls = orginalControlsState;
 							// add the end binding: 
-							$( vid ).bind( 'ended', function( event ) {
+							$( vid ).bind( 'ended' + switchBindPostfix , function( event ) {
+								// remove end binding: 
+								$( vid ).unbind( switchBindPostfix );
+								
 								if(typeof doneCallback == 'function' ){
 									doneCallback();
 								}
 								return false;
 							});
 							if (typeof switchCallback == 'function') {
-								switchCallback(vid);
+								switchCallback( vid );
 							}
 							_this.hidePlayerSpinner();
 						}, 50);

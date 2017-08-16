@@ -29,10 +29,13 @@ mw.KWidgetSupport.prototype = {
 				_this.loadAndUpdatePlayerData( embedPlayer, callback );
 			});
 			// Add Kaltura iframe share support:
-			$( embedPlayer ).bind( 'GetShareIframeSrc', function(event, callback){
-				callback( mw.getConfig( 'Kaltura.ServiceUrl' ) + '/p/' + _this.kClient.getPartnerId() +
-						'/embedIframe/entry_id/' + embedPlayer.kentryid +
-						'/uiconf_id/' + embedPlayer.kuiconfid );
+			$( embedPlayer ).bind( 'getShareIframeSrc', function( event, callback ){
+				var iframeUrl = mw.getMwEmbedPath() + 'mwEmbedFrame.php';
+				iframeUrl +='/wid/_' + _this.kClient.getPartnerId() +
+				'/uiconf_id/' + embedPlayer.kuiconfid +
+				'/entry_id/' + embedPlayer.kentryid + '/';
+				// return the iframeUrl via the callback: 
+				callback( iframeUrl );
 			});
 		});
 	},
@@ -54,7 +57,7 @@ mw.KWidgetSupport.prototype = {
 						callback();
 					});
 				break;
-				case 'pptwidget': 
+				case 'pptwidget':
 					mw.load([ 'EmbedPlayer', 'mw.KPPTWidget', 'mw.KLayout' ], function(){
 						new mw.KPPTWidget( widgetTarget, playerData.uiConf, callback );
 					});
@@ -100,18 +103,20 @@ mw.KWidgetSupport.prototype = {
 			// Store the parsed uiConf in the embedPlayer object:
 			embedPlayer.$uiConf = $( playerData.uiConf );
 			
-			// Set any global configuration present in custom variables of the playerData
-			embedPlayer.$uiConf.find( 'uiVars var' ).each( function( inx, customVar ){
-				if( $( customVar ).attr('key') &&  $( customVar ).attr('value') ){
-					var cVar = $( customVar ).attr('value');
-					// String to boolean: 
-					cVar = ( cVar === "false" ) ? false : cVar;
-					cVar = ( cVar === "true" ) ? true : cVar;
-					
-					// mw.log("KWidgetSupport::addPlayerHooks> Set Global Config:  " + $( customVar ).attr('key') + ' ' + cVar );
-					mw.setConfig(  $( customVar ).attr('key'), cVar);
-				}
-			});
+			// if not in an iframe server set any configuration present in custom variables of the playerData
+			if( !mw.getConfig('EmbedPlayer.IsIframeServer') ){
+				embedPlayer.$uiConf.find( 'uiVars var' ).each( function( inx, customVar ){
+					if( $( customVar ).attr('key') &&  $( customVar ).attr('value') ){
+						var cVar = $( customVar ).attr('value');
+						// String to boolean: 
+						cVar = ( cVar === "false" ) ? false : cVar;
+						cVar = ( cVar === "true" ) ? true : cVar;
+						
+						// mw.log("KWidgetSupport::addPlayerHooks> Set Global Config:  " + $( customVar ).attr('key') + ' ' + cVar );
+						mw.setConfig(  $( customVar ).attr('key'), cVar);
+					}
+				});
+			}
 		}
 		
 		// Check access controls ( this is kind of silly and needs to be done on the server ) 
@@ -140,7 +145,7 @@ mw.KWidgetSupport.prototype = {
 							$('<h3 />').append( 'Free preview completed, need to purchase'),
 							$('<span />').text( 'Access to the rest of the content is restricted' ),
 							$('<br />'),$('<br />'),
-							$('<button />').attr({'type' : "button" })
+							$('<button />').attr({'type' : "button"})
 							.addClass( "ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" )
 							.append( 
 								$('<span />').addClass( "ui-button-text" )
@@ -221,27 +226,33 @@ mw.KWidgetSupport.prototype = {
 		if( $(embedPlayer).data('uiConfXml') ){
 			embedPlayer.$uiConf = $( embedPlayer ).data('uiConfXml');
 		}
-		
 		// Check for playlist cache based 
-		if( playerData.playlistCache ){
-			embedPlayer.playlistCache = playerData.playlistCache;
-		}	
+		if( playerData.playlistData ){
+			embedPlayer.kalturaPlaylistData = playerData.playlistData;
+		}
 		
 		// Local function to defer the trigger of loaded cuePoints so that plugins have time to load
 		// and setup their binding to KalturaSupport_CuePointsReady
 		var doneWithUiConf = function(){
 			if( embedPlayer.rawCuePoints ){
+				mw.log("KWidgetSupport:: trigger KalturaSupport_CuePointsReady");
 				// Allow other plugins to subscribe to cuePoint ready event:
 				$( embedPlayer ).trigger( 'KalturaSupport_CuePointsReady', embedPlayer.rawCuePoints );
 			};
-			// Run the DoneWithUiConf trigger ( allows dependency based loaders to include setup code )
+			// Run the DoneWithUiConf trigger 
+			// Allows modules that depend on other modules initialization to do what they need to do. 
+			mw.log("KWidgetSupport:: trigger KalturaSupport_DoneWithUiConf");
 			$( embedPlayer ).trigger( 'KalturaSupport_DoneWithUiConf' );
 			callback();
 		};
 		
+		// sync iframe with attribute data updates:
+		$( embedPlayer ).trigger('updateIframeData');
+		
 		if( embedPlayer.$uiConf ){
 			_this.baseUiConfChecks( embedPlayer );
-			// Trigger the check kaltura uiConf event					
+			// Trigger the check kaltura uiConf event			
+			mw.log( "KWidgetSupport:: trigger KalturaSupport_CheckUiConf" );
 			$( embedPlayer ).triggerQueueCallback( 'KalturaSupport_CheckUiConf', embedPlayer.$uiConf, function(){	
 				mw.log("KWidgetSupport::KalturaSupport_CheckUiConf done with all uiConf checks");
 				// Ui-conf file checks done
@@ -335,15 +346,13 @@ mw.KWidgetSupport.prototype = {
 					config[key] = val;
 				}
 			})
-			
-			// Check for "flat plugin vars" stored at the end of the uiConf ( instead of as attributes )"
+			// Check for uiVars
 			$uiPluginVars.each( function(inx, node){
 				var attrName = $(node).attr('key');
 				if( $(node).attr('overrideflashvar') != "false" || ! config[attrName] ){
-					config[attrName] = $(node).get(0).getAttribute('value');
+					var attrKey = attrName.replace( confPrefix + '.', '');
+					config[ attrKey ] = $(node).get(0).getAttribute('value');
 				}
-				// Found break out of loop
-				return false;
 			});
 		} else {
 			$.each( attr, function(inx, attrName ){
@@ -392,8 +401,10 @@ mw.KWidgetSupport.prototype = {
 			if( config[ attrName ] === "false" )
 				config[ attrName ] = false; 
 			
-			// Do any value handling 
-			config[ attrName ] = embedPlayer.evaluate( config[ attrName ] );
+			// Do any value handling
+			// If JS Api disabled, evaluate is undefined
+			if( embedPlayer.evaluate )
+				config[ attrName ] = embedPlayer.evaluate( config[ attrName ] );
 		});
 		
 		// Check if disableHTML5 was "true" and return false for the plugin config ( since we are the html5 library ) 

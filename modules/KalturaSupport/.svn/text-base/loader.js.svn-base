@@ -54,7 +54,8 @@
 		'kwidgetid' : null,
 		'kuiconfid' : null,
 		'kalturaPlayerMetaData' : null,
-		'kalturaEntryMetaData' : null
+		'kalturaEntryMetaData' : null,
+		'kalturaPlaylistData' : null
 	});
 	
 	mw.mergeConfig( 'EmbedPlayer.DataAttributes', {
@@ -83,6 +84,7 @@
 		"adPlugin"	: 	"uiConfComponents/adPlugin.js",
 		"captionPlugin"	: 	"uiConfComponents/captionPlugin.js",		
 		"bumperPlugin"	: 	"uiConfComponents/bumperPlugin.js",
+		"myLogo" : "uiConfComponents/myLogo.js",
 
 		"playlistPlugin" : "uiConfComponents/playlistPlugin.js",
 		
@@ -511,8 +513,7 @@
 			iframeRequest += '&urid=' + KALTURA_LOADER_VERSION;
 
 			var baseClass = $( playerTarget ).attr('class' ) ? $( playerTarget ).attr('class' ) + ' ' : '';
-			var iframeId = $( playerTarget ).attr('id') + '_ifp';
-			var iframeStyle = ( $( playerTarget ).attr('style') ) ? $( playerTarget ).attr('style') : '';
+			var iframeId = $( playerTarget ).attr('id') + '_ifp';		
 
 			var $iframe = $('<iframe />')
 				.attr({
@@ -522,7 +523,7 @@
 					'height' : $( playerTarget ).height(),
 					'width' : $( playerTarget ).width()
 				})
-				.attr('style', iframeStyle)
+				.attr( 'style', $( playerTarget ).attr('style') ) 
 				.css({
 					'border': '0px'
 				});

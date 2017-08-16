@@ -129,6 +129,11 @@ mw.DoubleClick.prototype = {
 	 */
 	loadAndDisplayOverlay: function( cuePoint ){
 		var _this = this;
+		// Don't display overlays if in an ad: 
+		if( this.embedPlayer.evaluate('{sequenceProxy.isInSequence}') ){
+			return ;
+		}
+		
 		// Setup the current ad callback: 
 		_this.currentAdLoadedCallback = function( adsManager ){
 			mw.log( "DoubleClick::loadAndDisplayOverlay> currentAdLoadedCallback ")
@@ -166,7 +171,6 @@ mw.DoubleClick.prototype = {
 		    adsManager.setVerticalAlignment( google.ima.AdSlotAlignment.VerticalAlignment.BOTTOM );
 
 		    adsManager.play( $overlay.get(0) );
-
 		    // Set the active overlay manager: 
 		    _this.activeOverlayadManager = adsManager;
 		    
@@ -244,20 +248,34 @@ mw.DoubleClick.prototype = {
 			// TODO This should not be needed ( fix event stop event propagation ) 
 			_this.embedPlayer.monitor();
 			mw.log( "DoubleClick::adsManager.play" );
+			var vid = _this.embedPlayer.getPlayerElement();
 			
-			adsManager.play( _this.embedPlayer.getPlayerElement() );
+			adsManager.play( vid );
+			
+			// Show the control bar with a ( force on screen option for iframe based clicks on ads ) 
+			// double click only gives us a "raw pause" 
+			$( vid ).bind('pause.dcAdClick', function(){
+				// force display the control bar: 
+				_this.embedPlayer.controlBuilder.showControlBar( true );
+				// add a play binding: to restore hover 
+				$( vid ).bind('play.dcAdClick', function(){
+					_this.embedPlayer.controlBuilder.restoreControlsHover();
+				});
+			});
 		};
 		// Setup the restore callback
 		_this.onResumeRequestedCallback = function(){
 			mw.log( "DoubleClick::loadAndPlayVideoSlot> onResumeRequestedCallback" );
+			var vid = _this.embedPlayer.getPlayerElement();
+			// unbind the click 
+			$( vid ).unbind( '.dcAdClick');
+			
 			// TODO integrate into timeline proper: 
 			if( _this.embedPlayer.adTimeline ){
 				_this.embedPlayer.adTimeline.restorePlayer();
 			}
 			// Clear out the older currentAdLoadedCallback
 			_this.currentAdLoadedCallback = null;
-			// Continue playback
-			_this.embedPlayer.play();
 			// Issue the callback 
 			callback();
 		};
@@ -281,13 +299,16 @@ mw.DoubleClick.prototype = {
 		var adUrl = this.embedPlayer.evaluate(  
 				this.findTagUrl( slotType, cuePoint ) 
 			);
+		
+		var rParam = ( adUrl.indexOf('?') ===  -1 ) ? '?' : '&';
 		// Add in structured ui-conf components to ad url request:
 		if( this.getConfig( 'contentId' ) ){
-			adUrl+= '&vid=' + this.getConfig( 'contentId' ); 
+			adUrl+= rParam + 'vid=' + this.getConfig( 'contentId' ); 
+			rParam = '&';
 		}
 		// cmsId 
 		if( this.getConfig( 'cmsId' ) ){
-			adUrl+= '&cmsid=' + this.getConfig('cmsId');
+			adUrl+= rParam + 'cmsid=' + this.getConfig('cmsId');
 		};
 		return adUrl;
 	},
@@ -303,10 +324,11 @@ mw.DoubleClick.prototype = {
 			return cuePoint.sourceUrl;
 		}
 		// Check if the ui conf has defined an AdTagUrl for preAdTagUrl or postAdTagUrl
-		if( this.getConfig( slotType + 'AdTagUrl') ){
+		if( this.getConfig( slotType + 'adTagUrl') ){
 			return this.getConfig( slotType + 'AdTagUrl' );
 		}
-		if( !this.getConfig( 'AdTagUrl' ) ){
+
+		if( !this.getConfig( 'adTagUrl' ) ){
 			mw.log("Error: DoubleClick no adTagUrl found for " + slotType );
 		}
 		// else just return a master adTagUrl config var:
@@ -401,7 +423,7 @@ mw.DoubleClick.prototype = {
 	},
 	getConfig: function( configName ){
 		// always get the config from the embedPlayer so that is up-to-date
-		return this.embedPlayer.getKalturaConfig( 'doubleclick', configName );
+		return this.embedPlayer.getKalturaConfig( 'DoubleClick', configName );
 	}
 };
 	

@@ -24,6 +24,8 @@ mw.PlaylistHandlerKaltura.prototype = {
 	$uiConf : null,
 	includeInLayout: true,
 	
+	bindPostFix: '.playlistHandlerKaltura',
+	
 	init: function ( playlist, options ){
 		this.playlist = playlist;
 		// set all the options: 
@@ -166,6 +168,12 @@ mw.PlaylistHandlerKaltura.prototype = {
 	hasPlaylistUi: function(){
 		return this.includeInLayout;
 	},
+	isNextButtonDisplayed: function(){
+		return !!this.playlist.getEmbedPlayer().$uiConf.find( 'button#nextBtnControllerScreen' ).length;
+	},
+	isPreviousButtonDisplayed: function(){
+		return !!this.playlist.getEmbedPlayer().$uiConf.find( 'button#previousBtnControllerScreen' ).length;
+	},
 	getPlaylistSet: function(){
 		return this.playlistSet;
 	},
@@ -175,7 +183,13 @@ mw.PlaylistHandlerKaltura.prototype = {
 	},
 	setPlaylistIndex: function( playlistIndex ){
 		this.playlist_id = this.playlistSet[ playlistIndex ].playlist_id;
-		mw.log( "PlaylistHandlerKalutra::setPlaylistIndex: playlist id: " + this.playlist_id);
+		var embedPlayer =  this.playlist.getEmbedPlayer();
+		// Update the player data ( if we can ) 
+		if( embedPlayer.kalturaPlaylistData ){
+			embedPlayer.kalturaPlaylistData.currentPlaylistId = this.playlist_id;
+		}
+		// Make sure the iframe contains this currentPlaylistId update: 
+		$( embedPlayer ).trigger( 'updateIframeData' );
 	},
 	loadCurrentPlaylist: function( callback ){
 		this.loadPlaylistById( this.playlist_id, callback );
@@ -195,8 +209,8 @@ mw.PlaylistHandlerKaltura.prototype = {
 			return ;
 		}
 		// Check for playlist cache
-		if( embedPlayer.playlistCache && embedPlayer.playlistCache[ playlist_id ] ){
-			_this.clipList = embedPlayer.playlistCache[ playlist_id ];
+		if( embedPlayer.kalturaPlaylistData && embedPlayer.kalturaPlaylistData[ playlist_id ] ){
+			_this.clipList = embedPlayer.kalturaPlaylistData[ playlist_id ];
 			callback();
 			return ;
 		}
@@ -209,7 +223,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 		this.getKClient().doRequest( playlistRequest, function( playlistDataResult ) {
 			// Empty the clip list
 			_this.clipList = [];
-			
+			var playlistData;
 			// The api does strange things with multi-playlist vs single playlist
 			if( playlistDataResult[0].id ){
 				playlistData = playlistDataResult;
@@ -222,6 +236,10 @@ mw.PlaylistHandlerKaltura.prototype = {
 			if( playlistData.length > mw.getConfig( "Playlist.MaxClips" ) ){
 				playlistData = playlistData.splice(0, mw.getConfig( "Playlist.MaxClips" ) );
 			}
+			// Add it to the cache:
+			embedPlayer.kalturaPlaylistData[ playlist_id ] = playlistData;
+			$( embedPlayer ).trigger('updateIframeData');
+			// update the clipList:
 			_this.clipList = playlistData;
 			callback();
 		});
@@ -255,12 +273,14 @@ mw.PlaylistHandlerKaltura.prototype = {
 			return ;
 		}		
 		// listen for change media done
-		var bindName = 'onChangeMediaDone.playlist';
+		var bindName = 'onChangeMediaDone' + this.bindPostFix;
 		$( embedPlayer).unbind( bindName ).bind( bindName, function(){
 			embedPlayer.play();
 		});
 		// Use internal changeMedia call to issue all relevant events
 		embedPlayer.sendNotification( "changeMedia", { 'entryId' : this.getClip( clipIndex ).id } );	
+		// Update the playlist data selectedIndex
+		embedPlayer.kalturaPlaylistData.selectedIndex = clipIndex;
 	},
 	drawEmbedPlayer: function( clipIndex, callback){
 		var _this = this;
@@ -271,15 +291,16 @@ mw.PlaylistHandlerKaltura.prototype = {
 			$target.append(
 				_this.getKalturaVideoTag()
 			);
-			// trigger embeding:
+			// trigger embedding:
 			$target.find('video').embedPlayer( callback );
 			return ;
 		}
 		// Get the embed 
 		var embedPlayer = _this.playlist.getEmbedPlayer();
-		
-		// set up ready binding (for ready )
-		$( embedPlayer ).bind('playerReady', function(){
+		// update the selected index: 
+		embedPlayer.kalturaPlaylistData.selectedIndex = clipIndex;
+		// Set up ready binding (for ready )
+		$( embedPlayer ).bind('playerReady' + this.bindPostFix, function(){
 			callback();
 		});
 	},	
@@ -306,8 +327,11 @@ mw.PlaylistHandlerKaltura.prototype = {
 	},
 	addEmbedPlayerBindings: function( embedPlayer ){
 		var _this = this;
-		var bindName = 'Kaltura_SetKDPAttribute.playlist';
-		$( embedPlayer ).unbind( bindName ).bind( bindName, function( event, componentName, property, value ){
+		mw.log( 'PlaylistHandlerKaltura:: addEmbedPlayerBindings');
+		// remove any old bindings;
+		$( embedPlayer ).unbind( this.bindPostFix );
+		// add the binding: 
+		$( embedPlayer ).bind( 'Kaltura_SetKDPAttribute' + this.bindPostFix, function( event, componentName, property, value ){
 			switch( componentName ){
 				case "playlistAPI.dataProvider":
 					_this.doDataProviderAction( property, value );
