@@ -24,6 +24,8 @@ class KalturaResultObject {
 	
 	// Local flag to store whether output was came from cache or was a fresh request
 	private $outputFromCache = false;
+	// local flag to store if the uiconf file was from cache.
+	private $outputUiConfFileFromCache = false;
 	
 	/**
 	 * Variables set by the Frame request:
@@ -45,7 +47,7 @@ class KalturaResultObject {
 		'debug' => null
 	);
 	
-	private $playerConfig = array();
+	var $playerConfig = array();
 
 	function __construct( $clientTag = 'php'){
 		$this->clientTag = $clientTag;
@@ -116,6 +118,20 @@ class KalturaResultObject {
 
 		return null;
 	}
+
+	public function getWidgetPlugins() {
+		if( ! $this->playerConfig ) {
+			$this->setupPlayerConfig();
+		}
+		return $this->playerConfig['plugins'];
+	}
+
+	public function getWidgetUiVars() {
+		if( ! $this->playerConfig ) {
+			$this->setupPlayerConfig();
+		}
+		return $this->playerConfig['vars'];
+	}	
 	/**
 	 * Kaltura object provides sources, sometimes no sources are found or an error occurs in 
 	 * a video delivery context we don't want ~nothing~ to happen instead we send a special error
@@ -169,20 +185,26 @@ class KalturaResultObject {
 	public static function getBlackPoster(){
 		return 'http://cdnbakmi.kaltura.com/p/243342/sp/24334200/thumbnail/entry_id/1_vp5cng42/version/100000/height/480';
 	}
-	
+	// empty player test ( nothing in the uiConf says "player" diffrent from other widgets so we 
+	// we just have to use the 
+	function isEmptyPlayer(){
+		if( !$this->urlParameters['entry_id'] && !$this->isJavascriptRewriteObject()
+			&& !$this->isPlaylist() ){
+			return true;
+		}
+		return false;
+	}
 	// Check if the requested url is a playlist
 	function isPlaylist(){
 		// Check if the playlist is null: 
 		if( !is_null ( $this->isPlaylist ) ){
 			return $this->isPlaylist;
 		}
-		// Check if its a playlist: 
-		$pl =  $this->getUiConfXML()->xpath("//*[@id='playlist']");
-		$this->isPlaylist = ( count( $pl ) != 0 );
+		// Check if its a playlist url exists ( better check for playlist than playlist id )
+		$this->isPlaylist = !! $this->getPlayerConfig('playlistAPI', 'kpl0Url');;
 		return $this->isPlaylist;
 	}
 	function isJavascriptRewriteObject() {
-
 		// If our playlist is Mrss, handle the playlist in the client side
 		$playlistUrl = $this->getPlayerConfig('playlistAPI', 'kpl0Url');
 		if( $playlistUrl && strpos($playlistUrl, "partnerservices") === false ) {
@@ -197,9 +219,18 @@ class KalturaResultObject {
 		return false;
 	}
 	public function isCachedOutput(){
+		global $wgEnableScriptDebug; 
+		if( $wgEnableScriptDebug )
+			return false;
 		return $this->outputFromCache;
 	}
-	private function getUserAgent() {
+	public function isCachedUiConfFile(){
+		global $wgEnableScriptDebug;
+		if( $wgEnableScriptDebug ) 
+			return false;
+		return $this->outputUiConfFileFromCache;
+	}
+	public function getUserAgent() {
 		return $_SERVER['HTTP_USER_AGENT'];
 	}
 	/**
@@ -242,7 +273,6 @@ class KalturaResultObject {
 		if( !$userAgent ){
 			$userAgent = $this->getUserAgent();
 		}
-	
 		//@@TODO integrate a library for doing this user-agent -> source selection
 		// what follows somewhat arbitrary
 		
@@ -310,7 +340,10 @@ class KalturaResultObject {
 		if( !$resultObject ){
 			$resultObject =  $this->getResultObject();
 		}
-		
+		// check for access control resultObject property:
+		if( !isset( $resultObject['accessControl']) ){
+			return true;
+		}
 		$accessControl = $resultObject['accessControl'];
 		
 		// Check if we had no access control due to playlist
@@ -492,6 +525,7 @@ class KalturaResultObject {
 	// Load the Kaltura library and grab the most compatible flavor
 	public function getSources(){
 		global $wgKalturaServiceUrl, $wgKalturaUseAppleAdaptive;
+		
 		// Check the access control before returning any source urls
 		if( !$this->isAccessControlAllowed() ) {
 			return array();
@@ -654,7 +688,18 @@ class KalturaResultObject {
 				}
 			}
 		}
-        //echo '<pre>'; print_r($sources); exit();
+
+		// If no sources and entry->mediaType is not image, then show error message
+		//echo '<pre>'; print_r($resultObject['meta']);exit();
+		$mediaType = 1;
+		if( isset($resultObject['meta']->mediaType) ) {
+			$mediaType = $resultObject['meta']->mediaType;
+		}
+		if( count($sources) == 0 && $mediaType != 2 ) {
+			$this->error = "No mobile sources found";
+		}
+
+		//echo '<pre>'; print_r($sources); exit();
 		return $sources;
 	}
 	
@@ -739,10 +784,14 @@ class KalturaResultObject {
 	 * Returns a cache key for the result object based on Referer and partner id
 	 */
 	private function getResultObjectCacheKey(){
-		// Get a key based on partner id,  entry_id and ui_confand and refer url:
+		// Get a key based on partner id,  entry_id and ui_confand and refer url
 		$playerUnique = ( isset( $this->urlParameters['entry_id'] ) ) ?  $this->urlParameters['entry_id'] : '';
 		$playerUnique .= ( isset( $this->urlParameters['uiconf_id'] ) ) ?  $this->urlParameters['uiconf_id'] : '';
 		$playerUnique .= ( isset( $this->urlParameters['cache_st'] ) ) ? $this->urlParameters['cache_st'] : ''; 
+		// Check for playlist urls
+		$playerUnique .= ( isset( $this->urlParameters['flashvars']['playlistAPI.kpl0Url']  ) )? 
+			$this->urlParameters['flashvars']['playlistAPI.kpl0Url']  : '';
+			
 		$playerUnique .= $this->getReferer();
 
 		// hash the service url, the partner_id, the player_id and the Referer url: 
@@ -751,40 +800,48 @@ class KalturaResultObject {
 	}
 
 	private function getResultObjectFromApi(){
-
-		/* TODO:
-		 * We need method for: getWidgetType -> single, playlist, ppt
-		 * Because right now if our player is pptWidget we will use getPlaylist result */
-
-		if( $this->isPlaylist() ){
+		if( $this->isEmptyPlayer() ){
+			$this->error = "No Entry ID was found";
+			return $this->getUiConfResult();
+		} else if( $this->isPlaylist() ){
 			return $this->getPlaylistResult();
 		} else {
 			return $this->getEntryResult();
 		}
 	
 	}
-
+	function getUiConfResult(){
+		// no need to call this.. the getters don't have clean lazy init and . 
+		// $this->loadUiConf
+		$resultObject = Array( 'uiConf' => $this->uiConfFile, 'uiconf_id' => $this->urlParameters['uiconf_id'] );
+		$resultObject = array_merge( $this->getBaseResultObject(), $resultObject);
+		return $resultObject;
+	}
 	function loadUiConf() {
-		global $wgKalturaUiConfCacheTime;
+		global $wgKalturaUiConfCacheTime, $wgEnableScriptDebug, $wgKalturaForceResultCache;
+		
+		$useCache = !$wgEnableScriptDebug;
+		if( $wgKalturaForceResultCache === true){
+			$useCache = true;
+		}
+		
 		// if no uiconf_id .. throw exception
-		if( !$this->urlParameters['uiconf_id']) {
+		if( !$this->urlParameters['uiconf_id'] ) {
 			throw new Exception( "Missing uiConf ID" );
 		}
 		// Check if we have a cached result object:
 		if( !$this->uiConfFile ){
 			$cacheFile = $this->getCacheDir() . '/' . $this->getResultObjectCacheKey() . ".uiconf.txt";
-
 			// Check modify time on cached php file
 			$filemtime = @filemtime( $cacheFile );  // returns FALSE if file does not exist
-			if ( !$filemtime || filesize( $cacheFile ) === 0 || ( time() - $filemtime >= $wgKalturaUiConfCacheTime ) ){
+			if ( !$useCache || !$filemtime || filesize( $cacheFile ) === 0 || ( time() - $filemtime >= $wgKalturaUiConfCacheTime ) ){
 				$this->uiConfFile = $this->loadUiConfFromApi();
+				$this->putCacheFile( $cacheFile, $this->uiConfFile );
 			} else {
-				//$this->outputFromCache = true;
 				$this->uiConfFile = file_get_contents( $cacheFile );
+				$this->outputUiConfFileFromCache = true;
 			}
-			$this->putCacheFile( $cacheFile, $this->uiConfFile );
 		}
-
 		$this->parseUiConfXML( $this->uiConfFile );
 		$this->setupPlayerConfig();
 	}
@@ -840,7 +897,7 @@ class KalturaResultObject {
 	/**
 	 * Get playlist object
 	 */
-	function getPlaylistObject( $playlistId ){ 
+	function getPlaylistObject( $playlistId ){
 		$client = $this->getClient();
 		// Build the reqeust: 
 		$kparams = array();
@@ -915,9 +972,9 @@ class KalturaResultObject {
 				$filter->orderBy = KalturaMetadataOrderBy::CREATED_AT_ASC;
 				$filter->objectIdEqual = $this->urlParameters['entry_id'];
 				$filter->metadataObjectTypeEqual = KalturaMetadataObjectType::ENTRY;
+				
 				$metadataPager =  new KalturaFilterPager();
 				$metadataPager->pageSize = 1;
-
 				$params = array( 'filter' => $filter, 'metadataPager', $metadataPager );
 				$namedMultiRequest->addNamedRequest( 'entryMeta', 'metadata_metadata', 'list', $params );
 			//}
@@ -938,7 +995,7 @@ class KalturaResultObject {
 			
 			// Check if the server cached the result by search for "cached-dispatcher" in the request headers
 			// If not, do not cache the request (Used for Access control cache issue)
-			$requestCached = strpos($client->getHeaders(), "X-Kaltura: cached-dispatcher");
+			$requestCached = strpos( $client->getHeaders(), "X-Kaltura: cached-dispatcher" );
 			if( $requestCached === false ) {
 				$this->noCache = true;
 			}
@@ -961,7 +1018,7 @@ class KalturaResultObject {
 			$resultObject['entryMeta'] = $this->xmlToArray( new SimpleXMLElement( $resultObject['entryMeta']->objects[0]->xml ) );
 		}
 		
-		// Ads uiConf file to our object
+		// Add uiConf file to our object
 		if( $this->uiConfFile ){
 			$resultObject[ 'uiconf_id' ] = $this->urlParameters['uiconf_id'];
 			$resultObject[ 'uiConf' ] = $this->uiConfFile;
@@ -1003,6 +1060,10 @@ class KalturaResultObject {
 		return (is_array($data)) ? array_map( array( $this, __FUNCTION__) ,$data) : $data;
 	}	
 	private function getReferer(){
+		global $wgKalturaForceReferer;
+		if( $wgKalturaForceReferer !== false ){
+			return $wgKalturaForceReferer;
+		}
 		return ( isset( $_SERVER['HTTP_REFERER'] ) ) ? $_SERVER['HTTP_REFERER'] : 'http://www.kaltura.org/';
 	}
 	private function getClient(){
@@ -1102,7 +1163,6 @@ class KalturaResultObject {
 			// Empty uiConf ( don't try and parse, return an empty object)
 			return new SimpleXMLElement('<xml />' );
 		}
-
 		/*
 		libxml_use_internal_errors(true);
 		$sxe = simplexml_load_string($uiConf);
@@ -1113,7 +1173,6 @@ class KalturaResultObject {
 			}
 		}
 		*/
-		
 		$this->uiConfXml = new SimpleXMLElement( $uiConf );
 	}
 	public function getUiConf() {
@@ -1130,33 +1189,38 @@ class KalturaResultObject {
 	}
 	public function getMeta(){
 		$result = $this->getResultObject();
-		if( isset( $result['meta']  ) ){
+		if( isset( $result['meta'] ) ){
 			return $result['meta'];
 		} else {
 			return false;
 		}
 	}
 	private function getResultObject(){
-		global $wgKalturaUiConfCacheTime;
+		global $wgKalturaUiConfCacheTime, $wgEnableScriptDebug, $wgKalturaForceResultCache;
 
-		// load the uiConf first so we could setup our player configuration
-		$this->loadUiConf();
+		$useCache = !$wgEnableScriptDebug;
+		if( $wgKalturaForceResultCache === true){
+			$useCache = true;
+		}
 		
+		// Load the uiConf first so we could setup our player configuration
+		$this->loadUiConf();
+
 		// Check if we have a cached result object:
 		if( !$this->resultObj ){
 			$cacheFile = $this->getCacheDir() . '/' . $this->getResultObjectCacheKey() . ".entry.txt";
 			
 			// Check modify time on cached php file
 			$filemtime = @filemtime( $cacheFile );  // returns FALSE if file does not exist
-			if ( !$filemtime || filesize( $cacheFile ) === 0 || ( time() - $filemtime >= $wgKalturaUiConfCacheTime ) ){
+			if ( !$useCache || !$filemtime || filesize( $cacheFile ) === 0 || ( time() - $filemtime >= $wgKalturaUiConfCacheTime ) ){
 				$this->resultObj = $this->getResultObjectFromApi();
+				// Test if the resultObject can be cached ( no access control restrictions )
+				if( $this->isCachableRequest() ){
+					$this->putCacheFile( $cacheFile, serialize( $this->resultObj  ) );
+				}
 			} else {
 				$this->outputFromCache = true;
 				$this->resultObj = unserialize( file_get_contents( $cacheFile ) );
-			}
-			// Test if the resultObject can be cached ( no access control restrictions )
-			if( $this->isCachableRequest() ){
-				$this->putCacheFile( $cacheFile, serialize( $this->resultObj  ) );
 			}
 		}
 		return $this->resultObj;
@@ -1173,9 +1237,8 @@ class KalturaResultObject {
 		return true;
 	}
 	private function putCacheFile( $cacheFile, $data ){
-		global $wgEnableScriptDebug;
-		// Don't cache things when in "debug" mode:
-		if( $wgEnableScriptDebug || $this->noCache ){
+		// Don't cache if noCache flag has been set. 
+		if( $this->noCache ){
 			return ;
 		}
 		file_put_contents( $cacheFile, $data );

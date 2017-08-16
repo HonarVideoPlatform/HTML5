@@ -145,7 +145,6 @@ mw.EmbedPlayerNative = {
 		if( this.loop ) {
 			playerAttribtues['loop'] = 'true';
 		}
-
 		var tagName = ( this.isAudio() ) ? 'audio' : 'video';
 
 		return	$( '<' + tagName + ' />' )
@@ -169,9 +168,6 @@ mw.EmbedPlayerNative = {
 		// Update the player source ( if needed ) 
 		if( $( '#' + this.pid ).attr( 'src') !=  this.getSrc( this.currentTime )  ){
 			$( '#' + this.pid ).attr( 'src', this.getSrc( this.currentTime ) );
-		}
-		if( !vid ){
-			alert("WEFES");
 		}
 		// Apply media element bindings:
 		_this.applyMediaElementBindings();
@@ -353,9 +349,11 @@ mw.EmbedPlayerNative = {
 		
 		this.seek_time_sec = 0;
 		this.setCurrentTime( ( percent * this.duration ) , function(){
-			_this.seeking = false;
-			// done seeking: 
-			$( _this ).trigger( 'seeked' );
+			// done seeking ( should be a fallback trigger event ) : 
+			if( _this.seeking ){
+				$( _this ).trigger( 'seeked' );
+				_this.seeking = false;
+			}
 			_this.monitor();
 		});
 	},
@@ -596,13 +594,15 @@ mw.EmbedPlayerNative = {
 	*/
 	play: function( ) {
 		var _this = this;
-		this.getPlayerElement();
-		_this.parent_play(); // update interface
-		if ( this.playerElement && this.playerElement.play ) {
-			// issue a play request 
-			this.playerElement.play();
-			// re-start the monitor:
-			this.monitor();
+		// run parent play:
+		if( _this.parent_play() ){
+			this.getPlayerElement();
+			if ( this.playerElement && this.playerElement.play ) {
+				// issue a play request 
+				this.playerElement.play();
+				// re-start the monitor:
+				this.monitor();
+			}
 		}
 	},
 	
@@ -720,7 +720,6 @@ mw.EmbedPlayerNative = {
 		//( if not already set from interface )
 		if( !this.seeking ) {
 			this.seeking = true;
-
 			// Run the onSeeking interface update
 			this.controlBuilder.onSeek();
 
@@ -745,7 +744,6 @@ mw.EmbedPlayerNative = {
 				$( this ).trigger( 'seeked' );
 			}
 		}
-		this.seeking = false;
 		// update the playhead status
 		this.monitor();
 	},

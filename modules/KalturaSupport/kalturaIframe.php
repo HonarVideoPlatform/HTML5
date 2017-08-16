@@ -133,6 +133,18 @@ class kalturaIframe {
 
 		return $o;
 	}
+	private function getPlayerSizeCss() {
+		// Set defaults
+		$width = 400;
+		$height = 300;
+		// check if we have iframeSize paramater:
+		if( isset( $_GET[ 'iframeSize' ] ) ){
+			list( $width, $height ) = explode( 'x',  $_GET[ 'iframeSize' ]);
+			$width = intval( $width );
+			$height = intval( $height );
+		}		
+		return "width:{$width}px;height:{$height}px;";
+	}
 	private function getPlaylistPlayerSizeCss(){
 		$width = 400;
 		$height = 300;
@@ -143,26 +155,26 @@ class kalturaIframe {
 			$iframeHeight = intval( $iframeHeight );
 			
 			$xml = $this->getResultObject()->getUiConfXML();
-			$result = $xml->xpath("//*[@id='playlistHolder']");
+			// check for playlist.includeInLayout property and set to full size:
+			$result = $xml->xpath("//*[@key='playlist.includeInLayout']" );
 			if( isset( $result[0] ) ){
 				foreach ( $result[0]->attributes() as $key => $value ) {
-					if( $key == 'width' && $value != '100%' ){
-						$width = $iframeWidth - intval( $value );
-						$height = $iframeHeight;
-					}
-					if( $key == 'height' && $value != '100%' ){
-						$height = $iframeHeight - intval( $value );
+					if( $key == 'value' && $value == "false" ){
 						$width = $iframeWidth;
+						$height = 	$iframeHeight;						
 					}
 				}
 			} else {
-				// check for playlist.includeInLayout property and set to full size:
-				$result = $xml->xpath("//*[@key='playlist.includeInLayout']" );
+				$result = $xml->xpath("//*[@id='playlistHolder']");
 				if( isset( $result[0] ) ){
 					foreach ( $result[0]->attributes() as $key => $value ) {
-						if( $key == 'value' && $value == "false" ){
+						if( $key == 'width' && $value != '100%' ){
+							$width = $iframeWidth - intval( $value );
+							$height = $iframeHeight;
+						}
+						if( $key == 'height' && $value != '100%' ){
+							$height = $iframeHeight - intval( $value );
 							$width = $iframeWidth;
-							$height = 	$iframeHeight;						
 						}
 					}
 				}
@@ -192,11 +204,12 @@ class kalturaIframe {
 		// Check if we have flashvar: loadThumbnailWithKs, if so load the thumbnail with KS
 		$ksParam = '';
 		if( isset( $_REQUEST['flashvars'] ) && is_array( $_REQUEST['flashvars'] ) && 
-				isset( $_REQUEST['flashvars']['loadThumbnailWithKs']) ) {
+			isset( $_REQUEST['flashvars']['loadThumbnailWithKs']) ) 
+		{
 			$ksParam = '?ks=' . $this->getResultObject()->getKS();
 		}
 	
-		// see if we have access control restrictions
+		// See if we have access control restrictions
 		// Check access control and throw an exception if not allowed: 
 		$acStatus = $this->getResultObject()->isAccessControlAllowed( $resultObject );
 		if( $acStatus !== true ){
@@ -217,11 +230,6 @@ class kalturaIframe {
 					$this->playerError = $this->getResultObject()->getError();
 					$sources = $this->getResultObject()->getBlackVideoSources();
 				}
-				// If no sources get the black sources:
-				if( count( $sources ) == 0 ) {
-					$this->playerError = "No mobile sources found";
-					$sources = $this->getResultObject()->getBlackVideoSources();
-				}
 			} catch ( Exception $e ){
 				// xxx log an empty entry id lookup!
 				$this->fatalError( $e->getMessage() );
@@ -231,13 +239,14 @@ class kalturaIframe {
 		// Add default video tag with 100% width / height
 		// NOTE: special persistentNativePlayer class will prevent the video from being swapped
 		// so that overlays work on the iPad.
+		$playerPostion = ($this->isAndroid()) ? '' : 'position: absolute;';
 		$o = "\n\n\t" .'<video class="persistentNativePlayer" ';
 		// output the poster if set: 
 		if( $posterUrl ){
 			$o.='poster="' . htmlspecialchars( $posterUrl ) . '" ';
 		}
 		$o.='id="' . htmlspecialchars( $this->getIframeId() ) . '" ' .
-			'style="position:absolute;' . $playerSize . '" ';
+			'style="' . $playerPostion . $playerSize . '" ';
 
 		$urlParams = $this->getResultObject()->getUrlParameters();
 		
@@ -255,15 +264,16 @@ class kalturaIframe {
 			// TODO should move this to i8ln keys instead of raw msgs
 			$o.= ' data-playerError="' . htmlentities( $this->playerError ) . '" ';
 		}
-		
 		// Close the open video tag attribute set
 		$o.='>';
 
 		// Output each source as a child element ( for javascript off browsers to have a chance
 		// to playback the content
 		foreach( $sources as $source ){
+			// Android has issues with type attribute on source element
+			$type = ($this->isAndroid() ) ? '' : 'type="' . htmlspecialchars( $source['type'] ) . '" ';
 			$o.= "\n\t\t" .'<source ' .
-					'type="' . htmlspecialchars( $source['type'] ) . '" ' .
+					$type .
 					'src="' . $source['src'] . '" '.
 					'data-flavorid="' . htmlspecialchars( $source['data-flavorid'] ) . '" '.
 				'></source>';
@@ -326,29 +336,47 @@ class kalturaIframe {
 		if( ! $this->getResultObject()->getUiConf() ){
 			return false;
 		}
+		
 		// Try to get uiConf
-		try{
-			$xml = $this->getResultObject()->getUiConfXML();
-		} catch ( Exception $e ){
-			$this->fatalError( $e->getMessage() );
-		}
+		$xml = $this->getResultObject()->getUiConfXML();
 		$resourceIncludes = array();
-		if( is_array( $xml->uiVars->var ) ){
-			foreach ($xml->uiVars->var as $var ){
-				if( $var['key'] != 'HTML5PluginUrl' && $var['key'] != 'HTML5PlayerCssUrl'){
+		$playerConfig =  $this->getResultObject()->playerConfig;
+		
+		// vars
+		foreach( $playerConfig['vars'] as $key => $value ){
+			// Check for valid plugin types: 
+			$resource = array();
+			if( strpos( $key, 'IframeCustomPluginJs' ) === 0 ){
+				$resource['type'] = 'js';
+			} else if( strpos( $key, 'IframeCustomPluginCss' ) === 0 ){
+				$resource['type'] = 'css';
+			} else{
+				continue;
+			}
+			// we have a valid type key add src:
+			$resource['src']= htmlspecialchars( $value );
+			
+			// Add the resource	
+			$resourceIncludes[] = $resource;
+		}		
+		// plugins
+		foreach( $playerConfig['plugins'] as $pluginId => $plugin ){
+			foreach( $plugin as $attr => $value ){
+				$resource = array();
+				if( strpos( $attr, 'iframeHTML5Js' ) === 0 ){
+					$resource['type'] = 'js';
+				} else if( strpos( $attr, 'iframeHTML5Css' ) === 0 ){
+					$resource['type'] = 'css';
+				} else {
 					continue;
 				}
-				
-				$resource = array( 'src'=> htmlspecialchars(  $var['value'] ) );
-				if( $var['key'] == 'HTML5PluginUrl' ){
-					$resource['type'] = 'js';
-				}
-				if( $var['key'] == 'HTML5PlayerCssUrl'){
-					$resource['type'] = 'css';
-				}
+				// we have a valid type key add src:
+				$resource['src']= htmlspecialchars( $value );
+				// Add the resource	
 				$resourceIncludes[] = $resource;
 			}
 		}
+		// return the resource array in JSON: 
 		return json_encode( $resourceIncludes );
 	}
 	/** 
@@ -362,7 +390,6 @@ class kalturaIframe {
 		$xml = $this->getResultObject()->getUiConfXML();
 		foreach ($xml->uiVars->var as $var ){
 			if( isset( $var['key'] ) && isset( $var['value'] ) 
-				&& $var['key'] != 'HTML5PluginUrl' && $var['key'] != 'HTML5PlayerCssUrl'
 				&& $var['key'] != 'Mw.CustomResourceIncludes' 
 			){
 				$o.= "mw.setConfig('" . htmlspecialchars( addslashes( $var['key'] ) ) . "', ";
@@ -376,6 +403,10 @@ class kalturaIframe {
 			}
 		}
 		return $o;
+	}
+	private function isAndroid() {
+		$ua = strtolower( $this->getResultObject()->getUserAgent() );
+		return strpos($ua, "android");
 	}
 	private function checkIframePlugins(){
 		try{
@@ -552,6 +583,7 @@ class kalturaIframe {
 		<?php
 	}
 	function outputIFrame( ){
+		//die( '<pre>' . htmlspecialchars($this->getVideoHTML()) );
 		global $wgResourceLoaderUrl;
 		$path = str_replace( 'ResourceLoader.php', '', $wgResourceLoaderUrl );
 		
@@ -576,16 +608,21 @@ class kalturaIframe {
 					// Get video html with a default playlist video size ( we can adjust it later in js )
 					$this->getVideoHTML( $this->getPlaylistPlayerSizeCss() ) 
 				);
-			} else { 
-				echo $this->getVideoHTML();
+			} else {
+				if( $this->isAndroid() ) {
+					echo $this->getVideoHTML( $this->getPlayerSizeCss() );
+				} else {
+					echo $this->getVideoHTML();
+				}
 			} 
 		}
+		//exit();
 		?>
 		<script type="text/javascript">
 			// In same page iframe mode the script loading happens inline and not all the settings get set in time
 			// its critical that at least EmbedPlayer.IsIframeServer is set early on. 
-			preMwEmbedConfig = {};
-			preMwEmbedConfig['EmbedPlayer.IsIframeServer'] = true;
+			window.preMwEmbedConfig = {};
+			window.preMwEmbedConfig['EmbedPlayer.IsIframeServer'] = true;
 		</script>
 		<!--  Add the mwEmbedLoader.php -->
 		<script src="<?php echo $this->getMwEmbedLoaderLocation() ?>" type="text/javascript"></script>
@@ -594,22 +631,23 @@ class kalturaIframe {
 			$uiConfJ = new mweApiUiConfJs();
 			echo $uiConfJ->getUserAgentPlayerRules();
 		?></script>
-		<script type="text/javascript">
+		<script type="text/javascript" >
 			// Insert JSON support if in missing ( IE 7, 8 )
 			if( typeof JSON == 'undefined' ){ 
 				document.write(unescape("%3Cscript src='<?php echo $path ?>/libraries/json/json2.js' type='text/javascript'%3E%3C/script%3E"));
 			}
 		</script>
 		<script type="text/javascript">
-			// IE has crazy out of order stuff going on ... so we have a pooling funciton to make sure mw is ready before we procceed. 
+			// IE has out of order stuff execution... we have a pooling funciton to make sure mw is ready before we procceed. 
 			var waitForMwCount = 0;
 			var waitforMw = function( callback ){
-				if( window.mw ){
+				if( window['mw'] ){
 					callback();
 					return ;
 				}
 				setTimeout(function(){ 
-					if( waitForMwCount++ > 1000 ){
+					waitForMwCount++;
+					if(  waitForMwCount < 1000 ){
 						waitforMw( callback );
 					} else {
 						console.log("Error in loading mwEmbedLodaer");
@@ -619,10 +657,11 @@ class kalturaIframe {
 			waitforMw( function(){
 				<?php 
 					global $wgAllowCustomResourceIncludes;
-					if( $wgAllowCustomResourceIncludes && $this->getCustomPlayerIncludesJSON() ){
+					if( $wgAllowCustomResourceIncludes ){
 						echo 'mw.setConfig( \'Mw.CustomResourceIncludes\', '. $this->getCustomPlayerIncludesJSON() .' );';
 					}
-				?>	
+				?>
+				
 				var hashString = document.location.hash;
 				// Parse any configuration options passed in via hash url:
 				if( hashString ){
@@ -670,7 +709,7 @@ class kalturaIframe {
 	
 				// Add Packaging Kaltura Player Data ( JSON Encoded )
 				mw.setConfig( 'KalturaSupport.IFramePresetPlayerData', <?php echo $this->getResultObject()->getJSON(); ?>);
-				
+
 				mw.setConfig('EmbedPlayer.IframeParentPlayerId', '<?php echo $this->getIframeId()?>' );			
 				
 				// Set uiConf global vars for this player ( overides iframe based hash url config )
@@ -697,6 +736,10 @@ class kalturaIframe {
 						echo $this->javascriptPlayerLogic();
 					}
 				?>
+				// Because IE has out of order execution issues, we don't check the dom until we get here: 
+				setTimeout(function(){
+					kRunMwDomReady( 'endOfIframeJs' );
+				},0);
 			});
 		</script>
 	</body>
@@ -857,4 +900,3 @@ class kalturaIframe {
 		exit( 1 );
 	}
 }
-?>

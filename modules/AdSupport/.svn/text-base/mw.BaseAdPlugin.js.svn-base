@@ -6,9 +6,10 @@ mw.BaseAdPlugin = function( embedPlayer, callback){
 };
 
 mw.BaseAdPlugin.prototype = {
-	init: function( embedPlayer, callback ){
+		
+	init: function( embedPlayer, callback  ){
 		this.embedPlayer = embedPlayer;
-		// Should extend "BasePlugin" ( but we have to write that first ) 
+		return this;
 	},
 	/**
 	 * gets the target index for a given sequence item
@@ -26,10 +27,8 @@ mw.BaseAdPlugin.prototype = {
 		// What about multiple cuepoints? 
 		return 1;
 	},
-	
 	destroy: function(){
 		// Remove player bindings: 
 		$( this.embedPlayer ).unbind( this.bindPostfix );
 	}
-		
-}
+};

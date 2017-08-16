@@ -224,6 +224,7 @@ class KalturaClientBase
 			
 			if ($this->config->format == self::KALTURA_SERVICE_FORMAT_PHP)
 			{
+				
 				$result = @unserialize($postResult);
 				if ($result === false && serialize(false) !== $postResult) 
 				{
@@ -281,11 +282,15 @@ class KalturaClientBase
 	 * Returns a custom signed kaltura header 
 	 */
 	private function getRemoteAddrHeader(){
-		global $wgKalturaRemoteAddressSalt;
+		global $wgKalturaRemoteAddressSalt, $wgKalturaForceIP;
 		if( $wgKalturaRemoteAddressSalt === false ){
 			return '';
 		}
-		$s = $_SERVER['REMOTE_ADDR'] . "," . time() . "," . microtime( true );
+		$ip = $_SERVER[ 'REMOTE_ADDR' ];
+		if( $wgKalturaForceIP ){
+			$ip = $wgKalturaForceIP;
+		}
+		$s = $ip . "," . time() . "," . microtime( true );
 		return "X_KALTURA_REMOTE_ADDR: " . $s . ',' . md5( $s . "," . $wgKalturaRemoteAddressSalt );
 	}
 	

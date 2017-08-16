@@ -1272,7 +1272,7 @@ class simpleFileCache {
 			return 'Error: Called saveToFileCache with $wgUseFileCache off';
 		}
 		if ( strcmp( $text, '' ) == 0 )
-		return 'saveToFileCache: empty output file';
+			return 'saveToFileCache: empty output file';
 
 		if ( $wgUseGzip ) {
 			$outputText = gzencode( trim( $text ) );
@@ -1284,7 +1284,7 @@ class simpleFileCache {
 		$status = $this->checkCacheDirs();
 
 		if ( $status !== true )
-		return $status;
+			return $status;
 		$f = fopen( $this->filename, 'w' );
 		if ( $f ) {
 			fwrite( $f, $outputText );
@@ -1300,10 +1300,10 @@ class simpleFileCache {
 	protected function checkCacheDirs() {
 		$mydir2 = substr( $this->filename, 0, strrpos( $this->filename, '/' ) ); # subdirectory level 2
 		$mydir1 = substr( $mydir2, 0, strrpos( $mydir2, '/' ) ); # subdirectory level 1
-
 		// Suppress error so javascript can format it
 		if ( @wfMkdirParents( $mydir1 ) === false || @wfMkdirParents( $mydir2 ) === false ) {
 			return 'Could not create cache directory. Check your cache directory permissions?';
+			return true;
 		} else {
 			return true;
 		}

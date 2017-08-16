@@ -55,7 +55,7 @@ mw.Playlist.prototype = {
 		this.playerId = ( this.embedPlayer )? 
 							this.embedPlayer.id : 
 						( options['id'] )?  options['id'] :
-							$( this.target ).attr( 'id' );
+						$( this.target ).attr( 'id' );
 						
 		// Setup the id for the playlist container: 		
 		this.id = 'plholder_' + this.playerId;
@@ -82,6 +82,12 @@ mw.Playlist.prototype = {
 					options[ optionName ] :
 					mw.getConfig( confName );
 		});
+	},
+	// try to get the title height from the source handler, else from the local configuration
+	getTitleHeight: function(){
+		if( this.sourceHandler && typeof this.sourceHandler.titleHeight != 'undefined' )
+			return this.sourceHandler.titleHeight;
+		return this.titleHeight;
 	},
 	formatTitle: function( text ){
 		if( text.length > this.titleLength )
@@ -242,7 +248,17 @@ mw.Playlist.prototype = {
 						
 						 _this.sourceHandler.setPlaylistIndex( inx );
 						 mw.log( 'mw.Playlist:: selectPlaylist:' + inx );
-						 $( _this.target + ' .media-rss-video-list').loadingSpinner();
+						 $( _this.target + ' .media-rss-video-list')
+						 .empty()
+						 .append(
+							$('<div />')
+							.css({
+								'position' : 'absolute',
+								'top' : '45%',
+								'left' : '45%'
+							})
+							.loadingSpinner()
+						 )
 						 
 						 _this.sourceHandler.loadCurrentPlaylist( function(){
 							 $( _this.target + ' .media-rss-video-list').empty();
@@ -430,7 +446,7 @@ mw.Playlist.prototype = {
 				}
 			}
 			this.targetPlayerSize = {
-				'height' : ( this.targetHeight - this.titleHeight - 10 ) + 'px',
+				'height' : ( this.targetHeight - this.getTitleHeight() ) + 'px',
 				'width' : playerWidth + 'px'
 			};
 		}
@@ -523,15 +539,14 @@ mw.Playlist.prototype = {
 			$(uiSelector).hide(); 
 		});
 		$( embedPlayer ).bind('onCloseFullScreen', function(){
-			setTimeout(function(){// give some time for the dom to update
-				var playerSize = _this.getTargetPlayerSize();
-				// add control bar height ( for now ) 
-				embedPlayer.resizePlayer( {
-					'height' : parseInt( playerSize.height ) + 30,
-					'width' : parseInt( playerSize.width )
-				}, false);
+			setTimeout(function(){ // give some time for the dom to update
+				var playerSize = {
+					'width' : $( _this.target + ' .media-rss-video-player-container' ).width() + 'px',
+					'height' : ( $( _this.target + ' .media-rss-video-player-container' ).height() - _this.getTitleHeight() ) + 'px'
+				};
+				embedPlayer.resizePlayer( playerSize, false);
 				$(uiSelector).show();
-			},10);
+			},30);
 		});
 		
 	},

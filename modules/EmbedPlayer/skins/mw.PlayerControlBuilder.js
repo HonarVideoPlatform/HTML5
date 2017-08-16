@@ -27,7 +27,7 @@ mw.PlayerControlBuilder.prototype = {
 	volume_layout : 'vertical',
 
 	// Default control bar height
-	height: 31,
+	height: mw.getConfig( 'EmbedPlayer.ControlsHeight' ),
 
 	// Default supported components is merged with embedPlayer set of supported types
 	supportedComponets: {
@@ -70,6 +70,12 @@ mw.PlayerControlBuilder.prototype = {
 	* @return {Number} control bar height
 	*/
 	getHeight: function(){
+		// Check if the configuration was updated
+		// Probably will break things to set control bar height late 
+		// but try to support it anyway
+		if( mw.getConfig( 'EmbedPlayer.ControlsHeight' ) != this.height ){
+			this.height = mw.getConfig( 'EmbedPlayer.ControlsHeight' ) ;
+		}
 		return this.height;
 	},
 
@@ -149,8 +155,6 @@ mw.PlayerControlBuilder.prototype = {
 		// Build the supportedComponets list
 		this.supportedComponets = $.extend( this.supportedComponets, embedPlayer.supports );
 		
-		$(embedPlayer).trigger( 'addControlBarComponent', this);
-			
 		// Check for Attribution button
 		if( mw.getConfig( 'EmbedPlayer.AttributionButton' ) && embedPlayer.attributionbutton ){
 			this.supportedComponets[ 'attributionButton' ] = true;
@@ -164,6 +168,8 @@ mw.PlayerControlBuilder.prototype = {
 		if( mw.getConfig( 'EmbedPlayer.EnableOptionsMenu' ) === false ){
 			this.supportedComponets[ 'options'] = false;
 		}
+
+		$(embedPlayer).trigger( 'addControlBarComponent', this);
 		
 		var addComponent = function( component_id ){
 			if ( _this.supportedComponets[ component_id ] ) {
@@ -390,10 +396,7 @@ mw.PlayerControlBuilder.prototype = {
 			this.windowZindex = $interface.css( 'z-index' );
 
 		// Get the base offset:
-		this.windowOffset = $interface.offset();
-		this.windowOffset.top = this.windowOffset.top - $(document).scrollTop();
-		this.windowOffset.left = this.windowOffset.left - $(document).scrollLeft();
-		
+		this.windowOffset = this.getWindowOffset();
 		// Change the z-index of the interface
 		$interface.css( {
 			'position' : 'fixed',
@@ -504,6 +507,13 @@ mw.PlayerControlBuilder.prototype = {
 				_this.restoreWindowPlayer();
 			}
 		} );
+	},
+	getWindowOffset: function(){
+		var windowOffset = this.embedPlayer.$interface.offset();
+		windowOffset.top = windowOffset.top - $(document).scrollTop();
+		windowOffset.left = windowOffset.left - $(document).scrollLeft();
+		this.windowOffset = windowOffset;
+		return this.windowOffset;
 	},
 	// Display a fullscreen tip if configured to do and the browser supports it. 
 	displayFullscreenTip: function(){
@@ -1967,10 +1977,6 @@ mw.PlayerControlBuilder.prototype = {
 				if ( ctrlObj.volume_layout == 'vertical' ) {
 					$volumeOut.find('.volume_control').append(
 						$( '<div />' )
-						.css( {
-							'position' : 'absolute',
-							'left' : '0px'
-						})
 						.hide()
 						.addClass( "vol_container ui-corner-all" )
 						.append(

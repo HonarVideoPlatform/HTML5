@@ -22,10 +22,9 @@ mw.DoubleClick.prototype = {
 	init: function( embedPlayer, callback ){
 		mw.log( 'DoubleClick:: init: ' + embedPlayer.id );
 		var _this = this;
-		
 		// Inherit BaseAdPlugin
-		mw.inherit( this, new mw.BaseAdPlugin(  embedPlayer, callback ) );
-		
+		mw.inherit( this, new mw.BaseAdPlugin( embedPlayer, callback ) );
+		this.embedPlayer = embedPlayer;
 		// Add all the player bindings for loading ads at the correct times
 		_this.addPlayerBindings();
 		
@@ -88,6 +87,7 @@ mw.DoubleClick.prototype = {
 			
 			// check if video type: 
 			if( adType == 'midroll'  ||  adType == 'preroll' || adType == 'postroll'  ){
+				// All cuepoints act as "midrolls" 
 				_this.loadAndPlayVideoSlot( 'midroll', function(){
 					if( _this.embedPlayer.adTimeline ){
 						_this.embedPlayer.adTimeline.restorePlayer();
@@ -97,12 +97,12 @@ mw.DoubleClick.prototype = {
 				}, cuePoint);
 			}
 		});
-		// on clip done hide any overlay banners that are still active
+		// On clip done hide any overlay banners that are still active
 		$( _this.embedPlayer ).bind( 'ended' + _this.bindPostfix, function(){
 			 if( _this.activeOverlayadManager )
 				 _this.activeOverlayadManager.unload();
 		});
-		// on change media remove any existing ads: 
+		// On change media remove any existing ads: 
 		$( _this.embedPlayer ).bind( 'onChangeMedia' + _this.bindPostfix, function(){
 			_this.destroy();
 		});
@@ -111,7 +111,7 @@ mw.DoubleClick.prototype = {
 	/**
 	 *  Destroy the doubleClick binding instance:
 	 */ 
-	destroy:function(){
+	destroy: function(){
 		// Run the parent destroy:
 		this.parent_destroy();
 		
@@ -241,11 +241,6 @@ mw.DoubleClick.prototype = {
 			// Update the playhead to play state:
 			_this.embedPlayer.play();
 			
-			// Sometimes the player gets a pause event out of order be sure to "play" 
-			setTimeout(function(){
-				_this.embedPlayer.play();
-			}, 300 );
-			
 			// TODO This should not be needed ( fix event stop event propagation ) 
 			_this.embedPlayer.monitor();
 			mw.log( "DoubleClick::adsManager.play" );
@@ -263,13 +258,13 @@ mw.DoubleClick.prototype = {
 			_this.currentAdLoadedCallback = null;
 			// Continue playback
 			_this.embedPlayer.play();
-			// issue the callback 
+			// Issue the callback 
 			callback();
 		};
 		// Request the ad ( will trigger the currentAdCallback and onResumeRequestedCallback when done )
 		_this.getAdsLoader( function( adsLoader ){
 			mw.log("DoubleClick: request Ads from adTagUrl: " +  _this.getAdTagUrl( slotType, cuePoint ));
-			adsLoader.requestAds( {
+			adsLoader.requestAds({
 				'adTagUrl' : _this.getAdTagUrl( slotType, cuePoint ),
 				'adType': 'video'
 			});
@@ -323,6 +318,9 @@ mw.DoubleClick.prototype = {
 		var createLoader = function(){
 			// Create a new ad Loader:
 			var adsLoader = new google.ima.AdsLoader()
+			
+			// Turn off Competitive Exclusion 
+			adsLoader.setCompetitiveExclusion(false);
 			
 			// Set up listeners:
 			adsLoader.addEventListener(
@@ -379,7 +377,6 @@ mw.DoubleClick.prototype = {
 	        	_this.onResumeRequested(); 
 	        } 
 	    );
-	    
 		// if currentAdLoadedCallback is set issue the adLoad callback: 
 		if( this.currentAdLoadedCallback ){
 			 this.currentAdLoadedCallback( adsManager );

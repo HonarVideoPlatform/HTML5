@@ -49,7 +49,7 @@ mw.KWidgetSupport.prototype = {
 										? 'horizontal' : 'vertical';
 						$( '#' + widgetTarget.id ).playlist({
 							'layout': layout,
-							'titleHeight' : 0 // Kaltura playlist don't include the title ontop of the video
+							'titleHeight' : 0 // Kaltura playlist include title via player ( not playlist ) 
 						}); 
 						callback();
 					});
@@ -185,6 +185,7 @@ mw.KWidgetSupport.prototype = {
 		// Add any custom metadata:
 		if( playerData.entryMeta ){
 			embedPlayer.kalturaEntryMetaData = playerData.entryMeta;
+			$( embedPlayer ).trigger( 'KalturaSupport_MetadataReceived', embedPlayer.kalturaEntryMetaData );
 		}
 		// Apply player metadata
 		if( playerData.meta ) {
@@ -198,7 +199,9 @@ mw.KWidgetSupport.prototype = {
 			embedPlayer.rawCuePoints = playerData.entryCuePoints;
 			embedPlayer.kCuePoints = new mw.KCuePoints( embedPlayer );
 		}
-
+		embedPlayer.getRawKalturaConfig = function( confPrefix, attr ){
+			return _this.getRawPluginConfig( embedPlayer, confPrefix, attr );
+		};
 		// Add getKalturaConfig to embed player:
 		embedPlayer.getKalturaConfig = function( confPrefix, attr ){
 			return _this.getPluginConfig( embedPlayer, confPrefix, attr );
@@ -260,7 +263,6 @@ mw.KWidgetSupport.prototype = {
 			embedPlayer.autoplay = true;
 		}
 	},
-	
 	/**
 	 * Check for xml config, let flashvars override 
 	 * @param embedPlayer {Object} the embedPlayer for which configuration is being retrived
@@ -269,16 +271,27 @@ mw.KWidgetSupport.prototype = {
 	 * 				if null, we retrive all settings with the provided confPrefix 
 	 */
 	getPluginConfig: function( embedPlayer, confPrefix, attr ){
-		// Setup local pointers: 
-		var _this = this;
-		var flashvars = embedPlayer.getFlashvars();
-		var $uiConf = embedPlayer.$uiConf;
-		
 		var singleAttrName = false;
 		if( typeof attr == 'string' ){
 			singleAttrName = attr;
 			attr = $.makeArray( attr );
 		}
+		var rawConfig = this.getRawPluginConfig( embedPlayer, confPrefix, attr);
+		var config =  this.postProcessConfig( embedPlayer, rawConfig );
+		
+		if( singleAttrName != false ){
+			return config[ singleAttrName ];
+		} else {
+			return config;
+		}
+	},
+
+	getRawPluginConfig: function( embedPlayer, confPrefix, attr ){
+		// Setup local pointers: 
+		var _this = this;
+		var flashvars = embedPlayer.getFlashvars();
+		var $uiConf = embedPlayer.$uiConf;
+	
 		
 		// If we are getting attributes and we are checking "plugin", Also check for "disableHTML5"
 		if( attr && $.inArray( 'plugin', attr ) != -1 ){
@@ -310,8 +323,7 @@ mw.KWidgetSupport.prototype = {
 				$uiPluginVars = $uiConf.find( uiPluginVarsSelect );
 			}
 		}
-		
-		if( attr == null && confPrefix ){
+		if( !attr && confPrefix ){
 			if( $plugin.length ) {
 				$.each( $plugin.get(0).attributes, function(i, nodeAttr){
 					 config[ nodeAttr.name ] = nodeAttr.value;
@@ -333,47 +345,39 @@ mw.KWidgetSupport.prototype = {
 				// Found break out of loop
 				return false;
 			});
-			return _this.postProcessConfig(embedPlayer, config );
-		};
-		
-		$.each( attr, function(inx, attrName ){
-			// Plugin
-			if( $plugin.length ){
-				if( $plugin.attr( attrName ) ){
-					config[ attrName ] = $plugin.attr( attrName );
-				}
-				// XML sometimes comes in all lower case
-				if( $plugin.attr( attrName.toLowerCase() ) ){
-					config[ attrName ] = $plugin.attr( attrName.toLowerCase() );
-				}
-			}
-			
-			// Flashvars overrides
-			var pluginPrefix = ( confPrefix )? confPrefix + '.': '';
-			if( flashvars[ pluginPrefix + attrName ] ){
-				config[ attrName ] = flashvars[ pluginPrefix + attrName ];
-			}
-			
-			// Uivars Check for "flat plugin vars" stored at the end of the uiConf ( instead of as attributes )"
-			$uiPluginVars.each( function(inx, node){
-				if( $( node ).attr('key') == pluginPrefix + attrName ){
-					if( $(node).attr('overrideflashvar') != "false" || ! config[attrName] ){
-						config[attrName] = $(node).get(0).getAttribute('value');
-					}
-					// Found break out of loop
-					return false;
-				}
-			});
-			
-		});
-		
-		config = _this.postProcessConfig(embedPlayer, config );
-		
-		if( singleAttrName != false ){
-			return config[ singleAttrName ];
 		} else {
-			return config;
+			$.each( attr, function(inx, attrName ){
+				// Plugin
+				if( $plugin.length ){
+					if( $plugin.attr( attrName ) ){
+						config[ attrName ] = $plugin.attr( attrName );
+					}
+					// XML sometimes comes in all lower case
+					if( $plugin.attr( attrName.toLowerCase() ) ){
+						config[ attrName ] = $plugin.attr( attrName.toLowerCase() );
+					}
+				}
+				
+				// Flashvars overrides
+				var pluginPrefix = ( confPrefix )? confPrefix + '.': '';
+				if( flashvars[ pluginPrefix + attrName ] ){
+					config[ attrName ] = flashvars[ pluginPrefix + attrName ];
+				}
+				
+				// Uivars Check for "flat plugin vars" stored at the end of the uiConf ( instead of as attributes )"
+				$uiPluginVars.each( function(inx, node){
+					if( $( node ).attr('key') == pluginPrefix + attrName ){
+						if( $(node).attr('overrideflashvar') != "false" || ! config[attrName] ){
+							config[attrName] = $(node).get(0).getAttribute('value');
+						}
+						// Found break out of loop
+						return false;
+					}
+				});
+				
+			});
 		}
+		return config;
 	},
 	postProcessConfig: function(embedPlayer,  config ){
 		var _this = this;
@@ -433,7 +437,6 @@ mw.KWidgetSupport.prototype = {
 	loadPlayerData: function( embedPlayer, callback ){
 		var _this = this;
 		var playerRequest = {};
-		
 		// Check for widget id	 
 		if( ! embedPlayer.kwidgetid ){
 			mw.log( "Error: missing required widget paramater ( kwidgetid ) ");
@@ -500,9 +503,9 @@ mw.KWidgetSupport.prototype = {
 		if( ac.isAdmin){
 			return true;
 		}
-		if( ac.isCountryRestricted ){
-			return 'country is restricted';
-		}
+		//if( ac.isCountryRestricted ){
+		//	return 'country is restricted';
+		//}
 		if( ac.isScheduledNow === 0 ){
 			return 'is not scheduled now';
 		}
@@ -519,12 +522,9 @@ mw.KWidgetSupport.prototype = {
 	},
 	
 	/**
-	 * Get the uiconf id, if unset its the kwidget id / partner id default
+	 * Get the uiconf id
 	 */
 	getUiConfId: function( embedPlayer ){
-		if( !embedPlayer.kuiconfid && embedPlayer.kwidgetid ) {
-			embedPlayer.kuiconfid = embedPlayer.kwidgetid.replace( '_', '' );
-		}
 		return embedPlayer.kuiconfid;
 	},
 	/**

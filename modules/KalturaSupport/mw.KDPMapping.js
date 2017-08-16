@@ -55,9 +55,8 @@
 				embedPlayer.setKDPAttribute = function( componentName, property, value ) {
 					_this.setKDPAttribute( embedPlayer, componentName, property, value );
 				};
-				
 				// Fire the KalturaKDPCallbackReady event with the player id: 
-				if( window.deepLinkId ){
+				if( window.KalturaKDPCallbackReady ){
 					window.KalturaKDPCallbackReady( embedPlayer.id );
 				}
 			});
@@ -78,12 +77,20 @@
 				$( playerProxy ).bind( 'jsListenerEvent', function(event, globalFuncName, listenerArgs){
 					// check if globalFuncName has descendant properties
 					if( typeof window[ globalFuncName ] == 'function' ){
-						window[ globalFuncName ].apply( this, listenerArgs );
+						window[ globalFuncName ].apply( window[ globalFuncName ], listenerArgs );
 					} else {
 						// try to send the global function name: 
 						try{
-							var evalFunctionName = eval( globalFuncName );
-							evalFunctionName.apply( this, listenerArgs );
+							var winPrefix = ( globalFuncName.indexOf( 'window.' ) === 0 )?'':'window.';
+							var evalFunction = eval( winPrefix + globalFuncName );
+							// try to get the parent 
+							try{
+								var evalFunctionParent =  eval( globalFuncName.split('.').slice(0,-1).join('.') );
+							} catch (e ){
+								// can't get the parent just pass the function scope: 
+								var evalFunctionParent = evalFunction;
+							}
+							evalFunction.apply( evalFunctionParent, listenerArgs );
 						} catch (e){
 							mw.log( "Warning KDPMapping: jsListenerEvent function name not found");
 						}
@@ -202,7 +209,9 @@
 				// Echo the evaluated string: 
 				result = objectString;
 			}
-
+			if( result === 0 ){
+				return result;
+			}
 			// Return undefined to string: undefined, null, ''
 			if( result === "undefined" || result === "null" || result == "" )
 				result = undefined;
@@ -220,15 +229,30 @@
 			if( expression.indexOf( '(' ) !== -1 ){
 				var fparts = expression.split( '(' );
 				return _this.evaluateStringFunction( 
-						fparts[0], 
-						// Remove the closing ) and evaluate the Expression 
-						// should not include ( nesting !
-						_this.evaluateExpression( embedPlayer, fparts[1].slice( 0, -1) )
+					fparts[0], 
+					// Remove the closing ) and evaluate the Expression 
+					// should not include ( nesting !
+					_this.evaluateExpression( embedPlayer, fparts[1].slice( 0, -1) )
 				);
 			}
 			// Split the uiConf expression into parts separated by '.'
 			var objectPath = expression.split('.');
 			switch( objectPath[0] ){
+				case 'isHTML5':
+					return true;
+					break;
+				case 'sequenceProxy':
+					switch( objectPath[1] ){
+						case 'isInSequence':
+							return embedPlayer.sequenceProxy.isInSequence;
+							break;
+						case 'activePluginMetadata':
+							return embedPlayer.sequenceProxy.activePluginMetadata;
+							break;
+					}
+					// return the base object if no secondary path is specified 
+					return embedPlayer.sequenceProxy;
+					break;
 				case 'video':
 					switch( objectPath[1] ){
 						case 'volume': 
@@ -329,7 +353,7 @@
 		 */
 		addJsListener: function( embedPlayer, eventName, callbackName ){
 			var _this = this;
-			mw.log("KDPMapping::addJsListener: " + eventName + ' cb:' + callbackName );
+			//mw.log("KDPMapping::addJsListener: " + eventName + ' cb:' + callbackName );
 
 			if( typeof callbackName == 'string' ){
 				this.listenerList[  this.getListenerId( embedPlayer, eventName, callbackName)  ] = window[ callbackName ];
@@ -403,6 +427,24 @@
 				case 'doPause':
 					b( "pause" );
 					break;
+
+				// Pre sequences: 
+				case 'preSequenceStart':
+				case 'pre1start':
+					b( 'preSequence');
+					break;
+				case 'preSequenceComplete':
+					b( 'preSequenceComplete');
+					break;
+				
+				// Post sequences:
+				case 'post1start':
+				case 'postSequenceStart':
+					b( 'postSequence');
+					break;
+				case 'postSequenceComplete':
+					b( 'postSequenceComplete' );
+					break;
 				case 'playerPlayed':
 				case 'play':
 				case 'doPlay':
@@ -417,7 +459,7 @@
 					});
 					break;
 				case 'playerSeekEnd':
-					b( "seeked");
+					b( "seeked" );
 					break;
 				case 'playerPlayEnd':
 					b( "ended" );
@@ -441,7 +483,8 @@
 					});
 					break;	
 				case 'changeMedia':
-					b( 'onChangeMediaDone', function( event ){
+					// apparently change media is the same as playerReady
+					b( 'playerReady', function( event ){
 						callback({ 'entryId' : embedPlayer.kentryid }, embedPlayer.id );
 					});
 					break;
@@ -451,8 +494,16 @@
 					});
 					break;
 				case 'mediaReady':
-					// check for "media ready" ( namespace to kdpMapping )
-					b( 'playerReady' );
+					// Check for "media ready" ( namespace to kdpMapping )
+					b( 'playerReady',function( event ){
+						// only issue the media ready callback if entry is actually ready.
+						if( embedPlayer.kentryid ){
+							callback( embedPlayer.id )
+						}
+					});
+					break;
+				case 'metadataReceived':
+					b('KalturaSupport_MetadataReceived');
 					break;
 				case 'cuePointsReceived':
 					b( 'KalturaSupport_CuePointsReady', function( event, cuePoints ) {
@@ -472,7 +523,7 @@
 				/**
 				 * Mostly for analytics ( rather than strict kdp compatibility )
 				 */
-				case 'videoView':
+				case 'videoView': // is this part of the kdp api? 
 					b('firstPlay' );
 					break;
 				case 'share':

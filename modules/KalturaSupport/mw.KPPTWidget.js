@@ -2,7 +2,6 @@
 * Adds Power Point Widget Support
 */
 ( function( mw, $ ) {
-	
 // Temporary location for slide images: 
 mw.setConfig('Kaltura.PPTWidgetSlidePath', 'http://projects.kaltura.com/thomson-reuters/public/slides/');
 	
@@ -45,8 +44,7 @@ mw.KPPTWidget.prototype = {
 		// update the playerId mapping: 
 		this.playerId = this.$target.attr('id');
 		this.$target.attr('id', this.playerId + '_pptContainer' );
-		
-		this.flashvar = $( widgetTarget ).data( 'flashvars' );
+		this.flashvar = mw.getConfig('KalturaSupport.IFramePresetFlashvars');
 		// Setup the layout object via KLayout
 		/*this.layout = new mw.KLayout({
 			'$layoutBox' : this.$uiConf.find('#topLevel'),
@@ -63,7 +61,8 @@ mw.KPPTWidget.prototype = {
 		this.loadPPTData( function(){
 			// Do a "fixed" layout for now: 
 			_this.addFixedLayout();
-			
+			// God knows why we have to do this. ( bug in chrome, this is not needed in firefox) 
+			jQuery.fn.embedPlayer = window.jQueryEmbedPlayer;
 			// Update embed player
 			_this.$target.find( 'video' ).embedPlayer( function(){
 				// Add slide tags
@@ -90,14 +89,14 @@ mw.KPPTWidget.prototype = {
 		mw.KApiRequest(widgetId, {
 			'service': 'data',
 			'action' : 'get',
-			'entryId' : this.getDataEntryId()
+			'entryId' : _this.getDataEntryId()
 		}, function( data ){
 			_this.dataEntry = data;
 			callback();
 		});
 	},
 	getDataEntryId: function(){
-		return this.flashvar[ 'videoPresentationEntryId' ];
+		return this.flashvar.videoPresentationEntryId;
 	},
 	/**
 	 * Do some simple checks but mostly hard coded layout
@@ -641,4 +640,4 @@ mw.KPPTWidget.prototype = {
 	}
 };
 
-} )( window.mw, jQuery );
+} )( window.mw, window.jQuery );

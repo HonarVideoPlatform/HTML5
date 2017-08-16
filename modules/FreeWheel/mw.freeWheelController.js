@@ -1,15 +1,10 @@
 ( function( mw, $ ) {
 
-// Set the freewheel config:
+// Set the FreeWheel config:
 mw.setConfig({
 	// The url for the ad Manager
 	'FreeWheel.AdManagerUrl': 'http://adm.fwmrm.net/p/release/latest-JS/adm/prd/AdManager.js'
 });
-
-mw.addFreeWheelControler = function( embedPlayer, callback ) {
-	embedPlayer.freeWheelAds = new mw.FreeWheelControler(embedPlayer, callback);	
-	mw.freeWheelGlobalContextInstance = embedPlayer.freeWheelAds;
-};
 
 mw.FreeWheelControler = function( embedPlayer, callback ){
 	return this.init( embedPlayer, callback );
@@ -35,7 +30,7 @@ mw.FreeWheelControler.prototype = {
 		'postroll' : [],
 		'overlay' : [],
 		'midroll' : [],
-		// an unknown or unsupported type
+		// An unknown or unsupported type
 		'unknown_type': []
 	},
 	
@@ -44,6 +39,9 @@ mw.FreeWheelControler.prototype = {
 		
 	// if an overlay slot is active:
 	overlaySlotActive: false,
+	
+	// Local storage of ad freewheel ad metadata indexed by ad Id
+	fwAdParams: {},
 
 	// bindPostfix enables namespacing the plugin binding
 	bindPostfix: '.freeWheel',
@@ -58,21 +56,30 @@ mw.FreeWheelControler.prototype = {
 	init: function( embedPlayer, callback  ){
 		var _this = this;
 		// Inherit BaseAdPlugin
-		mw.inherit( this, new mw.BaseAdPlugin(  embedPlayer, callback ) );
+		mw.inherit( this, new mw.BaseAdPlugin( embedPlayer, callback ) );
 		
-		// setp local pointer to callback: 
-		this.callback = callback;
+		// unbind any existing bindings:
+		$( _this.embedPlayer ).unbind( _this.bindPostfix );
 		
-		// XXX todo we should read "adManagerUrl" from uiConf config
-		var adManagerUrl = ( this.getConfig( 'adManagerJsUrl' ) ) ? 
-							this.getConfig( 'adManagerJsUrl' )  : 
-							mw.getConfig( 'FreeWheel.AdManagerUrl' );
-							
-		// Load the freewheel ad mannager then setup the ads
-		$.getScript(adManagerUrl, function(){
+		// Checks if we are loading ads async 
+//		var checkAsyncAds 
+		
+		// Load the freewheel ad manager then setup the ads
+		if( !window['tv'] || !tv.freewheel ){
+			$.getScript( _this.getAdManagerUrl(), function(){
+				_this.setupAds();
+				callback();
+			});
+		} else{
 			_this.setupAds();
-		});
+			callback();
+		}
 	},	
+	getAdManagerUrl: function(){
+		return ( this.getConfig( 'adManagerJsUrl' ) ) ? 
+				this.getConfig( 'adManagerJsUrl' )  : 
+				mw.getConfig( 'FreeWheel.AdManagerUrl' );
+	},
 	/**
 	 * Setup ads, main freeWheel control flow
 	 * @return
@@ -80,28 +87,77 @@ mw.FreeWheelControler.prototype = {
 	setupAds: function(){
 		var _this = this;
 		
-		// Add key-values for ad targeting.
-		this.addContextKeyValues();
 		
-		// Listen to AdManager Events
-		this.addContextListners();
-		
-		// Set context timeout
-		this.setContextTimeout();
-		// Add the temporal slots for this "player"
-		this.addTemporalSlots();
+		// We should be able to use: 
+		// $(_this.embedPlayer ).bind .. but this ~sometimes~ fails on OSX safari and iOS 
+		// TODO investigate wtf is going on
+		_this.embedPlayer.freeWheelBindingHelper( 'AdSupport_OnPlayAdLoad' + _this.bindPostfix, function( event, callback ){
+			
+			// Add key-values for ad targeting.
+			_this.addContextKeyValues();
+			
+			// Listen to AdManager Events
+			_this.addContextListners();
+			
+			// Set context timeout
+			_this.setContextTimeout();
+			// Add the temporal slots for this "player"
+			// this.addTemporalSlots();
 
-		// Add local companion targets
-		if( mw.getConfig( 'FreeWheel.PostMessageIframeCompanions' ) ){
-			this.addCompanionBindings();
+			// XXX FreeWheel sets SVLads003 as the response? 
+			window['SVLads003'] = true;
+			
+			// Load add data ( will call onRequestComplete once ready )
+			mw.log("FreeWheelController::submitRequest>");
+			// Get Freewheel ads: 
+			_this.getContext().submitRequest();
+			// set the callback 
+			_this.callback  = callback;
+		});
+	},
+	/**
+	 * Called on the completion of freeWheel add loading, continue playback
+	 * @param event
+	 * @return
+	 */
+	onRequestComplete: function( event ){
+		var _this = this;
+		
+		mw.log("FreeWheelController::onRequestComplete>");
+		if ( event.success && _this.getContext().getTemporalSlots().length ){
+			var slotSet = _this.getContext().getTemporalSlots();
+			for( var i =0;i < slotSet.length;i++){
+				var slot = slotSet[i];
+				this.addSlot( slot );
+			};
+			// Add the freeWheel bindings:
+			this.addPlayerBindings();
+		} else {
+			mw.log("FreeWheelController:: no freewheel ads avaliable");
 		}
-		
-		// XXX FreeWheel sets SVLads003 as the response? 
-		window['SVLads003'] = true;
-		
-		// Load add data ( will call onRequestComplete once ready )
-		mw.log("FreeWheelController::submitRequest>");
-		this.getContext().submitRequest();
+		_this.callback();
+	},
+	// Returns freewheel ad parameters by ad Id
+	getFwAdMetaData: function( creativeId ){
+		var _this = this;
+		var context = this.getContext();
+		if( context._adResponse && context._adResponse._ads ){
+			for(var i=0; i < context._adResponse._ads.length; i++){
+				var ad = context._adResponse._ads[i];
+				// Check for params: 
+				if( ad._creatives ){
+					for( var j=0; j < ad._creatives.length ; j++){
+						var creative = ad._creatives[j];
+						// Check that this is the "video" object
+						if(creativeId == creative._id ){
+							return creative._parameters;
+						}
+					}
+				}
+			}
+		}
+		// else no parameters found: 
+		return {};
 	},
 	addPlayerBindings: function(){
 		mw.log("FreeWheelControl:: addPlayerBindings");
@@ -109,14 +165,14 @@ mw.FreeWheelControler.prototype = {
 	
 		$.each(_this.slots, function( slotType, slotSet){
 			if( slotType == 'midroll' || slotType == 'overlay' ){
-				$( _this.embedPlayer ).bind( 'monitorEvent' + _this.bindPostfix, function( event ){
+				_this.embedPlayer.freeWheelBindingHelper( 'monitorEvent' + _this.bindPostfix, function( event ){
 					_this.playSlotsInRange( slotSet );
 				});
 				return true;
 			}
 			
 			// Else set of preroll or postroll clips setup normal binding: 
-			$( _this.embedPlayer ).bind( 'AdSupport_' + slotType + _this.bindPostfix, function( event, sequenceProxy ){
+			_this.embedPlayer.freeWheelBindingHelper( 'AdSupport_' + slotType + _this.bindPostfix, function( event, sequenceProxy ){
 				sequenceProxy[ _this.getSequenceIndex( slotType ) ] = function( callback ){
 					// Run the freewheel slot add, then run the callback once done 
 					_this.displayFreeWheelSlots( slotType, 0, function(){
@@ -129,13 +185,6 @@ mw.FreeWheelControler.prototype = {
 				};
 			});
 		});
-		
-		// Add the "unload" binding for playlists
-		$( _this.embedPlayer ).bind( 'changeMedia' + _this.bindPostfix, function() {
-			_this.destory();
-		}); 
-		// Run the player callback once we have added player bindings
-		this.callback();
 	},
 	playSlotsInRange: function( slotSet ){
 		var _this = this;
@@ -151,15 +200,15 @@ mw.FreeWheelControler.prototype = {
 						// @@TODO handle close caption layout conflict
 						var bottom = parseInt( $('#fw_ad_container_div').css('bottom') );
 						var ctrlBarBottom  = bottom;
-						if( bottom < embedPlayer.controlBuilder.height ){
-							ctrlBarBottom = bottom + embedPlayer.controlBuilder.height ;
+						if( bottom < embedPlayer.controlBuilder.getHeight() ){
+							ctrlBarBottom = bottom + embedPlayer.controlBuilder.getHeight();
 						}
 						// Check if we are overlaying controls ( move the banner up ) 
 						if( embedPlayer.controlBuilder.isOverlayControls() ){
-							$( embedPlayer ).bind( 'onShowControlBar', function(){
+							_this.embedPlayer.freeWheelBindingHelper( 'onShowControlBar', function(){
 								$('#fw_ad_container_div').animate({'bottom': ctrlBarBottom + 'px'}, 'fast');
 							});
-							$( embedPlayer ).bind( 'onHideControlBar', function(){
+							_this.embedPlayer.freeWheelBindingHelper( 'onHideControlBar', function(){
 								$('#fw_ad_container_div').animate({'bottom': bottom + 'px'}, 'fast');
 							});
 						} else {
@@ -172,16 +221,24 @@ mw.FreeWheelControler.prototype = {
 		});
 	},
 	playSlot: function( slot ){
+		var _this = this;
 		if( slot.alreadyPlayed ){
 			return false;
 		}
-		mw.log('mw.FreeWheelControl:: playSlot:' + this.getSlotType( slot ) );
+		mw.log('mw.FreeWheelController:: playSlot:' + this.getSlotType( slot ) );
+		
+		if(  slot._adInstances.length ){
+			// TODO send adMeta data to adMetadata object
+			_this.embedPlayer.adTimeline.updateMeta( this.getFwAdMetaData( slot._adInstances[0]._creativeId ) );
+		}
 		slot.play();
 		slot.alreadyPlayed = true;
 		return true;
 	},
 	displayFreeWheelSlots: function( slotType, inx, doneCallback ){
 		var _this = this;
+		mw.log( "FreeWheelController::displayFreeWheelSlots> " + slotType + ' ' + inx );
+
 		var slotSet = this.slots[ slotType ];
 		// Make sure we have a slot to be displayed:
 		if( !slotSet[ inx ] ){
@@ -189,7 +246,6 @@ mw.FreeWheelControler.prototype = {
 				doneCallback();
 			return ;
 		}
-		
 		// Setup the active slots
 		this.curentSlotIndex = inx;
 		this.currentSlotDoneCB = doneCallback;
@@ -197,7 +253,7 @@ mw.FreeWheelControler.prototype = {
 		// Display the current slot:
 		if( ! _this.playSlot( slotSet[ inx ] ) ){
 			// if we did not play it, jump directly to slot done:
-			this.onSlotEnded( {  'slot' : slotSet[ inx ] } );
+			this.onSlotEnded({ 'slot' : slotSet[ inx ] });
 		}
 	},
 	onSlotEnded: function ( event ){
@@ -215,30 +271,9 @@ mw.FreeWheelControler.prototype = {
 			_this.getContext().setVideoState( tv.freewheel.SDK.VIDEO_STATE_COMPLETED) ;
 		}
 		// play the next slot in the series if present
-		this.curentSlotIndex++;
-		_this.displayFreeWheelSlots( slotType, this.curentSlotIndex, this.currentSlotDoneCB );
-	},
-	/**
-	 * Called on the completion of freeWheel add loading
-	 * @param event
-	 * @return
-	 */
-	onRequestComplete: function( event ){
-		var _this = this;
-		mw.log("FreeWheelController::onRequestComplete>");
-		if ( event.success ){
-			$.each( _this.getContext().getTemporalSlots(), function(inx, slot ){
-				_this.addSlot( slot );
-			});
-		} 
-		// Check if we found freewheel ads: 
-		if( _this.getContext().getTemporalSlots().length ){
-			// Add the freeWheel bindings:
-			_this.addPlayerBindings();
-		} else {
-			mw.log("FreeWheelController:: no freewheel ads avaliable");
-			// No adds issue callback directly
-			this.callback();
+		if( slotType == 'preroll' || slotType=='postroll' || slotType=='midroll'){
+			_this.curentSlotIndex++;
+			_this.displayFreeWheelSlots( slotType, _this.curentSlotIndex, _this.currentSlotDoneCB );
 		}
 	},
 	addSlot: function( slot ){
@@ -357,11 +392,13 @@ mw.FreeWheelControler.prototype = {
 		var _this = this;
 		mw.log("FreeWheelController::addContextListners>" );
 		this.getContext().addEventListener( tv.freewheel.SDK.EVENT_REQUEST_COMPLETE, function( event ){
-			_this.onRequestComplete( event );
+			_this.embedPlayer.freeWheel.onRequestComplete( event );
 		});
 		this.getContext().addEventListener( tv.freewheel.SDK.EVENT_SLOT_ENDED, function( event ){
-			_this.onSlotEnded( event );
-		})
+			// Use the embedPlayer instance of FreeWheel ads so that the non-prototype methods are not lost in 
+			// freewheels callback 
+			_this.embedPlayer.freeWheel.onSlotEnded( event );
+		});
 	},
 	setContextTimeout: function(){
 		mw.log("FreeWheelController::setContextTimeout>" );
@@ -370,7 +407,7 @@ mw.FreeWheelControler.prototype = {
 		this.getContext().setParameter(tv.freewheel.SDK.PARAMETER_RENDERER_VIDEO_PROGRESS_DETECT_TIMEOUT,10000,tv.freewheel.SDK.PARAMETER_LEVEL_GLOBAL);
 	},
 	addTemporalSlots: function(){
-		mw.log("FreeWheelController::addTemporalSlots>")
+		mw.log("FreeWheelController::addTemporalSlots>");
 		var context = this.getContext();
 		var embedPlayer = this.embedPlayer;
 		var slotCounts = {

@@ -25,7 +25,7 @@ window.mediaWiki =  window.mw;
 /**
  * Set the mwEmbedVersion
  */
-var MW_EMBED_VERSION = '1.3';
+var MW_EMBED_VERSION = '1.5';
 
 // Globals to pre-set ready functions in dynamic loading of mwEmbed
 if( typeof window.preMwEmbedReady == 'undefined'){
@@ -1680,7 +1680,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		mw.style[ cssResourceName ] = true;
 		// Add the spinner directly ( without jQuery in case we have to
 		// dynamically load jQuery )
-		mw.log( 'Adding style:' + cssResourceName + " to dom " );
+		// mw.log( 'Adding style:' + cssResourceName + " to dom " );
 		var styleNode = document.createElement('style');
 		styleNode.type = "text/css";
 		// Use cssText or createTextNode depending on browser:
@@ -1730,7 +1730,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 			return ;
 		}
 
-		mw.log( ' add css: ' + url );
+		mw.log( 'mwEmbed:: Add css: ' + url );
 		$j( 'head' ).append(
 			$j('<link />').attr( {
 				'rel' : 'stylesheet',
@@ -2213,15 +2213,18 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 
 						// Update the magic keywords
 						mw.Language.magicSetup();						
-
-
-						// Special Hack for conditional jquery ui inclusion (
-						// once
-						// Usability extension
-						// registers the jquery.ui skin in mw.style
-						if( mw.hasJQueryUiCss() ){
+						
+						// Check if we have a global jquery ui skin: 
+						if( mw.getConfig('IframeCustomjQueryUISkinCss' ) ){
 							mw.style[ 'ui_' + mw.getConfig( 'jQueryUISkin' ) ] = true;
+							mw.getStyleSheet( mw.getConfig('IframeCustomjQueryUISkinCss' )  );
+						} else {
+							// Special Hack for conditional jquery ui inclusion 
+							if( mw.hasJQueryUiCss() ){
+								mw.style[ 'ui_' + mw.getConfig( 'jQueryUISkin' ) ] = true;
+							}
 						}
+
 						// load any  Mw.CustomResourceIncludes
 						mw.loadCustomResourceIncludes( mw.getConfig('Mw.CustomResourceIncludes'), function(){
 							// Make sure style sheets are loaded:
@@ -2250,22 +2253,25 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	};
 	mw.loadCustomResourceIncludes = function( loadSet, callback ){
 		// XXX this needs to be cleaned up ( for now don't include custom resources if not an iframe player )
-		if( !mw.getConfig('EmbedPlayer.IsIframeServer' ) ){
+		if( !mw.getConfig('EmbedPlayer.IsIframeServer' ) || !loadSet || loadSet.length == 0 ){
 			callback();
 			return ;
 		}
-		if(!loadSet || loadSet.length == 0 ){
-			callback();
-			return ;
+		var loadCount = loadSet.length - 1;
+		var checkLoadDone = function(){
+			if( loadCount == 0 )
+				callback();
+			loadCount--;
+		};
+		var resource;
+		for( var i =0 ; i < loadSet.length; i ++ ){
+			resource = loadSet[i];
+			if( resource.type == 'js' ){
+				$j.getScript( resource.src, checkLoadDone);
+			} else if ( resource.type == 'css' ){
+				mw.getStyleSheet( resource.src, checkLoadDone);
+			}
 		}
-
-		// pop up a loadSet item and re call loadCustomResourceIncludes
-		var resource = loadSet.shift();
-		// Check for a direct set of array values
-		var url = ( resource.src )? resource.src : resource;
-		mw.getScript( url, function(){
-			mw.loadCustomResourceIncludes( loadSet, callback );
-		});
 	};
 	/**
 	 * Checks for jquery ui css by name jquery-ui-1.7.2.css NOTE: this is a hack
@@ -2353,7 +2359,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 * converters are included automatically.
 	 */
 	mw.checkModuleLoaderFiles = function( callback ) {
-		mw.log( 'doLoaderCheck::' );
+		mw.log( 'checkModuleLoaderFiles::' );
 
 		// Check if we are using scriptloader ( handles loader include
 		// automatically )
@@ -2484,9 +2490,6 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		return false;
 	};
 
-	// Flag to register the domReady has been called
-	var mwDomReadyFlag = false;
-
 	// Flag to register if the domreadyHooks have been called
 	var mwModuleLoaderCheckFlag = false;
 	
@@ -2494,20 +2497,9 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 * This will get called when the DOM is ready Will check configuration and
 	 * issue a mw.setupMwEmbed call if needed
 	 */
-	mw.domReady = function ( ) {
-		mw.log('mw.domReady: ' + mwDomReadyFlag );
-		if( mwDomReadyFlag ) {
-			return ;
-		}
-		mwDomReadyFlag = true;		
-		// Set the onDomReady Flag
-		if( mwFirstLoadDoneCB === true ){
-			mwFirstLoadDoneCB = function(){
-				mw.setupMwEmbed();
-			};
-		} else {
-			mw.setupMwEmbed();
-		}
+	mw.domReady = function ( forceSetup ) {
+		mw.log('mw.domReady:' );
+		mw.setupMwEmbed();
 	};
 	/**
 	* Check if the url is a request for the local domain
@@ -3240,8 +3232,4 @@ if( window.jQuery ){
   window.Spinner = Spinner;
 
 })(window, document);
-
-
-
-
 

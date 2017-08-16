@@ -38,14 +38,14 @@
 *	'EmbedPlayer.EnableIframeApi' : true
 */
 // The version of this script
-KALTURA_LOADER_VERSION = '1.4c11';
+KALTURA_LOADER_VERSION = '1.5.9';
 
 if( typeof console != 'undefined' && console.log ) {
 	console.log( 'Kaltura HTML5 Version: ' + KALTURA_LOADER_VERSION );
 }
 
 // Define mw ( if not already set ) 
-if( !window['mw'] ){
+if( !window['mw'] ) {
 	window['mw'] = {};
 }
 
@@ -119,7 +119,6 @@ function kDoIframeRewriteList( rewriteObjects ){
 		}
 	}
 }
-
 function kalturaIframeEmbed( replaceTargetId, kEmbedSettings , options ){
 	if( !options )
 		options = {};
@@ -303,7 +302,12 @@ function kDirectDownloadFallback( replaceTargetId, kEmbedSettings , options ) {
 	// TODO: Add playEventUrl for stats
 	var downloadUrl = SCRIPT_LOADER_URL.replace( 'ResourceLoader.php', 'modules/KalturaSupport/download.php' ) +
 			'/wid/' + kEmbedSettings.wid;
-
+	
+	// Also add the uiconf id to the url:
+	if( kEmbedSettings.uiconf_id ){
+		downloadUrl += '/uiconf_id/' + kEmbedSettings.uiconf_id;
+	}
+	
 	if( kEmbedSettings.entry_id ) {
 		downloadUrl += '/entry_id/'+ kEmbedSettings.entry_id;
 	}
@@ -490,24 +494,26 @@ function kGetFlashVersion(){
 // Check DOM for Kaltura embeds ( fall forward ) 
 // && html5 video tag ( for fallback & html5 player interface )
 function kCheckAddScript(){
+	
 	// Check if we already have got uiConfJs or not
-	if( ! mw.getConfig( 'Kaltura.UiConfJsLoaded') ){
+	if( mw.getConfig( 'Kaltura.EnableEmbedUiConfJs' ) && 
+		! mw.getConfig( 'Kaltura.UiConfJsLoaded') && ! mw.getConfig('EmbedPlayer.IsIframeServer') ){
 		// We have not yet loaded uiConfJS... load it for each ui_conf id
 		var playerList = kGetKalturaPlayerList();
 		var baseUiConfJsUrl = SCRIPT_LOADER_URL.replace( 'ResourceLoader.php', 'services.php?service=uiconfJs');
-		var requestCount =0;
+		var requestCount = playerList.length -1;
 		for( var i=0;i < playerList.length; i++){
-			requestCount++;
-			kAppendScriptUrl(baseUiConfJsUrl + kEmbedSettingsToUrl( playerList[i].kEmbedSettings), function(){
+			kAppendScriptUrl( baseUiConfJsUrl + kEmbedSettingsToUrl( playerList[i].kEmbedSettings), function(){
 				requestCount--;
 				if( requestCount == 0){
-					mw.setConfig( 'Kaltura.UiConfJsLoaded', true);
 					kCheckAddScript();
 				}
 			});
 		}
+		mw.setConfig( 'Kaltura.UiConfJsLoaded', true);
 		return ;
 	}
+
 	// Set url based config ( as long as it not disabled ) 
 	if( ! mw.getConfig( 'disableForceMobileHTML5') && document.URL.indexOf('forceMobileHTML5') !== -1 ){
 		mw.setConfig( 'forceMobileHTML5', true );
@@ -713,10 +719,12 @@ function kAddScript( callback ){
 	}
 	
 	// Add the jquery ui skin: 
-	if( mw.getConfig( 'jQueryUISkin' ) ){
-		jsRequestSet.push( 'mw.style.ui_' + mw.getConfig( 'jQueryUISkin' )  );
-	} else {
-		jsRequestSet.push( 'mw.style.ui_kdark'  );
+	if( !mw.getConfig('IframeCustomjQueryUISkinCss' ) ){
+		if( mw.getConfig( 'jQueryUISkin' ) ){
+			jsRequestSet.push( 'mw.style.ui_' + mw.getConfig( 'jQueryUISkin' )  );
+		} else {
+			jsRequestSet.push( 'mw.style.ui_kdark'  );
+		}
 	}
 	
 	var objectPlayerList = kGetKalturaPlayerList();
@@ -732,10 +740,15 @@ function kAddScript( callback ){
 		  'mw.KDPMapping',
 		  'mw.KAds',
 		  'mw.AdTimeline', 
+		  'mw.BaseAdPlugin',
 		  'mw.AdLoader',
 		  'mw.VastAdParser',
 		  'mw.KCuePoints',
 		  'mw.KTimedText',
+		  'mw.KLayout',
+		  'mw.style.klayout',
+		  'titleLayout',
+		  'playlistPlugin',
 		  'controlbarLayout',
 		  'faderPlugin',
 		  'watermarkPlugin',
@@ -758,7 +771,15 @@ function kAddScript( callback ){
 function kIsIE(){
 	return /msie/i.test(navigator.userAgent) && !/opera/i.test(navigator.userAgent);
 }
-
+function kAppendCssUrl( url ){
+	var head = document.getElementsByTagName("head")[0];         
+	var cssNode = document.createElement('link');
+	cssNode.type = 'text/css';
+	cssNode.rel = 'stylesheet';
+	cssNode.media = 'screen';
+	cssNode.href = url;
+	head.appendChild(cssNode);
+}
 function kAppendScriptUrl( url, callback ) {
 	var script = document.createElement( 'script' );
 	script.type = 'text/javascript';
@@ -767,8 +788,7 @@ function kAppendScriptUrl( url, callback ) {
 	if( callback ){
 		// IE sucks .. issues onload callback before ready 
 		// xxx could conditional the callback delay on user 
-		
-			script.onload = callback;
+		script.onload = callback;
 	}
 	document.getElementsByTagName('head')[0].appendChild( script );	
 }
@@ -826,7 +846,7 @@ function kAddReadyHook( callback ){
 		kReadyHookSet.push( callback );
 	}
 }
-function kRunMwDomReady(){
+function kRunMwDomReady( event ){
 	// run dom ready with a 1ms timeout to prevent sync execution in browsers like chrome
 	// Async call give a chance for configuration variables to be set
 	kAlreadyRunDomReadyFlag  = true;
@@ -834,6 +854,10 @@ function kRunMwDomReady(){
 		kReadyHookSet.shift()();
 	}
 	kOverideJsFlashEmbed();
+	// When in iframe, wait for endOfIframe event status. ( IE9 has issues ) 
+	if( mw.getConfig('EmbedPlayer.IsIframeServer')  && event !== 'endOfIframeJs' ){
+		return ;
+	}
 	kCheckAddScript();
 }
 
@@ -844,15 +868,16 @@ if ( document.readyState === "complete" ) {
 // Fallback function that should fire for all browsers ( only for non-iframe ) 
 if( ! mw.getConfig( 'EmbedPlayer.IsIframeServer') ){
 	kSiteOnLoadCall = false;
-	if( window.onload ){
-		kSiteOnLoadCall = window.onload;
-	}
-	window.onload = function(){
+	var kDomReadyCall = function(){
 		if( typeof kSiteOnLoadCall == 'function' ){
 			kSiteOnLoadCall();
 		}
 		kRunMwDomReady();
 	};
+	if( window.onload && window.onload.toString() != kDomReadyCall.toString() ){
+		kSiteOnLoadCall = window.onload;
+	}
+	window.onload = kDomReadyCall;
 }
 // Cleanup functions for the document ready method
 if ( document.addEventListener ) {
@@ -914,7 +939,6 @@ function doScrollCheck() {
 
 /**
  * Get the list of embed objects on the page that are 'kaltura players'
- * Copied from kalturaSupport loader mw.getKalturaPlayerList  
  */
 function kGetKalturaPlayerList(){
 	var kalturaPlayers = [];
@@ -940,9 +964,9 @@ function kGetKalturaPlayerList(){
 		var flashvars = {};
 		var paramTags = objectList[i].getElementsByTagName('param');
 		for( var j = 0; j < paramTags.length; j++){
-			var pName = paramTags[j].getAttribute('name');
+			var pName = paramTags[j].getAttribute('name').toLowerCase();
 			var pVal = paramTags[j].getAttribute('value');
-			if( pName == 'data' ||	pName == 'src' ) {
+			if( pName == 'data' ||	pName == 'src' || pName == 'movie' ) {
 				swfUrl =  pVal;
 			}
 			if( pName == 'flashvars' ){
@@ -960,6 +984,8 @@ function kGetKalturaPlayerList(){
 				continue;
 		}
 	}
+//	if( console && console.log )
+//			console.log(  'kGetKalturaPlayerList found ' + kalturaPlayers.length + ' kalturaPlayers' );
 	return kalturaPlayers;
 };
 
@@ -998,7 +1024,14 @@ function kGetEntryThumbUrl( entry ){
 		entry.partner_id + '00/thumbnail/entry_id/' + entry.entry_id + '/width/' +
 		entry.width + '/height/' + entry.height;
 }
-// Copied from kalturaSupport loader mw.getKalturaEmbedSettings  
+/**
+ * Get kaltura embed settings from a swf url and flashvars object
+ *
+ * @param {string} swfUrl
+ * 	url to kaltura platform hosted swf
+ * @param {object} flashvars
+ * 	object mapping kaltura variables, ( overrides url based variables )
+ */
 function kGetKalturaEmbedSettings ( swfUrl, flashvars ){
 	var embedSettings = {};	
 	
@@ -1041,7 +1074,7 @@ function kGetKalturaEmbedSettings ( swfUrl, flashvars ){
 		prevUrlPart = curUrlPart;
 	}
 	// Add in Flash vars embedSettings ( they take precedence over embed url )
-	for( var key in  flashvars){	
+	for( var key in  flashvars ){	
 		var val = flashvars[key];
 		var key = key.toLowerCase();
 		// Normalize to the url based settings: 
@@ -1064,13 +1097,65 @@ function kGetKalturaEmbedSettings ( swfUrl, flashvars ){
 }
 
 /**
+ * KWidget static object.
+ * Will eventually host all the loader logic. 
+ */
+window.KWidget = {
+	// Stores widgets that are ready: 
+	readyWidgets: {},
+	
+	// First ready callback issued
+	readyCallbacks: [],
+	/**
+	 * Adds a ready callback to be called once the kdp or html5 player is ready
+	 */
+	addReadyCallback : function( readyCallback ){
+		// issue the ready callback for any existing ready widgets: 
+		for( wid in this.readyWidgets ){
+			// Make sure the widget is still in the dom before running the ready callback
+			if( document.getElementById( wid ) ){
+				readyCallback( wid );
+			}
+		}
+		// add the callback to the readyCallbacks array for any other players that become ready
+		this.readyCallbacks.push( readyCallback );
+	},
+	/**
+	 * Takes in the global ready callback events and ads them to the 
+	 * readyWidgets array
+	 * @param playerId
+	 * @return
+	 */
+	globalJsReadyCallback: function( widgetId ){
+		// issue the callback for all readyCallbacks 
+		while( this.readyCallbacks.length ){
+			this.readyCallbacks.shift()( widgetId );
+		}
+		this.readyWidgets[ widgetId ] = true;
+	}
+};
+window.KalturaKDPCallbackAlreadyCalled = [];
+
+/**
  * To support kaltura kdp mapping override
  */
 window.checkForKDPCallback = function(){
-	if( typeof window.jsCallbackReady != 'undefined' && !window.KalturaKDPCallbackReady ){
-		window.KalturaKDPCallbackReady = window.jsCallbackReady;
-		window.jsCallbackReady = function( player_id ){
-			window.KalturaKDPCallbackAlreadyCalled = player_id;
+	var pushAlreadyCalled = function( player_id ){
+		window.KalturaKDPCallbackAlreadyCalled.push( player_id );
+	}
+	if( window.jsCallbackReady && window.jsCallbackReady.toString() != pushAlreadyCalled.toString() ){
+		window.originalKDPCallbackReady = window.jsCallbackReady;
+	};
+	// Always update the jsCallbackReady to call pushAlreadyCalled
+	if( !window.jsCallbackReady || window.jsCallbackReady.toString() != pushAlreadyCalled.toString() ){
+		window.jsCallbackReady = pushAlreadyCalled;
+	}
+	if( !window.KalturaKDPCallbackReady ){
+		window.KalturaKDPCallbackReady = function( playerId ){
+			if( window.originalKDPCallbackReady ){
+				window.originalKDPCallbackReady( playerId );
+			}
+			window.KWidget.globalJsReadyCallback( playerId );
 		};
 	}
 };
@@ -1080,9 +1165,14 @@ window.restoreKalturaKDPCallback = function(){
 	if( window.KalturaKDPCallbackReady ){
 		window.jsCallbackReady = window.KalturaKDPCallbackReady;
 		window.KalturaKDPCallbackReady = null;
-		if( window.KalturaKDPCallbackAlreadyCalled ){
-			window.jsCallbackReady( window.KalturaKDPCallbackAlreadyCalled );
+		if( window.KalturaKDPCallbackAlreadyCalled.length ){
+			for( var i =0 ; i < window.KalturaKDPCallbackAlreadyCalled.length; i++){
+				var playerId = window.KalturaKDPCallbackAlreadyCalled[i];
+				window.jsCallbackReady( playerId );
+				window.KWidget.globalJsReadyCallback( playerId );
+			}
 		}
+		// should have to do nothing.. kdp will call window.jsCallbackReady directly
 	}
 };
 

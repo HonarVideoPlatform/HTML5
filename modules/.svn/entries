@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4c11/modules
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.9/modules
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-10-11T17:05:15.627680Z
-6662
+2011-11-08T17:24:17.667344Z
+6827
 rany
 
 
@@ -96,5 +96,8 @@ Comscore
 dir
 
 ApiProxy
+dir
+
+NielsenPlugin
 dir
 

@@ -19,7 +19,7 @@ $wgMwEmbedPathUrl = str_replace(
 );
 
 // The version of the library ( should match the mwEmbedLoader KALTURA_LOADER_VERSION
-$wgMwEmbedVersion = '1.4b27';
+$wgMwEmbedVersion = '1.5';
 
 // Url to the resource loader php script: 
 $wgResourceLoaderUrl = $wgMwEmbedPathUrl . 'ResourceLoader.php';
@@ -51,6 +51,20 @@ $wgMwEmbedApiServices = array();
 // To include signed headers with user IPs for IP restriction lookups, input a salt string for 
 // $wgKalturaRemoteAddressSalt configuration option. 
 $wgKalturaRemoteAddressSalt = false;
+
+// If we should check for onPage resources per the external resources plugin
+$wgKalturaEnableEmbedUiConfJs = false;
+
+// Enables the result cache while in debug mode 
+// This enables fast player rendering while scripts remain unminifed. 
+// ( normally $wgEnableScriptDebug disables result cache )
+$wgKalturaForceResultCache = false;
+
+// For force ip testing geo restrictions
+$wgKalturaForceIP = false;
+
+// To test sites with referre restrictions: 
+$wgKalturaForceReferer = false;
 
 // The default Kaltura service url:
 $wgKalturaServiceUrl = $wgHTTPProtocol . '://cdnapi.kaltura.com';
@@ -84,8 +98,8 @@ $wgEnableIpadHTMLControls = true;
 
 $wgKalturaUseManifestUrls = true;
 
-// By default do not allow custom resource includes. 
-$wgAllowCustomResourceIncludes = false;
+// By default do allow custom resource includes. 
+$wgAllowCustomResourceIncludes = true;
 
 // An array of partner ids for which apple adaptive should be disabled. 
 $wgKalturaPartnerDisableAppleAdaptive = array();

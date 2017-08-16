@@ -15,123 +15,11 @@ mw.includeAllModuleMessages();
 
 ( function( mw, $ ) {
 	
-	/** 
-	 * Merge in the default video attributes supported by embedPlayer:
-	 */
-	mw.mergeConfig('EmbedPlayer.Attributes', {
-		/*
-		 * Base html element attributes:
-		 */
-	
-		// id: Auto-populated if unset
-		"id" : null,
-	
-		// Width: alternate to "style" to set player width
-		"width" : null,
-	
-		// Height: alternative to "style" to set player height
-		"height" : null,
-	
-		/*
-		 * Base html5 video element attributes / states also see:
-		 * http://www.whatwg.org/specs/web-apps/current-work/multipage/video.html
-		 */
-	
-		// Media src URI, can be relative or absolute URI
-		"src" : null,
-	
-		// Poster attribute for displaying a place holder image before loading
-		// or playing the video
-		"poster" : null,
-	
-		// Autoplay if the media should start playing
-		"autoplay" : false,
-	
-		// Loop attribute if the media should repeat on complete
-		"loop" : false,
-	
-		// If the player controls should be displayed
-		"controls" : true,
-	
-		// Video starts "paused"
-		"paused" : true,
-	
-		// ReadyState an attribute informs clients of video loading state:
-		// see: http://www.whatwg.org/specs/web-apps/current-work/#readystate
-		"readyState" : 0,
-	
-		// Loading state of the video element
-		"networkState" : 0,
-	
-		// Current playback position
-		"currentTime" : 0,
-	
-		// Previous player set time
-		// Lets javascript use $('#videoId').get(0).currentTime = newTime;
-		"previousTime" : 0,
-	
-		// Previous player set volume
-		// Lets javascript use $('#videoId').get(0).volume = newVolume;
-		"previousVolume" : 1,
-	
-		// Initial player volume:
-		"volume" : 0.75,
-	
-		// Caches the volume before a mute toggle
-		"preMuteVolume" : 0.75,
-	
-		// Media duration: Value is populated via
-		// custom data-durationhint attribute or via the media file once its played
-		"duration" : null,
-	
-		// Mute state
-		"muted" : false,
-	
-		/**
-		 * Custom attributes for embedPlayer player: (not part of the html5
-		 * video spec)
-		 */
-	
-		// Default video aspect ratio
-		'videoAspect' : '4:3',
-	
-		// Start time of the clip
-		"start" : 0,
-	
-		// End time of the clip
-		"end" : null,
-	
-		// If the player controls should be overlaid
-		// ( Global default via config EmbedPlayer.OverlayControls in module
-		// loader.js)
-		"overlaycontrols" : true,
-	
-		// Attribute to use 'native' controls
-		"usenativecontrols" : false,
-	
-		// If the player should include an attribution button:
-		'attributionbutton' : true,
-		
-		// A player error state ( lets you propagate an error instead of a play button ) 
-		// ( while keeping the full player api available )
-		'data-playerError': null,
-	
-		// If serving an ogg_chop segment use this to offset the presentation time
-		// ( for some plugins that use ogg page time rather than presentation time )
-		"startOffset" : 0,
-	
-		// If the download link should be shown
-		"download_link" : true,
-	
-		// Content type of the media
-		"type" : null
-	} );
-	
-	
-	
-	/*
-	 * embeds all players that match the rewrite player tags config Passes off
+	/**
+	 * Embeds all players that match the rewrite player tags config Passes off
 	 * request to the embedPlayer selector:
+	 * 
+	 * deprecated 
 	 * 
 	 * @param {Object} attributes Attributes to apply to embed players @param
 	 * {Function} callback Function to call once embedding is done
@@ -251,8 +139,8 @@ mw.includeAllModuleMessages();
 	
 		});
 	};
-
-
+	// Setup global pointer to this jquery method, Function scope bug in Chrome 15x
+	window.jQueryEmbedPlayer = $.fn.embedPlayer;
 /**
  * EmbedPlayerManager
  * 
@@ -835,8 +723,8 @@ mw.EmbedPlayer.prototype = {
 	},
 	
 	applyIntrinsicAspect: function(){
-		// check if a image thumbnail is present:
-		if( this.$interface.find('.playerPoster').length ){
+		// Check if a image thumbnail is present:
+		if(  this.$interface && this.$interface.find('.playerPoster').length ){
 			var img = this.$interface.find('.playerPoster').get(0);
 			var pHeight = $( this ).height();
 			// Check for intrinsic width and maintain aspect ratio
@@ -1363,9 +1251,22 @@ mw.EmbedPlayer.prototype = {
 
 	/**
 	 * On clip done action. Called once a clip is done playing
+	 * TODO CLEAN UP END EVENT
 	 */
+	postSequence: false,
 	onClipDone: function() {
 		var _this = this;
+		// Trigger the post Sequence 
+		// TODO migrate to triggerQueueCallback instead of _propagateEvents and
+		// onDoneInterfaceFlag hacks!
+		/*if( !this.postSequence ) {
+			this.postSequence = true;
+			mw.log( "EmbedPlayer:: trigger postSequence " );
+			$( this ).triggerQueueCallback( 'postSequence', function(){
+				_this.onClipDone();
+			});
+			return ;
+		}*/
 		mw.log( 'EmbedPlayer::onClipDone: propagate:' +  _this._propagateEvents + ' id:' + this.id + ' doneCount:' + this.donePlayingCount + ' stop state:' +this.isStopped() );
 		// don't run onclipdone if _propagateEvents is off
 		if( !_this._propagateEvents ){
@@ -1373,7 +1274,7 @@ mw.EmbedPlayer.prototype = {
 		}
 		// Only run stopped once:
 		if( !this.isStopped() ){
-			
+			this.stop();
 			// Show the control bar:
 			this.controlBuilder.showControlBar();
 
@@ -1399,7 +1300,7 @@ mw.EmbedPlayer.prototype = {
 					this.play();
 					return;
 				}
-
+				
 				// Stop the clip (load the thumbnail etc)
 				this.serverSeekTime = 0;
 				this.updatePlayHead( 0 );
@@ -1410,8 +1311,11 @@ mw.EmbedPlayer.prototype = {
 					return ;
 				}
 
-				// Do the controlBuilder onClip done interface
-				this.controlBuilder.onClipDone();
+				// Do the controlBuilder onClip done interface ( does not do anything atm )
+				//this.controlBuilder.onClipDone();
+
+				// An event for once the all ended events are done.
+				$( this ).trigger( 'onEndedDone' );
 			}
 		}
 	},
@@ -1435,8 +1339,7 @@ mw.EmbedPlayer.prototype = {
 		// Make sure the controlBuilder bindings are up-to-date
 		this.controlBuilder.addControlBindings();
 
-		// Once the thumbnail is shown run the mediaReady trigger (if not using
-		// native controls)
+		// Once the thumbnail is shown run the mediaReady trigger (if not using native controls)
 		if( !this.useNativePlayerControls() ){
 			mw.log("mediaLoaded");
 			$( this ).trigger( 'mediaLoaded' );
@@ -1497,7 +1400,9 @@ mw.EmbedPlayer.prototype = {
 		setTimeout(function(){
 			_this.applyIntrinsicAspect();
 		}, 10);
-
+		
+		
+		// triggers autoplay: 
 		mw.playerManager.playerReady( this );
 		
 		// Right before player autoplay ... check if there are any errors that prevent playback or player:
@@ -1573,6 +1478,9 @@ mw.EmbedPlayer.prototype = {
 	 *            errorMsg
 	 */
 	showErrorMsg: function( errorMsg ){
+		// remove a loading spiner: 
+		this.hidePlayerSpinner();
+		
 		if( this.$interface ){
 			$target = this.$interface;
 		} else{
@@ -1609,7 +1517,6 @@ mw.EmbedPlayer.prototype = {
 		
 		// Update the poster and html:
 		this.updatePosterHTML();
-
 		// on iOS devices don't try to add warnings
 		if( !this.mediaElement.sources.length || mw.isIOS() ){
 			var noSourceMsg = gM('mwe-embedplayer-missing-source');
@@ -1630,12 +1537,14 @@ mw.EmbedPlayer.prototype = {
 				.addClass('error')
 				.html( noSourceMsg )
 			);
+			
 			$( this ).find('.play-btn-large').remove();
 		} else {
 			// Add the warning
 			this.controlBuilder.doWarningBindinng( 'EmbedPlayer.DirectFileLinkWarning',
 				gM( 'mwe-embedplayer-download-warn', mw.getConfig('EmbedPlayer.FirefoxLink') )
 			);
+			$( this ).show();
 			// Make sure we have a play btn:
 			if( $( this ).find('.play-btn-large').length == 0) {
 				this.$interface.append(
@@ -1645,9 +1554,11 @@ mw.EmbedPlayer.prototype = {
 			
 			// Set the play button to the first available source:
 			this.$interface.find('.play-btn-large')
+			.show()
 			.unbind('click')
 			.wrap(
 				$('<a />').attr( {
+					'target' : '_new',
 					'href': this.mediaElement.sources[0].getSrc(),
 					'title' : gM('mwe-embedplayer-play_clip')
 				} )
@@ -1657,7 +1568,6 @@ mw.EmbedPlayer.prototype = {
 		// states
 		// http://www.whatwg.org/specs/web-apps/current-work/#media-element
 		this.doneLoading = true;
-		//mw.playerManager.playerReady( this );
 	},
 
 	/**
@@ -1761,12 +1671,15 @@ mw.EmbedPlayer.prototype = {
 		
 		// Reset first play to true, to count that play event
 		this.firstPlay = true;
-		
+		this.preSequence = false;
+		this.postSequence = false;
 		// Add a loader to the embed player: 
 		this.pauseLoading();
 		
-		// Clear out any player error:
+		// Clear out any player error ( both via attr and object property ):
 		this['data-playerError'] = null;
+		$(this).attr( 'data-playerError', '');
+		
 		// Clear out the player error div:
 		this.$interface.find('.error').remove();
 		// restore the control bar:
@@ -1973,18 +1886,23 @@ mw.EmbedPlayer.prototype = {
 		}
 		return ;
 	},
+	// Add a play button to the interface if no interface is present add it as a sibling: 
 	addPlayBtnLarge:function(){
 		var _this = this;
-		var $pid = $( '#' + _this.pid );
-		$pid.siblings('.play-btn-large').remove();
 		$playButton = this.controlBuilder.getComponent('playButtonLarge');
-		$pid.after(
-			$playButton
-			.css({
-				'left' : parseInt( $pid.position().left ) + parseInt( $playButton.css('left') ),
-				'top' : parseInt( $pid.position().top ) +  parseInt( $playButton.css('top') )
-			})
-		);
+		if( this.$interface ){
+			this.$interface.append( $playButton );
+		}else {
+			var $pid = $( '#' + _this.pid );
+			$pid.siblings('.play-btn-large').remove();
+			$pid.after(
+				$playButton
+				.css({
+					'left' : parseInt( $pid.position().left ) + parseInt( $playButton.css('left') ),
+					'top' : parseInt( $pid.position().top ) +  parseInt( $playButton.css('top') )
+				})
+			);
+		}
 	},
 	/**
 	 * Should be set via native embed support
@@ -2176,44 +2094,42 @@ mw.EmbedPlayer.prototype = {
 	 * false Updates pause button Starts the "monitor"
 	 */
 	firstPlay : true,
+	preSequence: false,
+	inPreSequence: false,
 	replayEventCount : 0,
 	play: function() {
 		var _this = this;
-		
-		mw.log( "EmbedPlayer:: play: " + this._propagateEvents + ' poster: ' +  this.posterDisplayed + ' native: ' +  this.useNativePlayerControls());
-	
-		// Hide any overlay:
-		if( this.controlBuilder ){
-			this.controlBuilder.closeMenuOverlay();
-		}
-		// Hide any button if present:
-		if( this.$interface ){
-			this.$interface.find( '.play-btn-large' ).remove();
-		}
-		
+		mw.log( "EmbedPlayer:: play: " + this._propagateEvents + ' poster: ' +  this.posterDisplayed );
 		
 		// Check if thumbnail is being displayed and embed html
-		if ( this.posterDisplayed &&  !this.useNativePlayerControls() ) {
-			if ( !this.selectedPlayer ) {
-				this.showPluginMissingHTML();
-				return;
+		if ( _this.posterDisplayed &&  !_this.useNativePlayerControls() ) {
+			if ( !_this.selectedPlayer ) {
+				_this.showPluginMissingHTML();
+				return false;
 			} else {
-				this.posterDisplayed = false;
-				this.doEmbedHTML();
+				_this.posterDisplayed = false;
+				_this.doEmbedHTML();
 			}
 		}
-
+		
+		if( !this.preSequence ) {
+			this.preSequence = true;
+			mw.log( "EmbedPlayer:: trigger preSequence " );
+			$( this ).trigger( 'preSequence' );
+		}
+		
 		if( this.paused === true ){
 			this.paused = false;
 			// Check if we should Trigger the play event
 			mw.log("EmbedPlayer:: trigger play event::" + !this.paused + ' events:' + this._propagateEvents );
-			if(  this._propagateEvents  ) {
-				$( this ).trigger( 'onplay' );
-			}
 			// We need first play event for analytics purpose
 			if( this.firstPlay ) {
 				this.firstPlay = false;
 				$( this ).trigger( 'firstPlay' );
+			}
+			// trigger the actual play event: 
+			if(  this._propagateEvents  ) {
+				$( this ).trigger( 'onplay' );
 			}
 		}
 		
@@ -2225,6 +2141,25 @@ mw.EmbedPlayer.prototype = {
 			}
 		}
 
+		// if we have start time defined, start playing from that point
+		if( this.currentTime < this.startTime ) {
+			var percent = parseFloat( this.startTime ) / this.getDuration();
+			this.doSeek( percent );
+		}
+		this.playInterfaceUpdate();
+		return true;
+	},
+	playInterfaceUpdate: function(){
+		var _this = this;
+		// Hide any overlay:
+		if( this.controlBuilder ){
+			this.controlBuilder.closeMenuOverlay();
+		}
+		// Hide any buttons or errors  if present:
+		if( this.$interface ){
+			this.$interface.find( '.play-btn-large,.error' ).remove();
+		}
+		
 		this.$interface.find('.play-btn span')
 		.removeClass( 'ui-icon-play' )
 		.addClass( 'ui-icon-pause' );
@@ -2238,15 +2173,6 @@ mw.EmbedPlayer.prototype = {
 		 	_this.pause();
 		 } )
 		.attr( 'title', gM( 'mwe-embedplayer-pause_clip' ) );
-
-		// if we have start time defined, start playing from that point
-		if( this.currentTime < this.startTime ) {
-			var percent = parseFloat( this.startTime ) / this.getDuration();
-			this.doSeek( percent );
-		}
-
-		// Start the monitor if not already started
-		this.monitor();
 	},
 	/**
 	 * Pause player, and display a loading animation
@@ -2336,24 +2262,20 @@ mw.EmbedPlayer.prototype = {
 				this.pause();
 			}
 		}
+		// restore the play button: 
+		this.addPlayBtnLarge();
 		// Native player controls:
-		if( this.useNativePlayerControls() ){
-			this.getPlayerElement().currentTime = 0;
-			this.getPlayerElement().pause();
-			// If on android when we "stop" we re add the large play button
-			if( mw.isAndroid2() ){
-				this.addPlayBtnLarge();
-			}
-		} else {
+		if( !this.isPersistentNativePlayer() ){			
 			// Rewrite the html to thumbnail disp
 			this.showThumbnail();
 			this.bufferedPercent = 0; // reset buffer state
 			this.controlBuilder.setStatus( this.getTimeRange() );
-
-			// Reset the playhead
-			mw.log("EmbedPlayer::Stop:: Reset play head")
-			this.updatePlayHead( 0 );
 		}
+		// Reset the playhead
+		this.updatePlayHead( 0 );
+		// update the status: 
+		// update mv_time
+		this.controlBuilder.setStatus( this.getTimeRange() );
 	},
 
 	/**
@@ -2375,6 +2297,8 @@ mw.EmbedPlayer.prototype = {
 		this.setVolume( percent );
 		// Update the interface
 		this.setInterfaceVolume( percent );
+		// TODO Don't update the inteface ( instaed bind to ontogglemute )
+		$(this).trigger('onToggleMute');
 	},
 
 	/**
@@ -2538,7 +2462,6 @@ mw.EmbedPlayer.prototype = {
 	 */
 	monitor: function() {
 		var _this = this;
-
 		// Check for current time update outside of embed player
 		this.checkForCurrentTimeSeek();
 
@@ -2600,15 +2523,16 @@ mw.EmbedPlayer.prototype = {
 			}
 			// Check if we are "done"
 			var endPresentationTime = ( this.startOffset ) ? ( this.startOffset + this.duration ) : this.duration;
-			if ( this.currentTime > endPresentationTime ) {
+			if ( this.currentTime >= endPresentationTime ) {
 				// mw.log( "mWEmbedPlayer::should run clip done :: " + this.currentTime + ' > ' + endPresentationTime );
-				this.onClipDone();
+				if( this._propagateEvents )
+					this.onClipDone();
 				return ;
 			}
 			// End video if we have endTime attribute
-			if( this.endTime && (this.currentTime > this.endTime) ) {
-				this.pause();
-				this.onClipDone();
+			if( this.endTime && (this.currentTime >= this.endTime) ) {
+				if( this._propagateEvents )
+					this.onClipDone();
 				return ;
 			}
 
@@ -2691,7 +2615,7 @@ mw.EmbedPlayer.prototype = {
 		// if we have not already run the buffer start hook
 		if( this.bufferedPercent > 0 && !this.bufferStartFlag ) {
 			this.bufferStartFlag = true;
-			mw.log("bufferStart");
+			mw.log("EmbedPlayer::bufferStart");
 			$( this ).trigger( 'bufferStartEvent' );
 		}
 
@@ -2814,4 +2738,4 @@ mw.EmbedPlayer.prototype = {
 	}
 };
 
-})( mediaWiki, jQuery );
+})( window.mw, window.jQuery );

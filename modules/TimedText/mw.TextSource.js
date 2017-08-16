@@ -55,7 +55,7 @@
 		 */
 		load: function( callback ) {
 			var _this = this;
-			// setup up a callabck stup ( in case it was not defined )
+			// Setup up a callback ( in case it was not defined )
 			if( !callback )
 				callback = function(){ return ; };
 				
@@ -69,24 +69,25 @@
 				mw.log( "Error: TextSource no source url for text track");
 				return callback();
 			}
-			
-			// Check if we can directly request the content: 
-			if( mw.isLocalDomain( this.getSrc() ) ){
-				$.get( this.getSrc(), function( data ) {
-					// Parse and load captions:
-					_this.captions = _this.getCaptions( data );
-					mw.log("mw.TextSource :: loaded from srt file: " + _this.captions.length + ' captions' );
-					// Issue the callback: 
-					callback();
-				}, 'text');
-				return ;
+			try {
+				$.ajax({
+					url: _this.getSrc(),
+					success: function( data ) {
+						_this.captions = _this.getCaptions( data );
+						mw.log("mw.TextSource :: loaded from srt file: " + _this.captions.length + ' captions' );
+						callback();
+					},
+					error: function( jqXHR, textStatus, errorThrown ){
+						// try to load the file with the proxy:
+						_this.loadViaProxy( callback );
+					}
+				});
+			} catch ( e ){
+				mw.log( "TimedText source:: first cross domain request failed, trying via proxy" );
 			}
-			
-			// Check if we can load by proxy
-			if ( !mw.isLocalDomain( this.getSrc() ) && !mw.getConfig('Mw.XmlProxyUrl') ) {
-				mw.log("Error: no text proxy and requesting cross domain srt location: " + this.getSrc() );
-				return callback();
-			}
+		},
+		loadViaProxy: function( callback ){
+			var _this = this;
 			// Load via proxy:
 			var proxyUrl = mw.getConfig('Mw.XmlProxyUrl');
 			$.getJSON( proxyUrl + '?url=' + encodeURIComponent(  this.getSrc() ) + '&callback=?', function( result ){
@@ -96,9 +97,10 @@
 				}				 
 				// Parse and load captions:
 				_this.captions = _this.getCaptions( result['contents'] );
+				mw.log("mw.TextSource :: loaded from proxy xml request: captions length: " + _this.captions.length + ' captions' );
+				callback();
 			});
 		},
-	
 		/**
 		* Returns the text content for requested time
 		*
@@ -144,7 +146,7 @@
 			return captionSet;
 		},
 		getCaptions: function( data ){
-			// detect caption data type: 
+			// Detect caption data type: 
 			switch( this.mimeType ){
 				case 'text/x-srt':
 					return this.getCaptionsFromSrt( data);
@@ -169,9 +171,16 @@
 		 */
 		getCaptionsFromTMML: function( data ){
 			var _this = this;
+			mw.log("TextSource::getCaptionsFromTMML");
 			// set up display information:
 			var captions = [];
 			var xml = $.parseXML( data );
+			
+			// Check for parse error: 
+			if( $( xml ).find('parsererror').length ){
+				mw.log("Error: close caption parse error: " +  $( xml ).find('parsererror').text() );
+				return captions;
+			}
 			
 			// Set the body Style
 			var bodyStyleId = $( xml ).find('body').attr('style');
@@ -274,6 +283,16 @@
 		 * @param {String} data Srt string to be parsed
 		 */
 		getCaptionsFromSrt: function ( data ){
+			mw.log("TextSource::getCaptionsFromSrt");
+			// check if the "srt" parses as an XML 
+			try{
+				var xml = $.parseXML( data );
+				if( xml && $( xml ).find( 'body').length ){
+					return this.getCaptionsFromTMML( data );
+				}
+			} catch ( e ){
+				// srt should not be xml
+			}
 			// Remove dos newlines
 			var srt = data.replace(/\r+/g, '');
 		

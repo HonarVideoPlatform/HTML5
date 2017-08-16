@@ -115,7 +115,10 @@ mw.AdTimeline.prototype = {
 		// Bind to the "play" and "end"
 		this.bindPlayer();
 	},
-
+	//  method to update adMetadata:
+	updateMeta: function( adMeta ){
+		this.embedPlayer.sequenceProxy.activePluginMetadata = adMeta;
+	},
 	bindPlayer: function() {
 		var _this = this;
 		var embedPlayer = this.embedPlayer;
@@ -123,68 +126,87 @@ mw.AdTimeline.prototype = {
 		_this.originalSrc = embedPlayer.getSrc();
 		// Clear out any old bindings
 		_this.destroy();
+		// Create an empty sequence proxy object ( stores information about the current sequence ) 
+		embedPlayer.sequenceProxy = {};
+
 		// On change media clear out any old adTimeline bindings
 		$( embedPlayer ).bind( 'onChangeMedia' + _this.bindPostfix, function(){
 			_this.destroy();
 		});
 		
-		$( embedPlayer ).bind( 'onplay' + _this.bindPostfix, function() {
-			// Check if this is the "first play" request:
-			if ( !_this.firstPlay ) {
+		// On play preSequence
+		$( embedPlayer ).bind( 'preSequence' + _this.bindPostfix, function() {
+			mw.log( "AdTimeline:: First Play Start / bind Ad timeline" );
+			embedPlayer.pauseLoading();
+			embedPlayer.sequenceProxy.isInSequence = true;
+			// given an opportunity for ads to load for ads to load: 
+			$( embedPlayer ).triggerQueueCallback( 'AdSupport_OnPlayAdLoad',function(){
+				mw.log( "AdTimeline:: AdSupport_OnPlayAdLoad ");
+				// Show prerolls:
+				_this.displaySlots( 'preroll', function(){
+					// Show bumpers:
+					_this.displaySlots( 'bumper', function(){
+						
+						embedPlayer.switchPlaySrc( _this.originalSrc, function(){
+							// turn off preSequence
+							embedPlayer.sequenceProxy.isInSequence = false;
+							
+							// trigger the preSequenceComplete event
+							$( embedPlayer ).trigger( 'preSequenceComplete' );
+							
+							setTimeout(function(){ // avoid function stack
+								_this.restorePlayer();
+								// trigger another onplay ( to match the kaltura kdp ) on play event
+								// after the ad is complete 
+								$(embedPlayer).trigger('onplay');
+								
+								// Continue playback
+								embedPlayer.play();
+
+								// Sometimes the player gets a pause event out of order be sure to "play" 
+								setTimeout(function(){
+									embedPlayer.play();
+								}, 300 );
+							},0);
+						});
+						
+					});
+				});
+			});
+		});
+		
+		// Bind the player "ended" event to play the postroll if present
+		var displayedPostroll = false;
+		// TODO We really need a "preend" event for thing like this. 
+		// So that playlist next clip or other end bindings don't get triggered. 
+		$( embedPlayer ).bind( 'ended' + _this.bindPostfix, function( event ){
+			if( displayedPostroll ){
 				return ;
 			}
-			_this.firstPlay = false;
-			
-			mw.log( "AdTimeline:: First Play Start / bind Ad timeline" );
-
-			// Disable overlays for preroll / bumper
-			_this.adOverlaysEnabled = false;
-
-			// Show prerolls:
-			_this.displaySlots( 'preroll', function(){
-				// Show bumpers:
-				_this.displaySlots( 'bumper', function(){
-					embedPlayer.switchPlaySrc( _this.originalSrc, function(){
-						setTimeout(function(){ // avoid function stack
-							_this.restorePlayer();
-							// Continue playback
-							embedPlayer.play();
-
-							// Sometimes the player gets a pause event out of order be sure to "play" 
-							setTimeout(function(){
-								embedPlayer.play();
-							}, 300 );
-						},1);
-					});
-					
+			displayedPostroll = true;
+			embedPlayer.onDoneInterfaceFlag = false;
+			// Trigger the postSequenceStart event
+			// start the postSequence: 
+			$( embedPlayer ).trigger( 'postSequence');
+			embedPlayer.sequenceProxy.isInSequence = true;
+			_this.displaySlots( 'postroll', function(){
+				// Turn off preSequence
+				embedPlayer.sequenceProxy.isInSequence = false;
+				// Trigger the postSequenceComplete event
+				$(embedPlayer).trigger( 'postSequenceComplete' );
+				
+				/** TODO support postroll bumper and leave behind */
+				embedPlayer.switchPlaySrc( _this.originalSrc, function(){
+					_this.restorePlayer();
+					// stop the playback: 
+					embedPlayer.pause();
+					// Restore ondone interface: 
+					embedPlayer.onDoneInterfaceFlag = true;
+					// run the clipdone event:
+					embedPlayer.onClipDone();
 				});
 			});
-			
-			// Bind the player "ended" event to play the postroll if present
-			var displayedPostroll = false;
-			// TODO We really need a "preend" event for thing like this. 
-			// So that playlist next clip or other end bindings don't get triggered. 
-			$( embedPlayer ).bind( 'ended' + _this.bindPostfix, function( event ){
-				if( displayedPostroll ){
-					return ;
-				}
-				displayedPostroll = true;
-				embedPlayer.onDoneInterfaceFlag = false;
-				_this.displaySlots( 'postroll', function(){
-					/** TODO support postroll bumper and leave behind */
-					embedPlayer.switchPlaySrc( _this.originalSrc, function(){
-						_this.restorePlayer();
-						// stop the playback: 
-						embedPlayer.pause();
-						// Restore ondone interface: 
-						embedPlayer.onDoneInterfaceFlag = true;
-						// run the clipdone event:
-						embedPlayer.onClipDone();
-					});
-				});
-			});
-			
-		});		
+		});
 	},
 	destroy: function(){
 		var _this = this;
@@ -202,10 +224,6 @@ mw.AdTimeline.prototype = {
 	 */
 	displaySlots: function( slotType, doneCallback ){
 		var _this = this;
-		var restorePlayerCallback = function(){
-			_this.restorePlayer();
-			doneCallback();
-		};
 		
 		// Setup a sequence timeline set: 
 		var sequenceProxy = {};
@@ -234,20 +252,27 @@ mw.AdTimeline.prototype = {
 		var seqInx = 0;
 		// Run each sequence key in order:
 		var runSequeceProxyInx = function( seqInx ){
+			// Update the "sequenceProxy" var
+			_this.embedPlayer.sequenceProxy.isInSequence = true;
 			var key = keyList[ seqInx ] ;
 			if( !sequenceProxy[key] ){
-				restorePlayerCallback();
+				_this.embedPlayer.sequenceProxy.isInSequence = false;
+				doneCallback();
 				return ;
-			}			
+			}
 			// Run the sequence proxy function: 
-			sequenceProxy[ key]( function(){
+			sequenceProxy[ key ]( function(){
 				// done with the current proxy call next
 				seqInx++;
 				// call with a timeout to avoid function stack
 				setTimeout(function(){
 					runSequeceProxyInx( seqInx );
-				},1);
+				},0);
 			});
+			// Trigger an ad start event once we execute the sequenceProxy
+			setTimeout(function(){
+				$( _this.embedPlayer ).trigger( 'AdSupport_StartAdPlayback', slotType );
+			},0);
 		};
 		runSequeceProxyInx( seqInx );
 	},
@@ -256,8 +281,8 @@ mw.AdTimeline.prototype = {
 		this.embedPlayer.stopEventPropagation();
 		// TODO read the add disable control bar to ad config and check that here. 
 		this.embedPlayer.disableSeekBar();
-		// Trigger an event so plugins can get out of the way for ads:
-		$( this.embedPlayer ).trigger( 'AdSupport_StartAdPlayback', slotType );
+		// update the interface to play state:
+		this.embedPlayer.playInterfaceUpdate();
 	},
 	/**
 	 * Restore a player from ad state
@@ -276,8 +301,8 @@ mw.AdTimeline.prototype = {
 	 * video playback bindings, it will wait until the subclip completes before
 	 * issuing the "displayDoneCallback"
 	 * 
-	 * @param {string}
-	 *          adSlot AdadSlot type
+	 * @param {Object}
+	 *          adSlot AdadSlot object
 	 * @param {function}
 	 *          displayDoneCallback The callback function called once the display
 	 *          request has been completed
@@ -305,6 +330,7 @@ mw.AdTimeline.prototype = {
 				adSlot.doneFunctions.shift()();
 			}
 			adSlot.currentlyDisplayed = false;
+			// give time for the end event to clear
 			setTimeout(function(){
 				adSlot.doneCallback();
 			}, 50);
@@ -535,7 +561,6 @@ mw.AdTimeline.prototype = {
 			'html' : companion.html
 		};
 		$( _this.embedPlayer ).trigger( 'AdSupport_UpdateCompanion', [ companionObject ] );
-		
 	},
 	/**
 	 * Display a nonLinier add ( like a banner overlay )

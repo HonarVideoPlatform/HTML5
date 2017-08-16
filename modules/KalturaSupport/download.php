@@ -4,9 +4,6 @@
  *
  * @author ran
  */
-
-define( 'KALTURA_GENERIC_SERVER_ERROR', "Error getting sources from server, something maybe broken or server is under high load. Please try again.");
-
 // Include configuration: ( will include LocalSettings.php )
 require_once( realpath( '../../' ) . '/includes/DefaultSettings.php' );
 
@@ -15,7 +12,6 @@ $download->redirectDownload();
 
 class downloadEntry {
 	var $resultObject = null; // lazy init
-	
 	/**
 	 * The result object grabber, caches a local result object for easy access
 	 * to result object properties. 
@@ -25,12 +21,6 @@ class downloadEntry {
 		if( ! $this->resultObject ){
 			require_once( dirname( __FILE__ ) .  '/KalturaResultObject.php' );
 			$this->resultObject = new KalturaResultObject( 'html5download:' . $wgMwEmbedVersion );
-			try{
-				// Init a new result object with the client tag: 
-				$this->resultObject = new KalturaResultObject( 'html5download:' . $wgMwEmbedVersion );;
-			} catch ( Exception $e ){
-				$this->fatalError( $e->getMessage() );
-			}
 		}
 		return $this->resultObject;
 	}
@@ -41,25 +31,15 @@ class downloadEntry {
 		header( "X-Kaltura-Error: " . htmlspecialchar( $errorMsg ) );
 		// Then redirect to no-sources video: 
 		$sources = $this->getResultObject()->getErrorVideoSources();		
-		$this->redirectDownload( $sources );
+		$flavorUrl = $this->getResultObject()->getSourceForUserAgent( $sources );
+		header( "location: " . $flavorUrl );
 		exit(1);
 	}
 	
-	function redirectDownload( $sources = false ) {
-		if( !$sources ){
-			$sources =  $this->getResultObject()->getSources();
-		}
-		// if no sources are found use the error video source: 
-		if( count( $sources ) == 0 ){
-			$sources = $this->getResultObject()->getErrorVideoSources();
-		}
-		try {
-			$flavorUrl = $this->getResultObject()->getSourceForUserAgent( $sources );
-		} catch ( Error $e ){
-			$this->fatalError( $e->getMessage() );
-		}
+	function redirectDownload() {
+		$sources =  $this->getResultObject()->getSources();
+		$flavorUrl = $this->getResultObject()->getSourceForUserAgent( $sources );
 		// Redirect to flavor
 		header( "location: " . $flavorUrl );
 	}
 }
-?>

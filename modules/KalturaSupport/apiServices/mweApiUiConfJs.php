@@ -14,19 +14,59 @@ class mweApiUiConfJs {
 	var $jsConfigCheckDone = false;
 	
 	function run(){
-		$o = '/* kaltura uiConfJS loader */';
+		$o = "/* kaltura uiConfJS loader */\n";
 		// get the checkUserAgentPlayerRules call if present in plugins
 		$o.= $this->getUserAgentPlayerRules();
+		// Get on page javascript: 
+		$o.= $this->getPluginPageJs();
 		// add any on-page javascript
-		
 		$this->sendHeaders();
 		echo $o;
+	}
+	/**
+	 * outputs 
+	 */
+	function getPluginPageJs(){
+		// Get all the "plugins" 
+		$o = "";
+		// @@TODO clean this up with a real getPlayerConfig method
+		$resultObject = $this->getResultObject();
+		$playerConfig =  $resultObject->playerConfig;
+		foreach( $playerConfig['plugins'] as $pluginName => $plugin){
+			foreach( $plugin as $pluginAttr => $pluginAttrValue ){
+				if( strpos( $pluginAttr, 'onPageJs' ) === 0 ){
+					$o.= "kAppendScriptUrl( '". $this->getExternalResourceUrl( $pluginAttrValue) . "' );\n";
+				}
+				if( strpos( $pluginAttr, 'onPageCss' ) === 0 ){
+					$o.= "kAppendCssUrl( '". $this->getExternalResourceUrl( $pluginAttrValue) . "' );\n";
+				}
+			}
+		}
+		foreach( $playerConfig['vars'] as $varName => $varValue){
+			// check for vars based plugin config: 
+			if( strpos( $pluginAttr, 'onPageJs' ) === 0 ){
+				$o.= "kAppendScriptUrl( '". $this->getExternalResourceUrl( $pluginAttrValue) . "' );\n";
+			}
+			if( strpos( $pluginAttr, 'onPageCss' ) === 0 ){
+				$o.= "kAppendCssUrl( '". $this->getExternalResourceUrl( $pluginAttrValue) . "' );\n";
+			}
+		}
+		return $o;
+	}
+	function getExternalResourceUrl( $url ){
+		global $wgEnableScriptDebug;
+		// Append time if in debug mode 
+		if( $wgEnableScriptDebug ){
+			$url.= ( strpos( $url, '?' ) === false )? '?':'&';
+			$url.= time();
+		}
+		return $url;
 	}
 	/**
 	 * Outputs the user agent playing rules if present in uiConf
 	 */
 	function getUserAgentPlayerRules(){
-		$o='';
+		$o = '';
 		// Do an xml query for the plugin
 		$userAgentPlayerRules = $this->getResultObject()->getPlayerConfig( 'userAgentPlayerRules' );
 		if( count( $userAgentPlayerRules ) ) {
@@ -35,7 +75,6 @@ class mweApiUiConfJs {
 				'actions' => array()
 			);
 			foreach( $userAgentPlayerRules as $key => $val ){
-				//print "key:$key val:$val\n";
 				// Check for special keys: 
 				if( $key == 'disableForceMobileHTML5' && $val =='true' ){
 					$o.=$this->getJsConfigLine( 'disableForceMobileHTML5', 'true');
@@ -100,14 +139,21 @@ class mweApiUiConfJs {
 	}
 	function sendHeaders(){
 		global $wgKalturaUiConfCacheTime;
-		header('Content-type: text/javascript' );
-		// always cached: 
-		header( 'Pragma: public' );
-		// Cache for $wgKalturaUiConfCacheTime
-		$time = $this->getResultObject()->getFileCacheTime();
-		header( "Cache-Control: public, max-age=$wgKalturaUiConfCacheTime, max-stale=0");
-		header( "Last-Modified: " . gmdate( "D, d M Y H:i:s", $time) . "GMT");
-		header( "Expires: " . gmdate( "D, d M Y H:i:s", $time + $wgKalturaUiConfCacheTime ) . " GM" );
+		// set content type to javascript:
+		header("Content-type: text/javascript");
+		// Set relevent expire headers:
+		if( $this->getResultObject()->isCachedUiConfFile() ){
+			$time = $this->getResultObject()->getFileCacheTime();
+			header( 'Pragma: public' );
+			// Cache for $wgKalturaUiConfCacheTime
+			header( "Cache-Control: public, max-age=$wgKalturaUiConfCacheTime, max-stale=0");
+			header( "Last-Modified: " . gmdate( "D, d M Y H:i:s", $time) . "GMT");
+			header( "Expires: " . gmdate( "D, d M Y H:i:s", $time + $wgKalturaUiConfCacheTime ) . " GM" );
+		} else {
+			header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
+			header("Pragma: no-cache");
+			header("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); // Date in the past
+		}
 	}
 }
 
@@ -115,4 +161,4 @@ class mweApiUiConfJs {
 if ( false === function_exists('lcfirst') ):
     function lcfirst( $str )
     { return (string)(strtolower(substr($str,0,1)).substr($str,1));}
-endif; 
+endif;
