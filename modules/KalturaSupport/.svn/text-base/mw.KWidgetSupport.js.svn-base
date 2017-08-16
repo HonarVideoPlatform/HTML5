@@ -92,6 +92,12 @@ mw.KWidgetSupport.prototype = {
 					if( playerData.flavors ){
 						_this.addFlavorSources( embedPlayer, playerData.flavors );
 					}
+					
+					// Add kaltura analytics if we have a session if we have a client ( set in loadPlayerData )
+					if( mw.getConfig( 'Kaltura.EnableAnalytics' ) === true && _this.kClient ) {
+						mw.addKAnalytics( embedPlayer, _this.kClient );
+					}
+
 					mw.log("KWidgetSupport:: check for meta:");
 					// Add any custom metadata:
 					if( playerData.entryMeta ){
@@ -105,11 +111,6 @@ mw.KWidgetSupport.prototype = {
 						embedPlayer.kalturaPlayerMetaData = playerData.meta;
 						$j( embedPlayer ).trigger( 'KalturaSupport_MetaDataReady', embedPlayer.kalturaPlayerMetaData );
 					}										
-					
-					// Add kaltura analytics if we have a session if we have a client ( set in loadPlayerData ) 									
-					if( mw.getConfig( 'Kaltura.EnableAnalytics' ) === true && _this.kClient ) {
-						mw.addKAnalytics( embedPlayer, _this.kClient );
-					}
 					
 					if( embedPlayer.$uiConf ){
 						// Trigger the check kaltura uiConf event					

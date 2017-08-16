@@ -25,7 +25,7 @@ $wgKalturaServiceBase = '/api_v3/index.php?service=';
 // Default Kaltura Cache Path
 $wgScriptCacheDirectory = $kConf->get('cache_root_path') . 'html5/' . $wgKalturaVersion;
 
-$wgResourceLoaderUrl = $wgKalturaCDNUrl . '/html5/html5lib/' . $wgKalturaVersion . '/ResourceLoader.php';
+$wgResourceLoaderUrl = $wgKalturaServiceUrl . '/html5/html5lib/' . $wgKalturaVersion . '/ResourceLoader.php';
 
 // Set debug for true (testing only)
 $wgEnableScriptDebug = false;

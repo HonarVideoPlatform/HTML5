@@ -441,7 +441,7 @@ class KalturaGetResultObject {
 			
 			
 			// Entry Custom Metadata
-			/* Removed for now
+			/*
 			$metaDataFilter = new KalturaMetadataFilter();
 			$metaDataFilter->metadataObjectTypeEqual = KalturaMetadataObjectType::ENTRY;
 			$metaDataFilter->orderBy = KalturaMetadataOrderBy::CREATED_AT_ASC;

@@ -379,6 +379,9 @@
 					// Pause player during media switch
 					embedPlayer.pause();
 					
+					// Reset first play to true, to count that play event
+					embedPlayer.firstPlay = true;
+					
 					// Add a loader to the embed player: 
 					$j( embedPlayer )
 					.getAbsoluteOverlaySpinner()

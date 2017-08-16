@@ -36,7 +36,7 @@
 *	'EmbedPlayer.EnableIframeApi' : true
 */
 // The version of this script
-KALTURA_LOADER_VERSION = '1.4a6';
+KALTURA_LOADER_VERSION = '1.4a5';
 // Static script loader url: 
 var SCRIPT_LOADER_URL = 'http://www.kaltura.org/apis/html5lib/mwEmbed/ResourceLoader.php';
 var SCRIPT_FORCE_DEBUG = false;
@@ -416,8 +416,8 @@ function kCheckAddScript(){
 	var serviceUrl = mw.getConfig('Kaltura.ServiceUrl');
 	if( ! serviceUrl || serviceUrl != 'http://www.kaltura.com' ){
 		// if not hosted on kaltura for now we can't use the iframe to load the player
-		mw.setConfig( 'Kaltura.IframeRewrite', false );
-		mw.setConfig( 'Kaltura.UseManifestUrls', false);
+		//mw.setConfig( 'Kaltura.IframeRewrite', false );
+		//mw.setConfig( 'Kaltura.UseManifestUrls', false);
 	}
 	// If user javascript is using mw.ready add script
 	if( window.preMwEmbedReady.length ) {

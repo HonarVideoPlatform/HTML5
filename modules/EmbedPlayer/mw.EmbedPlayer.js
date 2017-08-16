@@ -27,7 +27,7 @@ mw.includeAllModuleMessages();
 	 * {Function} callback Function to call once embedding is done
 	 */
 	$.embedPlayers = function( attributes, callback) {
-		$j( mw.getConfig( 'EmbedPlayer.RewriteSelector' ) ).embedPlayer( attributes, callback );
+		$j( mw.getConfig( 'EmbedPlayer.RewriteTags' ) ).embedPlayer( attributes, callback );
 	};
 
 	/**
@@ -582,9 +582,7 @@ mediaSource.prototype = {
 		
 		// Conform long form "video/ogg; codecs=theora" based attributes
 		// @@TODO we should support codec in the type arguments
-		if( this.mimeType ){
-			this.mimeType = this.mimeType.split(';')[0];
-		}
+		this.mimeType = this.mimeType.split(';')[0];
 			
 		// Check for parent elements ( supplies categories in "track" )
 		if( $j( element ).parent().attr('category') ) {
@@ -1951,7 +1949,6 @@ mw.EmbedPlayer.prototype = {
 		mw.log( 'EmbedPlayer::onClipDone:' + this.id + ' doneCount:' + this.donePlayingCount + ' stop state:' +this.isStopped() );
 		// Only run stopped once:
 		if( !this.isStopped() ){
-			
 			// Stop the monitor and event propagation
 			this.stopEventPropagation();
 
@@ -2708,23 +2705,13 @@ mw.EmbedPlayer.prototype = {
 	 * Handles play requests, updates relevant states: seeking =false paused =
 	 * false Updates pause button Starts the "monitor"
 	 */
-	codeTriggeredPlay : false, // helps prevent event stacking
+	firstPlay : true,
 	play: function() {
 		var _this = this;
-		
-		// Don't run play if the code tirggered the play event: 
-		if( this.codeTriggeredPlay ){
-			setTimeout(function(){
-				_this.codeTriggeredPlay = false;
-			}, this.monitorRate );
-			return ;
-		}
-		
-		mw.log( "EmbedPlayer:: play: " + this._propagateEvents + ' poster:' +  this.posterDisplayed );
-	
+		mw.log( "EmbedPlayer:: play: " + this._propagateEvents );
 		// Hide any overlay:
 		this.controlBuilder.closeMenuOverlay();
-		
+
 		// Check if thumbnail is being displayed and embed html
 		if ( this.posterDisplayed ) {
 			if ( !this.selectedPlayer ) {
@@ -2743,11 +2730,15 @@ mw.EmbedPlayer.prototype = {
 			// Check if we should Trigger the play event
 			mw.log("EmbedPlayer:: trigger play even::" + !this.paused + ' events:' + this.doMethodsAutoTrigger() );
 			if( ! this.doMethodsAutoTrigger() && this._propagateEvents ) {
-				this.codeTriggeredPlay = true;
 				$j( this ).trigger( 'play' );
 			}
+			// We need first play event for analytics purpose
+			if( this.firstPlay ) {
+				this.firstPlay = false;
+				$j( this ).trigger( 'firstPlay' );
+			}
 		}
-		
+
 		// If we previously finished playing this clip run the "replay hook"
 		if( this.donePlayingCount > 0 && !this.paused && this._propagateEvents ) {
 			mw.log("replayEvent");
@@ -3281,33 +3272,7 @@ mw.EmbedPlayer.prototype = {
 		// No selected source return false:
 		return false;
 	},
-	
-	/**
-	 * STATIC ( can move elsewhere ) 
-	 * Uses mediaElement select logic to chose a video file among a set of sources
-	 * 
-	 * @param videoFiles
-	 * @return
-	 */
-	getCompatibleSource: function( videoFiles ){
-		// Convert videoFiles json into HTML element: 
-		// TODO mediaElement should probably accept JSON
-		$media = $j('<video />');
-		$.each(videoFiles, function( inx, source){
-			$media.append( $j('<source />').attr({
-				'src' : source.src,
-				'type' : source.type
-			}));
-		});
-		var myMediaElement =  new mediaElement( $media.get(0) );
-		var source = myMediaElement.autoSelectSource();
-		if( source ){
-			mw.log("AdTimeline::getCompatibleSource: " + source.getSrc());
-			return source.getSrc();
-		}
-		mw.log("Error:: could not find compatible source");
-		return false;
-	},
+
 	/**
 	 * If the selected src supports URL time encoding
 	 *
@@ -3418,7 +3383,7 @@ mediaPlayer.prototype = {
 
 // Flash based players:
 
-var kplayer = new mediaPlayer('kplayer', ['video/x-flv', 'video/h264', 'audio/mpeg'], 'Kplayer');
+var kplayer = new mediaPlayer('kplayer', ['video/x-flv', 'video/h264'], 'Kplayer');
 
 // Java based player
 var cortadoPlayer = new mediaPlayer( 'cortado', ['video/ogg', 'audio/ogg', 'application/ogg'], 'Java' );
@@ -3481,7 +3446,7 @@ mediaPlayers.prototype =
 		this.defaultPlayers['video/webm'] = ['Native', 'Vlc'];
 		this.defaultPlayers['application/ogg'] = ['Native', 'Vlc', 'Java', 'Generic'];
 		this.defaultPlayers['audio/ogg'] = ['Native', 'Vlc', 'Java' ];
-		this.defaultPlayers['audio/mpeg']= ['Native', 'Kplayer'];
+		this.defaultPlayers['audio/mpeg']= ['Native'];
 		this.defaultPlayers['video/mp4'] = ['Vlc'];
 		this.defaultPlayers['video/mpeg'] = ['Vlc'];
 		this.defaultPlayers['video/x-msvideo'] = ['Vlc'];
@@ -3647,12 +3612,11 @@ mw.EmbedTypes = {
 		 *
 		 * @constructor
 		 */
-	init: function() {
+	 init: function() {
 		// detect supported types
 		this.detect();
 		this.detect_done = true;
 	},
-	
 
 	getMediaPlayers: function(){
 		if( this.mediaPlayers  ){
