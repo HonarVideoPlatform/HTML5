@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4c9/libraries/jquery
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4c10/libraries/jquery
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-10-02T09:34:20.739824Z
-6564
+2011-10-06T10:57:25.454181Z
+6622
 rany
 
 
@@ -29,53 +29,19 @@ rany
 plugins
 dir
 
-jquery-1.4.2.js
-file
-
-
-
-
-2017-07-03T19:46:32.000000Z
-8b5100d1c715284699734f2d5a0295d2
-2011-10-02T09:34:20.739824Z
-6564
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-163953
-
 jquery.ui
 dir
 
-jquery-1.6.1.js
+jquery-1.6.2.js
 file
 
 
 
 
-2017-07-03T19:46:32.000000Z
-85f908ed3258b36812ce5ea09afe86df
-2011-10-02T09:34:20.739824Z
-6564
+2017-07-03T19:54:17.000000Z
+12840be281cca027968c56e19ebdf6ec
+2011-10-06T10:57:25.454181Z
+6622
 rany
 
 
@@ -98,39 +64,5 @@ rany
 
 
 
-235065
-
-jquery-1.4.2.min.js
-file
-
-
-
-
-2017-07-03T19:46:32.000000Z
-10092eee563dec2dca82b77d2cf5a1ae
-2011-10-02T09:34:20.739824Z
-6564
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-72174
+236202
 

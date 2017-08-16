@@ -371,7 +371,7 @@ EmbedPlayerManager.prototype = {
 				var swapPlayer = _this.swapEmbedPlayerElement( playerElement, playerInterface );
 
 				// Trigger the newEmbedPlayerEvent for embedPlayer interface
-				mw.log("EmbedPlayer::addPlayerElement :trigger " + playerInterface.id );
+				mw.log("EmbedPlayer::addPlayerElement :trigger newEmbedPlayerEvent:" + playerInterface.id );
 				$( mw ).trigger ( 'newEmbedPlayerEvent', $( '#' + playerInterface.id ).get(0) );
 
 
@@ -379,10 +379,9 @@ EmbedPlayerManager.prototype = {
 				// Allow modules to block player build out
 				//
 				// this is needed in cases where you need to do an asynchronous
-				// player interface
-				// setup. like iframes asynchronous announcing its ready for
-				// bindings that can
-				// affect player setup.
+				// player interface setup. like iframes asynchronous announcing its ready for
+				// bindings that can affect player setup.
+				mw.log("EmbedPlayer::addPlayerElement :trigger startPlayerBuildOut:" + playerInterface.id );
 				$( '#' + playerInterface.id ).triggerQueueCallback( 'startPlayerBuildOut', function(){
 					// Issue the checkPlayerSources call to the new player
 					// interface: make sure to use the element that is in the
@@ -1498,9 +1497,8 @@ mw.EmbedPlayer.prototype = {
 		setTimeout(function(){
 			_this.applyIntrinsicAspect();
 		}, 10);
-		
+
 		mw.playerManager.playerReady( this );
-		
 		
 		// Right before player autoplay ... check if there are any errors that prevent playback or player:
 		if( this['data-playerError'] ){
@@ -2546,7 +2544,6 @@ mw.EmbedPlayer.prototype = {
 
 		// Update currentTime via embedPlayer
 		_this.currentTime = _this.getPlayerElementTime();
-
 		// Update any offsets from server seek
 		if( _this.serverSeekTime && _this.supportsURLTimeEncoding() ){
 			_this.currentTime = parseInt( _this.serverSeekTime ) + parseInt( _this.getPlayerElementTime() );
@@ -2661,6 +2658,13 @@ mw.EmbedPlayer.prototype = {
 		mw.log("Error: getPlayerElementTime should be implemented by embed library");
 	},
 
+	/**
+	 * Abstract getPlayerElementTime function
+	 */
+	getPlayerElement: function(){
+		mw.log("Error: getPlayerElement should be implemented by embed library, or you may be calling this event too soon");
+	},
+	
 	/**
 	 * Update the Buffer status based on the local bufferedPercent var
 	 */

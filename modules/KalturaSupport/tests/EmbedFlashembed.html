@@ -1,5 +1,4 @@
-<!-- HTMML syntax conforms to HTML5.  If you use a different doctype and care about validation, take note. -->
-<!doctype html>
+<!DOCTYPE HTML>
 <html lang="en">
 	<head>
 		<title>Kaltura Recipe:  best-practice JavaScript-based KDP embedding</title>
@@ -18,7 +17,7 @@
 		<!-- the above is open source from http://flowplayer.org/tools/toolbox/flashembed.html 
 				NOTE: flashembed must come before mwEmbedLoader.php
 		-->
-		<script type="text/javascript" src="../../../mwEmbedLoader.php"></script>
+		<script type="text/javascript" src="../../../mwEmbedLoader.php?debug=true"></script>
 		<script type="text/javascript">
 			// placed in head to make sure jsCallbackReady is available as soon as KDP is
 			// (if page is "heavy", KDP may call jsCallbackReady before DOM is ready)

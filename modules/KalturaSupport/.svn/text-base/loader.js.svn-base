@@ -54,7 +54,11 @@
 		'kwidgetid' : null,
 		'kuiconfid' : null,
 		'kalturaPlayerMetaData' : null,
-		'kalturaEntryMetaData' : null
+		'kalturaEntryMetaData' : null,
+	});
+	
+	mw.mergeConfig( 'EmbedPlayer.DataAttributes', {
+		'flashvars': null
 	});
 	
 	mw.mergeConfig( 'EmbedPlayer.SourceAttributes', [
@@ -85,8 +89,8 @@
 		"controlbarLayout"	: 	"uiConfComponents/controlbarLayout.js",
 		"titleLayout" : "uiConfComponents/titleLayout.js",
 		
-		"kdpClientIframe" : "kdpIframeApi/kdpClientIframe.js",
-		"kdpServerIFrame" : "kdpIframeApi/kdpServerIFrame.js"
+		"kdpClientIframe" : "kdpPageJs/kdpClientIframe.js",
+		"kdpServerIFrame" : "kdpPageJs/kdpServerIFrame.js"
 	} );
 	
 	// Set a local variable with the request set so we can append it to embedPlayer
@@ -120,6 +124,14 @@
 			  'mw.PlaylistHandlerKalturaRss'
 			] );
 	});
+	
+	// Set binding to disable "waitForMeta" for kaltura items ( We get size and length from api)
+	$( mw ).bind( 'checkPlayerWaitForMetaData', function(even, playerElement ){
+		if( $( playerElement ).attr( 'uiconf_id') || $( playerElement ).attr( 'entry_id') ){
+			playerElement.waitForMeta = false;
+		}
+	});
+	
 	// Check if the document has kaltura objects ( for fall forward support ) 
 	$( mw ).bind( 'LoadeRewritePlayerTags', function( event, rewriteDoneCallback ){
 
@@ -200,9 +212,11 @@
 						'id' : videoId,
 						'kwidgetid' : kEmbedSettings.wid,
 						'kuiconfid' : kEmbedSettings.uiconf_id,
-						'style' : $( element ).attr('style')
+						'style' : $( element ).attr('style'),
+						'width' : $( element ).attr('width'),
+						'heigth' : $( element ).attr('height')
 					};
-
+					
 					if( kEmbedSettings.entry_id ) {
 						loadEmbedPlayerFlag = true;
 						kalturaSwapObjectClass = 'mwEmbedKalturaVideoSwap';
@@ -236,7 +250,6 @@
 					
 					var widthType = ( width.indexOf('%') == -1 )? 'px' : '';
 					var heightType = ( height.indexOf('%') == -1 )? 'px' : '';
-					
 					// Replace with a mwEmbedKalturaVideoSwap
 					$( element ).empty().replaceWith( 
 						$('<div />')
@@ -247,7 +260,7 @@
 							'position' : 'relative',
 							'display' : 'inline-block' // more or less the <object> tag default display
 						})
-						.data( {
+						.data({
 							'flashvars': flashvars,
 							'cache_st': kEmbedSettings.cache_st
 						})
@@ -263,12 +276,18 @@
 							})
 							.loadingSpinner()
 						)
-					)
-					
+					);					
 					var elm = $('#' + videoEmbedAttributes.id ).get(0);
-					// assign values to DOM object methods ( not just attributes ) 
+					// Assign values to DOM object methods ( not just attributes ) 
 					$.each( videoEmbedAttributes, function( attrName, attrValue ){
-						elm[ attrName ] = attrValue;
+						// skip style attr:
+						if( attrName == 'style' )
+							return true;
+						try {
+							elm[ attrName ] = attrValue;
+						} catch ( e ){
+							mw.log("Error: Kaltura loader could not set: " + attrName);
+						}
 					});
 				});
 				
@@ -307,12 +326,12 @@
 						if( $( playerTarget).data( 'cache_st' ) ){
 							kParams['cache_st'] = $( playerTarget).data('cache_st');
 						}
-
+						
 						iframeRewriteCount++;
 						$( playerTarget )
 							.removeClass('mwEmbedKalturaWidgetSwap')
 							.removeClass('mwEmbedKalturaVideoSwap')
-							.kalturaIframePlayer( kParams, doneWithIframePlayer);
+							.kalturaIframePlayer( kParams, doneWithIframePlayer );
 					});					
 					// if there are no playlists left to process return: 
 					if( $( '.mwEmbedKalturaWidgetSwap' ).length == 0 ){
@@ -334,7 +353,7 @@
 								if( rewriteCount == 0){
 									rewriteDoneCallback();
 								}
-							})
+							});
 						});
 					});
 				}
@@ -398,6 +417,7 @@
 			return ;
 		} 
 		var plId =  mw.parseUri( kplUrl0 ).queryKey['playlist_id'];
+		
 		// If the url has a partner_id and executeplaylist in its url assume its a "kaltura services playlist"
 		if( plId && mw.parseUri( kplUrl0 ).queryKey['partner_id'] && kplUrl0.indexOf('executeplaylist') != -1 ){
 			playlistConfig.playlist_id = plId;
@@ -421,7 +441,7 @@
 	 * 	optional function called once iframe player has been loaded
 	 */
 	jQuery.fn.kalturaIframePlayer = function( iframeParams, callback ) {
-
+	
 		$( this ).each( function( inx, playerTarget ){
 			mw.log( '$.kalturaIframePlayer::' + $( playerTarget ).attr('id') );
 			// Check if the iframe API is enabled: 
@@ -440,9 +460,10 @@
 			// Build the iframe request from supplied iframeParams: 
 			var iframeRequest = '';
 			for( var key in iframeParams ){
-				// don't put flashvars into the post url. 
-				if( key == 'flashvars' )
+				// don't put flashvars into the post url ( will be a request param ) 
+				if( key == 'flashvars' ){
 					continue;
+				}
 				
 				iframeRequest+= '/' + key + 
 					'/' + encodeURIComponent( iframeParams [ key ] );
@@ -454,6 +475,10 @@
 			iframeRequest+= '&iframeSize=' +  $( playerTarget ).width() + 
 							'x' + $(playerTarget).height();
 				
+			// Add &debug is in debug mode
+			if( mw.getConfig( 'debug') ){
+				iframeRequest+= '&debug=true';
+			}
 			
 			// If remote service is enabled pass along service arguments: 
 			if( mw.getConfig( 'Kaltura.AllowIframeRemoteService' )  && 
@@ -464,7 +489,7 @@
 			){
 				iframeRequest += kServiceConfigToUrl();
 			}
-
+		
 			// Add debug flag if set: 
 			if( mw.getConfig( 'debug' ) ){
 				iframeRequest+= '&debug=true';

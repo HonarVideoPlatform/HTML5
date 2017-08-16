@@ -34,21 +34,23 @@ while (false !== ($entry = $d->read())) {
 		$wgMwEmbedEnabledModules[] = $entry;
 	}
 }
+// Default HTTP protocol
+$wgHTTPProtocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? "https" : "http";
+
+// Default debug mode
+$wgEnableScriptDebug = false;
+
+// Set the global $wgMwEmbedApiServices to an empty array: 
+$wgMwEmbedApiServices = array();
 
 /*********************************************************
  * Default Kaltura Configuration: 
- * TODO move kaltura configuration to KalturaSupport module ( part of ResourceLoader update ) 
+ * TODO move kaltura configuration to KalturaSupport module ( part of New ResourceLoader update ) 
  ********************************************************/
 
 // To include signed headers with user IPs for IP restriction lookups, input a salt string for 
 // $wgKalturaRemoteAddressSalt configuration option. 
 $wgKalturaRemoteAddressSalt = false;
-
-// Default debug mode
-$wgEnableScriptDebug = false;
-
-// Default HTTP protocol
-$wgHTTPProtocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? "https" : "http";
 
 // The default Kaltura service url:
 $wgKalturaServiceUrl = $wgHTTPProtocol . '://cdnapi.kaltura.com';
@@ -91,6 +93,13 @@ $wgKalturaPartnerDisableAppleAdaptive = array();
 // By default use apple adaptive if we have the ability
 $wgKalturaUseAppleAdaptive = true;
 
+// Check if we have local setting for Stats url
+$wgKalturaStatsServiceUrl = isset($wgKalturaStatsServiceUrl) ? $wgKalturaStatsServiceUrl : $wgKalturaServiceUrl;
+
+// Add Kaltura api services: ( should be part of kaltura module config)
+include_once( realpath( dirname( __FILE__ ) )  . '/../modules/KalturaSupport/apiServices/mweApiUiConfJs.php' );
+
+
 /*********************************************************
  * Include local settings override:
  ********************************************************/
@@ -99,21 +108,4 @@ $wgLocalSettingsFile = realpath( dirname( __FILE__ ) ) . '/../LocalSettings.php'
 if( is_file( $wgLocalSettingsFile ) ){
 	require_once( $wgLocalSettingsFile );
 }
-
-/*
-if( class_exists('kConf') ) {
-	$kConf = new kConf();
-
-	$wgKalturaVersion = basename(getcwd()); // Gets the version by the folder name
-	$wgKalturaServiceUrl = $wgHTTPProtocol . '://' . $kConf->get('www_host');
-	$wgKalturaCDNUrl = $wgHTTPProtocol. '://' . $kConf->get('cdn_host_https');
-	$wgScriptCacheDirectory = $kConf->get('cache_root_path') . 'html5/' . $wgKalturaVersion;
-	$wgResourceLoaderUrl = $wgKalturaServiceUrl . '/html5/html5lib/' . $wgKalturaVersion . '/ResourceLoader.php';
-	$wgKalturaAllowIframeRemoteService = true;
-}
- */
-
-// Check if we have local setting for Stats url
-$wgKalturaStatsServiceUrl = isset($wgKalturaStatsServiceUrl) ? $wgKalturaStatsServiceUrl : $wgKalturaServiceUrl;
-
 ?>

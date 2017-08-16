@@ -96,7 +96,9 @@ mw.KApi.prototype = {
 		this.getKS( function( ks ){
 			param['ks'] = ks;
 			// Do the getJSON jQuery call with special callback=? parameter: 
-			_this.doApiRequest( param, callback);
+			setTimeout(function(){ // call in setTimeout to avoid function stack
+				_this.doApiRequest( param, callback);
+			},1);
 		});
 	},
 	setKS: function( ks ){
@@ -207,13 +209,14 @@ mw.KApi.prototype = {
 		if( kProperties.flashvars && kProperties.flashvars.ks ) {
 			this.setKS( kProperties.flashvars.ks );
 		}
-
-		// Always ask for uiConf
-		requestObject.push({
-				'service' : 'uiconf',
-				'id' : kProperties.uiconf_id,
-				'action' : 'get'
-		});
+		// Check if we should load uiconf_id
+		if( kProperties.uiconf_id ){
+			requestObject.push({
+					'service' : 'uiconf',
+					'id' : kProperties.uiconf_id,
+					'action' : 'get'
+			});
+		}
 
 		if( kProperties.entry_id ){
 			// The referring  url ( can be from the iframe if in iframe mode ) 
@@ -288,19 +291,29 @@ mw.KApi.prototype = {
 
 			// Check if we got uiConf
 			if( data[0].code ) {
-				mw.log('Error getting uiConf: ' + data[0].message);
+				mw.log('Error in kaltura api response: ' + data[0].message);
+				return ;
 			} else {
-				namedData['uiConf'] = data[0]['confFile'];
+				var dataIndex = -1;
+				if(  data[0]['confFile'] ){
+					dataIndex++;
+					namedData['uiConf'] = data[ dataIndex ]['confFile'];
+				}
 			}
 
 			if( kProperties.entry_id ){ 
-				namedData['accessControl'] = data[1];
-				namedData['flavors'] = data[2];
-				namedData['meta'] = data[3];
-				namedData['entryMeta'] = _this.convertCustomDataXML( data[4] );
+				dataIndex++;
+				namedData['accessControl'] = data[ dataIndex ];
+				dataIndex++;
+				namedData['flavors'] = data[ dataIndex ];
+				dataIndex++;
+				namedData['meta'] = data[ dataIndex ];
+				dataIndex++;
+				namedData['entryMeta'] = _this.convertCustomDataXML( data[ dataIndex ] );
 
-				if( data[5] && data[5].totalCount > 0 ) {
-					namedData['entryCuePoints'] = data[5].objects;
+				dataIndex++;
+				if( data[ dataIndex ] && data[ dataIndex].totalCount > 0 ) {
+					namedData['entryCuePoints'] = data[ dataIndex ].objects;
 				}
 			}
 			_this.playerLoaderCache[ _this.getCacheKey( kProperties ) ] = namedData;

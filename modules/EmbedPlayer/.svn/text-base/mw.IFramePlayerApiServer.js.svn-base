@@ -78,6 +78,7 @@ mw.IFramePlayerApiServer.prototype = {
 						callback();
 				}, 250);
 				// Trigger the proxyReady event ( will add all the prePlayerProxy listeners 
+				mw.log("IframePlayerApiServer::trigger: proxyReady");
 				$( embedPlayer ).trigger( 'proxyReady' );
 			});
 		}
@@ -147,6 +148,12 @@ mw.IFramePlayerApiServer.prototype = {
 				}
 			}
 		}
+		// Also copy in any 'data' attributes
+		var dataAttributes = mw.getConfig( 'EmbedPlayer.DataAttributes' );
+		for( var i in dataAttributes){
+			attrSet[ i ] = $( this.embedPlayer ).data( i );
+		}
+		
 		return attrSet;
 	},
 	/**
@@ -160,7 +167,8 @@ mw.IFramePlayerApiServer.prototype = {
 	},
 	
 	'postMessage': function( msgObject ){
-		// check if we have a target player id:
+		
+		// Check if we have a target player id:
 		if( mw.getConfig('EmbedPlayer.IframeParentPlayerId') ){
 			msgObject.playerId = mw.getConfig('EmbedPlayer.IframeParentPlayerId');
 		}
@@ -170,6 +178,7 @@ mw.IFramePlayerApiServer.prototype = {
 			mw.log("Error: could not JSON object: " + msgObject + ' ' + e);
 			return ;
 		}	
+		//mw.log( "postMessage:"  + window.parent + ' to ' + messageString);
 		// By default postMessage sends the message to the parent frame:		
 		$.postMessage(
 			messageString,
@@ -252,4 +261,4 @@ mw.IFramePlayerApiServer.prototype = {
 	}
 };
 
-} )( mediaWiki, jQuery );
+} )( mediaWiki, window.jQuery );

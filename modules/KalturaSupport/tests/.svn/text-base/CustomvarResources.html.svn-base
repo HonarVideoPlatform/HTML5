@@ -1,7 +1,8 @@
+<!DOCTYPE HTML>
 <html>
 <head>
 <title>KMC based configuration</title>
-<script type="text/javascript" src="../../../../mwEmbedLoader.php"></script>
+<script type="text/javascript" src="../../../../mwEmbedLoader.php?debug=true"></script>
 </head>
 <body>
 <h2> KMC based configuration</h2>

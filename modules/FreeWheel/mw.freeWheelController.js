@@ -1,5 +1,11 @@
 ( function( mw, $ ) {
 
+// Set the freewheel config:
+mw.setConfig({
+	// The url for the ad Manager
+	'FreeWheel.AdManagerUrl': 'http://adm.fwmrm.net/p/release/latest-JS/adm/prd/AdManager.js'
+});
+
 mw.addFreeWheelControler = function( embedPlayer, callback ) {
 	embedPlayer.freeWheelAds = new mw.FreeWheelControler(embedPlayer, callback);	
 	mw.freeWheelGlobalContextInstance = embedPlayer.freeWheelAds;
@@ -45,12 +51,8 @@ mw.FreeWheelControler.prototype = {
 	/**
 	 * Initialize the adMannager javascript and setup adds
 	 * 
-	 * @param {Object} opt Object 
-	 * {
-	 * 	'embedPlayer' {object} the embedPlayer instance
-	 * 	'config' {object} any freewheel configuration
-	 * 	'callback' {function} called on load complete
-	 * }
+	 * @param {Object} embedPlayer
+	 * @param {Function} callback
 	 * @return
 	 */
 	init: function( embedPlayer, callback  ){
@@ -61,17 +63,9 @@ mw.FreeWheelControler.prototype = {
 		// setp local pointer to callback: 
 		this.callback = callback;
 		
-		// Get the freewheel configuration
-		this.config = this.embedPlayer.getKalturaConfig(
-			'FreeWheel',
-			[ 'plugin', 'preSequence', 'postSequence', 'width', 'height', 'asyncInit',
-			 'adManagerUrl','adManagerJsUrl', 'serverUrl', 'networkId', 'videoAssetId',  
-			 'videoAssetIdType', 'playerProfile', 'playerProfileHTML5', 'videoAssetNetworkId', 
-			 'siteSectionId', 'visitorId'  ]
-		);
 		// XXX todo we should read "adManagerUrl" from uiConf config
-		var adManagerUrl = ( this.config[ 'adManagerJsUrl' ] ) ? 
-							this.config[ 'adManagerJsUrl' ] : 
+		var adManagerUrl = ( this.getConfig( 'adManagerJsUrl' ) ) ? 
+							this.getConfig( 'adManagerJsUrl' )  : 
 							mw.getConfig( 'FreeWheel.AdManagerUrl' );
 							
 		// Load the freewheel ad mannager then setup the ads
@@ -94,7 +88,6 @@ mw.FreeWheelControler.prototype = {
 		
 		// Set context timeout
 		this.setContextTimeout();
-
 		// Add the temporal slots for this "player"
 		this.addTemporalSlots();
 
@@ -132,6 +125,7 @@ mw.FreeWheelControler.prototype = {
 						// Run the callback: 
 						callback();
 					});
+					// find the video 
 				};
 			});
 		});
@@ -203,11 +197,12 @@ mw.FreeWheelControler.prototype = {
 		// Display the current slot:
 		if( ! _this.playSlot( slotSet[ inx ] ) ){
 			// if we did not play it, jump directly to slot done:
-			this.onSlotEnded( {  'slot' : slotSet[ inx ] });
+			this.onSlotEnded( {  'slot' : slotSet[ inx ] } );
 		}
 	},
 	onSlotEnded: function ( event ){
 		var _this = this;
+		mw.log( "FreeWheelController::onSlotEnded> " + event.slot.getTimePositionClass() );
 		var slotType =_this.getSlotType( event.slot );
 		if( slotType == 'overlay'  ){
 			_this.overlaySlotActive = false;
@@ -265,7 +260,7 @@ mw.FreeWheelControler.prototype = {
 				return 'postroll';
 				break;
 		}
-		mw.log("Error: freeWheel Control could not get slot type: " + slot.getTimePositionClass() );
+		mw.log("FreeWheel Control could not get slot type: skip " + slot.getTimePositionClass() );
 		return 'unknown_type';
 	},
 	
@@ -275,60 +270,68 @@ mw.FreeWheelControler.prototype = {
 	 * @return
 	 */
 	getConfig: function( propId ){
-		// Check if the property was set in config: 
-		if( this.config[propId] ){
-			return this.config[propId];
-		}
 		// Dynamic values: 
 		if( propId == 'videoDuration' ){
 			return this.embedPlayer.evaluate('{mediaProxy.entry.duration}');
 		}
-		// XXX some default copied from freeWheelSample.html
-		// TODO make these values dynamic! 
-		switch( propId ){
-			case 'profileId':
-				return 'global-js';
-				break;
-		}		
-		return null;
+		// return the live attribute value
+		return this.embedPlayer.getKalturaConfig('FreeWheel', propId );
 	},
 	getAdManager: function(){
 		if( !this.adManager ){
 			this.adManager = new tv.freewheel.SDK.AdManager();
-			this.adManager.setNetwork( parseInt( this.getConfig( 'networkId' ) ) );
-			this.adManager.setServer( this.getConfig('serverUrl') );
+			this.adManager.setNetwork( 
+				parseInt( this.getConfig( 'networkId' ) ) 
+			);
+			this.adManager.setServer( 
+				this.getConfig('serverUrl') 
+			);
 		}
 		return this.adManager;
 	},
 	getContext: function(){
 		if( !this.adContext ){
+			mw.log( "FreeWheelController:: getContext> " );
 			this.adContext = this.getAdManager().newContext();
 			
 			this.adContext.registerVideoDisplayBase( 'videoContainer' );
 
-			this.adContext.setProfile( this.getConfig( 'profileId' ) );
-
+			// Check for "html5" player profile: 
+			if( this.getConfig('profileIdHTML5') ){
+				this.adContext.setProfile( 
+					this.getConfig('profileIdHTML5') 
+				);
+			} else {
+				this.adContext.setProfile( this.getConfig( 'profileId' ) );
+			}
+		
 			// Check if we have a visitorId 
 			if( this.getConfig('visitorId') ){
 				this.adContext.setVisitor( this.getConfig('visitorId') );
 			}
-			
-			// Check for "html5" player profile: 
-			if( this.getConfig('playerProfileHTML5') ){
-				this.adContext.setPlayerProfile( this.getConfig('playerProfileHTML5') );
-			}
-			
 			this.adContext.setVideoAsset( 
-					this.getConfig( 'videoAssetId' ),
-					this.getConfig( 'videoDuration' ),
-					this.getConfig( 'networkId' )
+				this.getConfig( 'videoAssetId' ),
+				this.getConfig( 'videoDuration' ),
+				this.getConfig( 'networkId' ),
+				this.embedPlayer.getSrc(),
+				( this.embedPlayer.autoplay ) ? 'true' : 'false',
+				this.rand(),
+				tv.freewheel.SDK.ID_TYPE_CUSTOM,
+				this.getConfig( 'videoAssetFallbackId' )
 			);
+			
 			this.adContext.setSiteSection(
 				this.getConfig('siteSectionId') , 
-				this.getConfig( 'networkId' ) 
+				this.getConfig( 'networkId' ),
+				this.rand(),
+				tv.freewheel.SDK.ID_TYPE_CUSTOM,
+				this.getConfig( 'siteSectionFallbackId' )
 			);
 		}
 		return this.adContext;
+	},
+	rand: function(){
+		return Math.floor( Math.random() * 10000 );
 	},
 	addContextKeyValues: function(){
 		mw.log("FreeWheelController::freeWheelController>")
@@ -371,19 +374,19 @@ mw.FreeWheelControler.prototype = {
 		var context = this.getContext();
 		var embedPlayer = this.embedPlayer;
 		var slotCounts = {
-			'pre':0,
-			'post':0,
-			'mid':0,
-			'over':0
+			'pre': 0,
+			'post': 0,
+			'mid': 0,
+			'over': 0
 		};
 			
 		// Check for number of prerolls from config: 
-		if( parseInt( this.config.preSequence ) ){
+		if( parseInt( this.getConfig( 'preSequence' ) ) ){
 			slotCounts['pre']++;
 			context.addTemporalSlot("Preroll_" + slotCounts['pre'], tv.freewheel.SDK.ADUNIT_PREROLL, 0);
 		}
 		// Check for post rolls: 
-		if( parseInt( this.config.postSequence ) ){
+		if( parseInt( this.getConfig( 'postSequence' ) ) ){
 			slotCounts['post']++;
 			context.addTemporalSlot("Postroll_" + slotCounts['post'], tv.freewheel.SDK.ADUNIT_PREROLL, 0);
 		}
@@ -424,73 +427,6 @@ mw.FreeWheelControler.prototype = {
 				}
 			}
 		}
-	},
-	/**
-	 * Adds local companion targets ( if they  exists ) for easy passing across iframe 
-	 * @return
-	 */
-	addCompanionBindings: function(){
-		var _this = this;
-		mw.log("FreeWheelController::addCompanionBindings>");
-		// Add some hidden companion targets if we are running in an iframe
-		if( !mw.getConfig('EmbedPlayer.IsIframeServer') ){
-			return ;
-		}
-		// Setup the embedPlayer server setFreeWheelAddCompanions method
-		this.embedPlayer.setFreeWheelAddCompanions = function( companionSet ){
-			_this.addCompanionTargets( companionSet );
-		};
-		
-		// Trigger the adding of any server side bindings: 
-		$( this.embedPlayer ).trigger( 'FreeWheel_GetAddCompanions' );
-		// we now monitor for companion html changes and pass that across the iframe 
-		this.monitorForCompanionChanges();
-	},
-	monitorForCompanionChanges: function(){
-		var _this = this;
-		var companionStateCache = {};
-		setInterval(function(){
-			$('#fw_companion_container').find( '._fwph').each(function(inx, node){
-				var id = $(node).attr('id');
-				var curHtml = $('#_fw_container_' + id ).html(); 
-				if( curHtml && companionStateCache[ id ] != curHtml){
-					$( _this.embedPlayer ).trigger('FreeWheel_UpdateCompanion', {
-						'id' : id,
-						'content' : curHtml
-					});
-					companionStateCache[ id ] = curHtml;
-				}
-			});
-		}, 1000);
-	},
-	/**
-	 * Add hidden companion targets for companions to be passed overt the iframe
-	 * @param companionSet
-	 * @return
-	 */
-	addCompanionTargets: function( companionSet ){
-		if(! $('#fw_companion_container').length ){
-			$('body').append( $('<div />').attr('id', 'fw_companion_container' ) );
-		}
-			
-		$.each(companionSet, function(inx, companion){
-			var id =  companion.id;
-			$('#fw_companion_container').append( 
-				$('<span />').attr('id', id ).addClass( '_fwph' )
-				.css('display', 'none')
-				.append(
-					$('<form />').attr('id', '_fw_form_' + id )
-					.append(
-						$('<input type="hidden"/>').attr({
-							'name' : '_fw_input_' + id,
-							'id' : '_fw_input_' + id
-						})
-					),
-					$('<span />').attr('id', '_fw_container_' + id )
-				)
-			);
-		});
-		mw.log( 'FreeWheelController:: addCompanionTargets: Added:' + $('#fw_companion_container ._fwph').length + ' targets' );
 	}
 };
 

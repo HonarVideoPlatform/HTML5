@@ -33,7 +33,7 @@ if( typeof window.preMwEmbedReady == 'undefined'){
 }
 // Globals to pre-set config values in dynamic loading of mwEmbed
 if( typeof window.preMwEmbedConfig == 'undefined') {
-	window.preMwEmbedConfig = [];
+	window.preMwEmbedConfig = {};
 }
 
 /**
@@ -90,7 +90,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	};
 	
 	// Apply any pre-setup config:
-	mw.setConfig( preMwEmbedConfig );
+	mw.setConfig( window.preMwEmbedConfig );
 	
 	/**
 	 * Merge in a configuration value:
@@ -1454,12 +1454,11 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		}
 		if(window.console){
 			if (arguments.length == 1) {
-				console.log( arguments[0] );
+				console.log( /*'ss:' + mw.getCallStack().length + ' ' + */ arguments[0] );
 			} else {
 				console.log( Array.prototype.slice.call(arguments) );
 			}
 		}
-
 		// To debug stack size ( useful for iPad / safari that have a 100 call
 		// stack limit
 		// string = mw.getCallStack().length -1 + ' : ' + string;
@@ -2250,7 +2249,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		});
 	};
 	mw.loadCustomResourceIncludes = function( loadSet, callback ){
-		// XXX this needs to be cleaned up ( for now dont include custom resources if not an iframe player )
+		// XXX this needs to be cleaned up ( for now don't include custom resources if not an iframe player )
 		if( !mw.getConfig('EmbedPlayer.IsIframeServer' ) ){
 			callback();
 			return ;
@@ -2262,7 +2261,9 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 
 		// pop up a loadSet item and re call loadCustomResourceIncludes
 		var resource = loadSet.shift();
-		mw.getScript( resource['src'], function(){
+		// Check for a direct set of array values
+		var url = ( resource.src )? resource.src : resource;
+		mw.getScript( url, function(){
 			mw.loadCustomResourceIncludes( loadSet, callback );
 		});
 	};

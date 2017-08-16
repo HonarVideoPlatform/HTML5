@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6/modules/MiroSubs/mirosubs/media/js/widget/testing
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4c10/modules/ClipEdit/pixastic-lib/pixastic-editor
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-18T17:15:19.535554Z
-7349
+2011-10-06T10:57:25.454181Z
+6622
 rany
 
 
@@ -26,16 +26,16 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-events.js
+editor.js
 file
 
 
 
 
-2017-07-03T22:39:15.000000Z
-d14f3b4131c47992e071662eacec8d6b
-2012-03-18T17:15:19.535554Z
-7349
+2017-07-03T19:51:16.000000Z
+9e565038a90537775bb5d4133f50b47e
+2011-10-06T10:57:25.454181Z
+6622
 rany
 
 
@@ -58,18 +58,18 @@ rany
 
 
 
-2199
+27463
 
-stubvideoplayer.js
+uidata.js
 file
 
 
 
 
-2017-07-03T22:39:15.000000Z
-40859f880c74c9e5a37cfa51c3129142
-2012-03-18T17:15:19.535554Z
-7349
+2017-07-03T19:51:16.000000Z
+0b60cd4c2b0f314e68446a6b2a5d73ae
+2011-10-06T10:57:25.454181Z
+6622
 rany
 
 
@@ -92,5 +92,107 @@ rany
 
 
 
-1996
+23668
+
+pixastic.all.js
+file
+
+
+
+
+2017-07-03T19:51:16.000000Z
+aabb1559431e10f4c6a94cd8890c5d6e
+2011-10-06T10:57:25.454181Z
+6622
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+81436
+
+ui.js
+file
+
+
+
+
+2017-07-03T19:51:16.000000Z
+44aa000e78522393995362137804821f
+2011-10-06T10:57:25.454181Z
+6622
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5888
+
+pixastic.css
+file
+
+
+
+
+2017-07-03T19:51:16.000000Z
+265d59569b4d129bca85d0ef0f257e2d
+2011-10-06T10:57:25.454181Z
+6622
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6998
 

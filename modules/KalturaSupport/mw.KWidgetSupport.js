@@ -108,7 +108,7 @@ mw.KWidgetSupport.prototype = {
 					cVar = ( cVar === "false" ) ? false : cVar;
 					cVar = ( cVar === "true" ) ? true : cVar;
 					
-					mw.log("KWidgetSupport::addPlayerHooks> Set Global Config:  " + $( customVar ).attr('key') + ' ' + cVar );
+					// mw.log("KWidgetSupport::addPlayerHooks> Set Global Config:  " + $( customVar ).attr('key') + ' ' + cVar );
 					mw.setConfig(  $( customVar ).attr('key'), cVar);
 				}
 			});
@@ -450,8 +450,10 @@ mw.KWidgetSupport.prototype = {
 			playerRequest.entry_id =  embedPlayer.kentryid;
 		}
 		
-		// Add the uiconf_id 
-		playerRequest.uiconf_id = this.getUiConfId( embedPlayer );
+		// only request the ui Conf if we don't already have it: 
+		if( !embedPlayer.$uiConf ){
+			playerRequest.uiconf_id = this.getUiConfId( embedPlayer );
+		}
 
 		// Add the flashvars
 		playerRequest.flashvars = $( embedPlayer ).data( 'flashvars' ); 
@@ -459,6 +461,7 @@ mw.KWidgetSupport.prototype = {
 		// Check if we have the player data bootstrap from the iframe
 		var bootstrapData = mw.getConfig("KalturaSupport.IFramePresetPlayerData");
 
+		//alert( 'bootstrap:' + mw.getConfig( 'KalturaSupport.IFramePresetPlayerData' ) ) ;
 		// Insure the bootStrap data has all the required info: 
 		if( bootstrapData 
 			&& bootstrapData.partner_id == embedPlayer.kwidgetid.replace('_', '')
@@ -520,11 +523,10 @@ mw.KWidgetSupport.prototype = {
 	 * Get the uiconf id, if unset its the kwidget id / partner id default
 	 */
 	getUiConfId: function( embedPlayer ){
-		var uiConfId = ( embedPlayer.kuiconfid ) ? embedPlayer.kuiconfid : false; 
-		if( !uiConfId && embedPlayer.kwidgetid ) {
-			uiConfId = embedPlayer.kwidgetid.replace( '_', '' );
+		if( !embedPlayer.kuiconfid && embedPlayer.kwidgetid ) {
+			embedPlayer.kuiconfid = embedPlayer.kwidgetid.replace( '_', '' );
 		}
-		return uiConfId;
+		return embedPlayer.kuiconfid;
 	},
 	/**
 	 * Check if the entryId is a url ( add source and do not include in request ) 
@@ -665,23 +667,23 @@ mw.KWidgetSupport.prototype = {
 			}
 			
 			// Add iPad Akamai flavor to iPad flavor Ids list id list
-			if( asset.fileExt == 'mp4' && asset.tags.indexOf('ipadnew') != -1 ){
+			if( asset.tags.indexOf('ipadnew') != -1 ){
 				ipadAdaptiveFlavors.push( asset.id );
 			}
 
 			// Add iPhone Akamai flavor to iPad&iPhone flavor Ids list
-			if( asset.fileExt == 'mp4' && asset.tags.indexOf('iphonenew') != -1 ){
+			if( asset.tags.indexOf('iphonenew') != -1 ){
 				ipadAdaptiveFlavors.push( asset.id );
 				iphoneAdaptiveFlavors.push( asset.id );
 			}
 
 			// Check the tags to read what type of mp4 source
-			if( asset.fileExt == 'mp4' && asset.tags.indexOf('ipad') != -1 ){
+			if( asset.tags.indexOf('ipad') != -1 ){
 				deviceSources['iPad'] = src + '/a.mp4';
 			}
 
 			// Check for iPhone src
-			if( asset.fileExt == 'mp4' && asset.tags.indexOf('iphone') != -1 ){
+			if( asset.tags.indexOf('iphone') != -1 ){
 				deviceSources['iPhone'] = src + '/a.mp4';
 			}
 
@@ -691,7 +693,7 @@ mw.KWidgetSupport.prototype = {
 			}
 
 			// Check for webm source
-			if( asset.fileExt == 'webm' ){
+			if( asset.fileExt == 'webm' || asset.tags.indexOf('webm') != -1 ){
 				deviceSources['webm'] = src + '/a.webm';
 			}
 
@@ -700,7 +702,6 @@ mw.KWidgetSupport.prototype = {
 				deviceSources['3gp'] = src + '/a.3gp';
 			}
 		}
-
 		// Create iPad flavor for Akamai HTTP
 		if( ipadAdaptiveFlavors.length != 0) {
 			deviceSources['iPadNew'] = flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + ipadAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/http/a.m3u8';

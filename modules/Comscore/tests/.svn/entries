@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4c9/modules/Comscore/tests
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4c10/modules/Comscore/tests
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-10-02T09:34:20.739824Z
-6564
+2011-10-09T15:03:15.587338Z
+6636
 rany
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T19:45:53.000000Z
+2017-07-03T19:54:04.000000Z
 1852e4b9b17b38a7e259bdda3ddfba40
-2011-10-02T09:34:20.739824Z
-6564
+2011-10-06T10:57:25.454181Z
+6622
 rany
 
 
@@ -66,10 +66,10 @@ file
 
 
 
-2017-07-03T19:45:53.000000Z
-d18d251118314a55b06dbbbc4dc5e6d9
-2011-10-02T09:34:20.739824Z
-6564
+2017-07-03T19:54:04.000000Z
+0b61bac0123f6a0cba0e1cba116f8e87
+2011-10-09T15:03:15.587338Z
+6636
 rany
 
 
@@ -92,5 +92,5 @@ rany
 
 
 
-1169
+1416
 

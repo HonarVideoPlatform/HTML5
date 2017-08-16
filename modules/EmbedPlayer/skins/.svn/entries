@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6l/modules/MiroSubs/mirosubs/media/images/nyroModel
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4c10/modules/EmbedPlayer/skins
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-18T17:15:19.535554Z
-7349
+2011-10-09T15:03:15.587338Z
+6636
 rany
 
 
@@ -26,52 +26,20 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-prev.gif
-file
-
-
-
-
-2017-07-03T19:25:11.000000Z
-a9ad575f323b23cf7734c01f35c30ee4
-2012-03-18T17:15:19.535554Z
-7349
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-197
+kskin
+dir
 
-next.gif
+mw.PlayerControlBuilder.js
 file
 
 
 
 
-2017-07-03T19:25:11.000000Z
-0f783ffb627baaf0817828c3e4f71e22
-2012-03-18T17:15:19.535554Z
-7349
+2017-07-03T19:51:05.000000Z
+c1ce76b64ea532252a49cf6a92445ca4
+2011-10-09T15:03:15.587338Z
+6636
 rany
-has-props
 
 
 
@@ -92,20 +60,20 @@ has-props
 
 
 
-197
+
+58803
 
-close.gif
+mw.style.EmbedPlayer.css
 file
 
 
 
 
-2017-07-03T19:25:11.000000Z
-b07634e5f4b4ebdfcde3cead5ab86973
-2012-03-18T17:15:19.535554Z
-7349
+2017-07-03T19:51:05.000000Z
+05deeb2b213548b6f17714147b2cb1ce
+2011-10-06T10:57:25.454181Z
+6622
 rany
-has-props
 
 
 
@@ -126,39 +94,9 @@ has-props
 
 
 
-70
+
+2193
 
-ajaxLoader.gif
-file
-
-
-
-
-2017-07-03T19:25:11.000000Z
-0c020b292e622189a385daa3bb2bd4b5
-2012-03-18T17:15:19.535554Z
-7349
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-4659
+mvpcf
+dir
 

@@ -187,35 +187,36 @@
 		 */
 		evaluate: function( embedPlayer, objectString ){
 			var _this = this;
-			var evExp;
+			var result;
 			if( typeof objectString != 'string'){
 				return objectString;
 			}
-			// Replace any { } calls with evaluated expression.
-			var text = objectString.replace(/\{([^\}]*)\}/g, function(match, contents, offset, s) {
-				evExp = contents;
-			});
-			// We can't use return inside the replace callback,
-			// because if we return an object {mediaProxy.entryMetadata}
-			// It will be returned as a string [object Object]
-			if( evExp ) {
-				text = _this.evaluateExpression( embedPlayer, evExp );
+			// Check if a simple direct evaluation: 
+			if( objectString[0] == '{' &&  objectString[  objectString.length -1 ] == '}' ){
+				result = _this.evaluateExpression( embedPlayer, objectString.substring(1, objectString.length-1) );
+			} else if ( objectString.split( '{' ).length > 1 ){ // Check if we are doing a string based evaluate concatenation: 
+				// Replace any { } calls with evaluated expression.
+				result = objectString.replace(/\{([^\}]*)\}/g, function( match, contents, offset, s) {
+					return _this.evaluateExpression( embedPlayer, contents );
+				});
+			} else {
+				// Echo the evaluated string: 
+				result = objectString;
 			}
 
 			// Return undefined to string: undefined, null, ''
-			if( text === "undefined" || text === "null" || text == "" )
-				text = undefined;
+			if( result === "undefined" || result === "null" || result == "" )
+				result = undefined;
 
-			if( text === "false")
-				text = false;
-			if( text === "true")
-				text = true;
+			if( result === "false")
+				result = false;
+			if( result === "true")
+				result = true;
 			
-			return text;
+			return result;
 		},
 		evaluateExpression: function( embedPlayer, expression){
 			var _this = this;
-			
 			// Check if we have a function call: 
 			if( expression.indexOf( '(' ) !== -1 ){
 				var fparts = expression.split( '(' );
@@ -223,7 +224,7 @@
 						fparts[0], 
 						// Remove the closing ) and evaluate the Expression 
 						// should not include ( nesting !
-						_this.evaluateExpression(embedPlayer, fparts[1].slice( 0, -1) )
+						_this.evaluateExpression( embedPlayer, fparts[1].slice( 0, -1) )
 				);
 			}
 			// Split the uiConf expression into parts separated by '.'
@@ -296,11 +297,13 @@
 										break;
 								}
 							} else {
-								// Get flashvars
+								// Get full flashvars object
 								return $( embedPlayer ).data( 'flashvars' );
 							}
 						break;
 					}
+					// no objectPath[1] match return the full configProx object: 
+					return { 'flashvars' : $( embedPlayer ).data( 'flashvars' ) }
 				break;	
 				case 'playerStatusProxy':
 					switch( objectPath[1] ){
@@ -364,6 +367,13 @@
 			switch( eventName ){
 				case 'kdpEmpty':
 					// TODO: When we have video tag without an entry
+					b( 'playerReady', function(){
+						// only trigger kdpEmpty when the player is empty
+						// TODO support 'real' player empty state! not generic player error
+						if( embedPlayer['data-playerError'] ){
+							callback( embedPlayer.id );
+						}
+					});
 					break;
 				case 'kdpReady':
 					// TODO: When player is ready with entry, only happens once
@@ -413,7 +423,7 @@
 					b( "seeked");
 					break;
 				case 'playerPlayEnd':
-					b("ended" );
+					b( "ended" );
 					break;
 				case 'durationChange': 
 					b( "durationchange", function(){
@@ -429,7 +439,7 @@
 					b( "onCloseFullScreen" );
 					break;
 				case 'playerUpdatePlayhead':
-					b('monitorEvent', function() {
+					b( 'monitorEvent', function() {
 						callback( embedPlayer.currentTime );
 					});
 					break;	
