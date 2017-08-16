@@ -302,6 +302,46 @@ mw.KWidgetSupport.prototype = {
 			// Sync iframe with attribute data updates:
 			$( embedPlayer ).trigger( 'updateIframeData' );
 		}
+		// Extend plugin configuration
+		embedPlayer.setKalturaConfig = function( pluginName, key, value ) {
+			// no plugin/key - exit
+			if ( ! pluginName || ! key ) {
+				return false;
+			} 
+			
+			// Always create obj with plugin properties
+			var objectSet = {};
+			if( typeof key === "string" ) {
+				objectSet[ key ] = value;
+			}
+			// The key could be an object with all plugin properties
+			if( typeof key === "object" ) {
+				objectSet = key;
+			}
+			
+			// No player config, create the object
+			if( ! embedPlayer.playerConfig ) {
+				embedPlayer.playerConfig = {};
+			}
+			// Plugin doesn't exists -> create it
+			if( ! embedPlayer.playerConfig[ 'plugins' ][ pluginName ] ){
+				embedPlayer.playerConfig[ 'plugins' ][ pluginName ] = objectSet;
+			} else {
+				// If our key is an object, and the plugin already exists, merge the two objects together
+				if( typeof key === 'object' ) {
+					$.extend( embedPlayer.playerConfig[ 'plugins' ][ pluginName ], objectSet);
+					return false;
+				}
+				// If the old value is an object and the new value is an object merge them
+				if( typeof embedPlayer.playerConfig[ 'plugins' ][ pluginName ][ key ] === 'object' && typeof value === 'object' ) {
+					$.extend( embedPlayer.playerConfig[ 'plugins' ][ pluginName ][ key ], value );
+				} else {
+					embedPlayer.playerConfig[ 'plugins' ][ pluginName ][ key ] = value;
+				}
+			}
+			// Sync iframe with attribute data updates:
+			$( embedPlayer ).trigger( 'updateIframeData' );			
+		};
 
 		// Add isPluginEnabled to embed player:
 		embedPlayer.isPluginEnabled = function( pluginName ) {

@@ -1,12 +1,15 @@
 /*
 * DolStatistics plugin
 */
+(function( mw, $ ) {
+
 mw.DolStatistics = function( embedPlayer, callback ){
 	this.init( embedPlayer, callback );
 };
 
 mw.DolStatistics.prototype = {
 
+	pluginName: 'dolStatistics',
 	pluginVersion: "1.1",
 	bindPostFix: '.DolStatistics',
 	appName: 'KDP',
@@ -16,9 +19,6 @@ mw.DolStatistics.prototype = {
 	playheadInterval: 0,
 	
 	duringChangeMediaFlag: false,
-	
-	// Entry duration
-	duration: 0,
 
 	// hold list of cue points per 10% of video duration
 	percentCuePoints: {},
@@ -28,21 +28,7 @@ mw.DolStatistics.prototype = {
 	init: function( embedPlayer, callback ){
 		var _this = this;
 		this.embedPlayer = embedPlayer;
-
-		// List of all attributes we need from plugin configuration (flashVars/uiConf)
-		var attributes = [
-			'listenTo',
-			'playheadFrequency',
-			'jsFunctionName',
-			'protocol',
-			'host',
-			'ASSETNAME',
-			'GENURL',
-			'GENTITLE',
-			'DEVID',
-			'USRAGNT',
-			'ASSETID'
-		];
+		
 		this.playheadFrequency = this.getConfig( 'playheadFrequency' ) || 5;
 
 		// List of events we need to track
@@ -51,26 +37,31 @@ mw.DolStatistics.prototype = {
 		
 		mw.log( 'DolStatistics:: eventList:' + this.eventsList );
 		
-		// Setup player counter, ( used global, because on change media we re-initialize the plugin and reset all vars )
-		if( typeof $( embedPlayer ).data('DolStatisticsCounter') == 'undefined' ) {
+		// Export the media type on plugin init so any dispatched  events can reference mediaTypeName 
+		this.embedPlayer.setKalturaConfig( this.pluginName, 'mediaTypeName', this.getMediaTypeName() );
+
+		//Setup player counter, ( used global, because on change media we re-initialize the plugin and reset all vars
+		if( typeof this.getConfig('playbackCounter') == 'undefined' ) {
 			if( embedPlayer['data-playerError'] ){
-				$( embedPlayer ).data('DolStatisticsCounter', 0 );
+				this.setConfig( 'playbackCounter', 0 );
 			} else {
-				$( embedPlayer ).data('DolStatisticsCounter', 1 );
+				this.setConfig( 'playbackCounter', 1 );
 			}
 		}
-		mw.log('DolStatistics:: Init plugin :: Plugin config: ', this.embedPlayer.getKalturaConfig( 'dolStatistics') );
+		mw.log('DolStatistics:: Init plugin :: Plugin config: ', this.getConfig() );
 
 		// Add player binding
 		this.addPlayerBindings( callback );
 	},
 	getConfig: function( attr ){
-		return this.embedPlayer.getKalturaConfig( 'dolStatistics', attr );
+		return this.embedPlayer.getKalturaConfig( this.pluginName, attr );
+	},
+	setConfig: function( attr, value ) {
+		this.embedPlayer.setKalturaConfig( this.pluginName, attr, value );
 	},
 	addPlayerBindings: function( callback ) {
 		var _this = this;
 		var embedPlayer = this.embedPlayer;
-		var $embedPlayer = $( embedPlayer );
 
 		// Unbind any existing bindings
 		this.destroy();
@@ -79,26 +70,26 @@ mw.DolStatistics.prototype = {
 		embedPlayer.bindHelper('replayEvent' + this.bindPostFix, function(){
 			// reset the percentage reached counter: 
 			_this.calcCuePoints();
-			var curVal = $( embedPlayer ).data('DolStatisticsCounter' );
-			 $( embedPlayer ).data('DolStatisticsCounter', curVal+1 );
-			 mw.log( 'DolStatistics:: replayEvent> reset cuePoints and increment counter: ' + $( embedPlayer ).data('DolStatisticsCounter' ) );
+			_this.setConfig( 'playbackCounter', _this.getConfig('playbackCounter') + 1 );
+			mw.log( 'DolStatistics:: replayEvent> reset cuePoints and increment counter: ' + _this.getConfig('playbackCounter') );
 		});
 		
 		// On change media remove any existing bindings:
 		embedPlayer.bindHelper( 'onChangeMedia' + _this.bindPostFix, function(){
 			if( ! embedPlayer['data-playerError'] ){
 				_this.duringChangeMediaFlag = true;
-				$embedPlayer.data('DolStatisticsCounter', $embedPlayer.data('DolStatisticsCounter') + 1 );
+				_this.setConfig( 'playbackCounter', _this.getConfig('playbackCounter') + 1 );
 			}
+			_this.destroy();
 		});
 		// make sure we always fire 100% at end time
 		embedPlayer.bindHelper( 'ended' + _this.bindPostFix, function(){
 			// check if the last cue point was fired: 
 			var dur = Math.round( _this.getDuration() );
-			if( !_this.percentCuePoints[ dur ] ){
+			if( ! _this.percentCuePoints[ dur ] ){
 				mw.log("DolStatistics: Used backup 'ended' event");
-				_this.percentCuePoints[ dur ] = false;
-				_this.sendStatsData( 'percentReached', _this.percentCuePointsMap[ currentTime ] );
+				_this.percentCuePoints[ dur ] = true;
+				_this.sendStatsData( 'percentReached', _this.percentCuePointsMap[ dur ] );
 			}
 		});
 		
@@ -112,7 +103,7 @@ mw.DolStatistics.prototype = {
 			switch( eventName ) {
 				// Special events
 				case 'percentReached':
-					embedPlayer.bindHelper( 'playerReady', function(){
+					embedPlayer.bindHelper( 'KalturaSupport_EntryDataReady' + _this.bindPostFix, function(){
 						_this.calcCuePoints();
 						embedPlayer.bindHelper( 'monitorEvent' + _this.bindPostFix, function() {
 							_this.monitorPercentage();
@@ -215,20 +206,15 @@ mw.DolStatistics.prototype = {
 		});
 	},
 
-	/* Retrive video duration */
+	/* Retrieve video duration */
 	getDuration: function() {
-		// try to get the "raw" duration 
-		if( this.embedPlayer.getPlayerElement() ){
-			var rawDur = this.embedPlayer.getPlayerElement().duration
-			if( ! isNaN( rawDur ) ){
-				return rawDur;
-			}
-		}
 		return this.embedPlayer.evaluate('{duration}');
 	},
-
+	/**
+	 * Get video bitrate, return zero if not found. 
+	 */
 	getBitrate: function() {
-		if( this.embedPlayer.mediaElement.selectedSource ) {
+		if( this.embedPlayer.mediaElement && this.embedPlayer.mediaElement.selectedSource ) {
 			return this.embedPlayer.mediaElement.selectedSource.getBitrate() || 0;
 		}
 		return 0;
@@ -246,6 +232,10 @@ mw.DolStatistics.prototype = {
 		if( _this.duringChangeMediaFlag && eventName != 'changeMedia' ){
 			return ;
 		}
+		// If no event data for percentReached, exit
+		if( eventName === 'percentReached' && typeof eventData !== 'number' ) {
+			return ;
+		}
 		_this.duringChangeMediaFlag = false;
 		
 		
@@ -254,17 +244,22 @@ mw.DolStatistics.prototype = {
 		// App name
 		params['app'] = _this.getConfig('APP') || this.appName;
 		// The asset id: 
-		params['ASSETNAME'] = _this.getMediaType() + _this.getConfig('ASSETNAME');
+		params['ASSETNAME'] = _this.getConfig('ASSETNAME');
 		// Kaltura Event name
 		params['KDPEVNT'] = eventName;
 		// KDP Event Data
-		if( eventData !== '' ){
+		if( eventData !== '' && eventData !== undefined ){
 			params['KDPDAT_VALUE'] = eventData.toString();
 		}
 		// Flavor Bitrate
 		params['BITRATE'] = this.getBitrate();
-		// Always include the current time: 
-		params['KDPDAT_PLAYHEAD'] = Math.round( this.embedPlayer.currentTime * 1000 ) / 1000;
+		// Hack: use duration to send the actual data instead of 0
+		if( eventName == 'playerPlayEnd' ) {
+			params['KDPDAT_PLAYHEAD'] = _this.getDuration().toFixed(2);
+		} else {
+			// Always include the current time: 
+			params['KDPDAT_PLAYHEAD'] = Math.round( embedPlayer.currentTime * 1000 ) / 1000;
+		}
 		// The auto played property; 
 		params['AUTO'] = this.getAutoPlayFlag();
 		// Current Timestamp
@@ -272,21 +267,21 @@ mw.DolStatistics.prototype = {
 		// Asset Id
 		params['ASSETID'] = this.getConfig( 'ASSETID' );
 		// Kaltura Player ID
-		params['KDPID'] = this.embedPlayer.kuiconfid;
+		params['KDPID'] = embedPlayer.kuiconfid;
 		// Video length
 		params['VIDLEN'] = this.getDuration();
 		// Widget ID
-		params['WIGID'] = this.embedPlayer.kwidgetid;
+		params['WIGID'] = embedPlayer.kwidgetid;
 		// Kaltura session Seq 
-		params['KSESSIONSEQ'] = $( this.embedPlayer ).data('DolStatisticsCounter');
+		params['KSESSIONSEQ'] = this.getConfig( 'playbackCounter' );
 		// Kaltura Session ID
-		params['KSESSIONID'] = this.embedPlayer.evaluate('{configProxy.sessionId}');
+		params['KSESSIONID'] = embedPlayer.evaluate('{configProxy.sessionId}');
 		// User Agent
 		params['USRAGNT'] =  _this.getConfig('USRAGNT') || window.navigator.userAgent;
 		// Embedded Page URL
 		params['GENURL'] =  _this.getConfig('GENURL') || window.kWidgetSupport.getHostPageUrl();
 		// Kaltura Playback ID ( kSessionId + playbackCounter )
-		params['KPLAYBACKID'] = this.embedPlayer.evaluate('{configProxy.sessionId}') + $( this.embedPlayer ).data('DolStatisticsCounter');
+		params['KPLAYBACKID'] = embedPlayer.evaluate('{configProxy.sessionId}') + this.getConfig( 'playbackCounter' );
 
 		// Embedded Page Title:
 		try {
@@ -343,7 +338,7 @@ mw.DolStatistics.prototype = {
 	/**
 	 * get a media type string acorrding to dol mapping. 
 	 */
-	getMediaType: function(){
+	getMediaTypeName: function(){
 		// Get the media type: 
 		var mediaType = this.embedPlayer.evaluate('{mediaProxy.entry.mediaType}');
 		switch( mediaType ){
@@ -371,7 +366,6 @@ mw.DolStatistics.prototype = {
 		this.embedPlayer.unbindHelper( this.bindPostFix );
 		this.percentCuePoints = {};
 		this.percentCuePointsMap = {};
-		this.duration = 0;
 	},
 
 	/* Execute function like: "cto.trackVideo" */
@@ -390,3 +384,4 @@ mw.DolStatistics.prototype = {
 		}
 	}
 };
+}( window.mw, window.jQuery ));
