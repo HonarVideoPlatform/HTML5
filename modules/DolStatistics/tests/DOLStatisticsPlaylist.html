@@ -12,7 +12,7 @@
 			for (var p in o) {
 		    	out += p + ': ' + o[p] + '\n';
 		    }
-			console.log("event name: " + o.KDPEVNT + ", event data: " + o.KDPDAT_VALUE);
+			console.log("event name: " + o.KDPEVNT + ", event data: ", o );
 			document.getElementById('feedbackXml').innerHTML = document.getElementById('feedbackXml').innerHTML + "\n" + out;
 	    }
 	}
