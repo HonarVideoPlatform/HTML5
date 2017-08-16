@@ -1,7 +1,6 @@
 <?php
 /**
  * KalturaIframe support
- *
  */
 
 define( 'KALTURA_GENERIC_SERVER_ERROR', "Error getting sources from server, something maybe broken or server is under high load. Please try again.");
@@ -14,7 +13,21 @@ $wgKalturaIframe = new kalturaIframe();
 
 // Start output buffering to 'catch errors' and override output
 if( ! ob_start("ob_gzhandler") ) ob_start();
+
 $wgKalturaIframe->outputIFrame();
+// Check if we are wrapping the iframe output in a callback
+if( isset( $_REQUEST['callback']  )) {
+	// get the output buffer:
+	$out = ob_get_contents();
+	ob_end_clean();
+	// Re-start the output buffer: 
+	if( ! ob_start("ob_gzhandler") ) ob_start();
+	
+	header('Content-type: text/javascript' );
+	echo htmlspecialchars( $_REQUEST['callback'] ) . '(' . 
+		json_encode( array( 'content' => $out ) ) . ');';
+} 
+// flush the buffer.
 ob_end_flush();
 
 /**
@@ -58,7 +71,6 @@ class kalturaIframe {
 	}
 
 	function getPlayEventUrl() {
-		global $wgKalturaServiceUrl, $wgKalturaServiceBase;
 		$param = array(
 			'action' => 'collect',
 			'apiVersion' => '3.0',
@@ -84,9 +96,10 @@ class kalturaIframe {
 			'entryId'   =>   $this->getResultObject()->getEntryId(),
 		);
 		foreach( $eventSet as $key=> $val){
-			$param['event:' . $key ] = $val;
+			$param[ 'event:' . $key ] = $val;
 		}
 		ksort( $param );
+		
 		// Get the signature:
 		$sigString = '';
 		foreach( $param as $key => $val ){
@@ -95,7 +108,9 @@ class kalturaIframe {
 		$param['kalsig'] = md5( $sigString );
 		$requestString =  http_build_query( $param );
 
-		return $wgKalturaServiceUrl . $wgKalturaServiceBase . 'stats&' . $requestString;
+		return $this->getResultObject()->getServiceConfig('ServiceUrl') .
+			 	$this->getResultObject()->getServiceConfig('ServiceBase' ) . 
+			 	'stats&' . $requestString;
 	}
 
 	// Returns a simple image with a direct link to the asset
@@ -120,9 +135,56 @@ class kalturaIframe {
 
 		return $o;
 	}
-
-	private function getVideoHTML( ){
-		global $wgKalturaCDNUrl;
+	private function getPlaylistPlayerSizeCss(){
+		$width = 400;
+		$height = 300;
+		// check if we have iframeSize paramater: 
+		if( isset( $_GET[ 'iframeSize' ] ) ){
+			list( $iframeWidth, $iframeHeight ) = explode( 'x',  $_GET[ 'iframeSize' ]);
+			$iframeWidth = intval( $iframeWidth );
+			$iframeHeight = intval( $iframeHeight );
+			
+			$xml = $this->getResultObject()->getUiConfXML();
+			$result = $xml->xpath("//*[@id='playlistHolder']");
+			if( isset( $result[0] ) ){
+				foreach ( $result[0]->attributes() as $key => $value ) {
+					if( $key == 'width' && $value != '100%' ){
+						$width = $iframeWidth - intval( $value );
+						$height = $iframeHeight;
+					}
+					if( $key == 'height' && $value != '100%' ){
+						$height = $iframeHeight - intval( $value );
+						$width = $iframeWidth;
+					}
+				}
+			} else {
+				// check for playlist.includeInLayout property and set to full size:
+				$result = $xml->xpath("//*[@key='playlist.includeInLayout']" );
+				if( isset( $result[0] ) ){
+					foreach ( $result[0]->attributes() as $key => $value ) {
+						if( $key == 'value' && $value == "false" ){
+							$width = $iframeWidth;
+							$height = 	$iframeHeight;						
+						}
+					}
+				}
+			}
+		}
+		return "width:{$width}px;height:{$height}px;";
+	}
+	// outputs the playlist wrapper 
+	private function getPlaylistWraper( $videoHtml ){
+		// XXX this hard codes some layout assumptions ( but no good way around that for now )
+		return '<div id="playlistContainer" style="width:100%;height:100%">
+					<span class="media-rss-video-player-container" style="float:left;' . 
+					$this->getPlaylistPlayerSizeCss() . '">' . 
+					'<div class="media-rss-video-player" style="position:relative">' . 
+						$videoHtml .
+					'</div>' . 
+				'</span>
+			</div>';
+	}
+	private function getVideoHTML( $playerSize = 'width:100%;height:100%;'  ){
 		$videoTagMap = array(
 			'entry_id' => 'kentryid',
 			'uiconf_id' => 'kuiconfid',
@@ -153,10 +215,10 @@ class kalturaIframe {
 		// Add default video tag with 100% width / height
 		// NOTE: special persistentNativePlayer class will prevent the video from being swapped
 		// so that overlays work on the iPad.
-		$o = "\n" .'<video class="persistentNativePlayer" ' .
+		$o = "\n\n\t" .'<video class="persistentNativePlayer" ' .
 			'poster="' . htmlspecialchars( $posterUrl ) . '" ' .
 			'id="' . htmlspecialchars( $this->getIframeId() ) . '" ' .
-			'style="position:absolute;width:100%;height:100%" ';
+			'style="position:absolute;' . $playerSize . '" ';
 
 		$urlParams = $this->getResultObject()->getUrlParameters();
 		
@@ -176,39 +238,58 @@ class kalturaIframe {
 		}
 		
 		
-		//Close the open video tag
+		// Close the open video tag attribute set
 		$o.='>';
 
 		// Output each source as a child element ( for javascript off browsers to have a chance
 		// to playback the content
 		foreach( $sources as $source ){
-			$o.="\n" .'<source ' .
+			$o.= "\n\t\t" .'<source ' .
 					'type="' . htmlspecialchars( $source['type'] ) . '" ' .
-					'src="' . htmlspecialchars(  $source['src'] ) . '" '.
+					'src="' . $source['src'] . '" '.
 					'data-flavorid="' . htmlspecialchars( $source['data-flavorid'] ) . '" '.
 				'></source>';
 		}
 
 		// To be on the safe side include the flash player and
 		// direct file link as a child of the video tag
-		// ( if javascript is "off" and they dont have video tag support for example )
-		$o.= $this->getFlashEmbedHTML(
+		// ( if javascript is "off" and they don't have video tag support for example )
+		$o.= "\n\t\t\t" . $this->getFlashEmbedHTML(
 			$this->getFileLinkHTML(), 
 			'kaltura_player_iframe_no_rewrite'
 		);
 
-
-		$o.= "\n" .'</video>';
-		return $o;
+		$o.= "\n" . "</video>\n";
+		// Wrap in a videoContainer
+		return  '<div id="videoContainer" > ' . $o . '</div>';
 	}
 	/**
 	 * Get Flash embed code with default flashvars:
 	 * @param childHtml Html string to set as child of object embed
 	 */	
 	private function getFlashEmbedHTML( $childHTML = '', $idOverride = false ){		
-		return 	$this->getPreFlashVars( $idOverride) . 
-				$this->getFlashVarsString() . 
-				$this->getPostFlashVars( $childHTML );
+		
+		$playerId = ( $idOverride )? $idOverride :  $this->getIframeId();
+		
+		$o = '<object id="' . htmlspecialchars( $playerId ) . '" name="' . $playerId . '" ' .
+				'type="application/x-shockwave-flash" allowFullScreen="true" '.
+				'allowNetworking="all" allowScriptAccess="always" height="100%" width="100%" style="height:100%;width:100%" '.
+				'xmlns:dc="http://purl.org/dc/terms/" '.
+				'xmlns:media="http://search.yahoo.com/searchmonkey/media/" '.
+				'rel="media:video" '.
+				'resource="' . htmlspecialchars( $this->getSwfUrl() ) . '" '.
+				'data="' . htmlspecialchars( $this->getSwfUrl() ) . '"> '.
+				'<param name="wmode" value="opaque" />' .
+				'<param name="allowFullScreen" value="true" /><param name="allowNetworking" value="all" />' .
+				'<param name="allowScriptAccess" value="always" /><param name="bgcolor" value="#000000" />'.
+				'<param name="flashVars" value="';
+		
+		$o.= $this->getFlashVarsString() ;
+		// close the object tag add the movie param and childHTML: 
+		$o.='" /><param name="movie" value="' . htmlspecialchars( $this->getSwfUrl() ) . '" />'.
+				$childHTML .
+			'</object>';
+		return $o;
 	}
 	private function getFlashVarsString(){
 		// output the escaped flash vars from get arguments
@@ -227,21 +308,28 @@ class kalturaIframe {
 		if( ! $this->getResultObject()->getUiConf() ){
 			return false;
 		}
-		$xml = $this->getResultObject()->getUiConfXML();
+		// Try to get uiConf
+		try{
+			$xml = $this->getResultObject()->getUiConfXML();
+		} catch ( Exception $e ){
+			$this->fatalError( $e->getMessage() );
+		}
 		$resourceIncludes = array();
-		foreach ($xml->uiVars->var as $var ){
-			if( $var['key'] != 'HTML5PluginUrl' && $var['key'] != 'HTML5PlayerCssUrl'){
-				continue;
+		if( is_array( $xml->uiVars->var ) ){
+			foreach ($xml->uiVars->var as $var ){
+				if( $var['key'] != 'HTML5PluginUrl' && $var['key'] != 'HTML5PlayerCssUrl'){
+					continue;
+				}
+				
+				$resource = array( 'src'=> htmlspecialchars(  $var['value'] ) );
+				if( $var['key'] == 'HTML5PluginUrl' ){
+					$resource['type'] = 'js';
+				}
+				if( $var['key'] == 'HTML5PlayerCssUrl'){
+					$resource['type'] = 'css';
+				}
+				$resourceIncludes[] = $resource;
 			}
-			
-			$resource = array( 'src'=> htmlspecialchars(  $var['value'] ) );
-			if( $var['key'] == 'HTML5PluginUrl' ){
-				$resource['type'] = 'js';
-			}
-			if( $var['key'] == 'HTML5PlayerCssUrl'){
-				$resource['type'] = 'css';
-			}
-			$resourceIncludes[] = $resource;
 		}
 		return json_encode( $resourceIncludes );
 	}
@@ -259,7 +347,7 @@ class kalturaIframe {
 				&& $var['key'] != 'HTML5PluginUrl' && $var['key'] != 'HTML5PlayerCssUrl'
 				&& $var['key'] != 'Mw.CustomResourceIncludes' 
 			){
-				$o.="mw.setConfig('" . htmlspecialchars( addslashes( $var['key'] ) ) . "', ";
+				$o.= "mw.setConfig('" . htmlspecialchars( addslashes( $var['key'] ) ) . "', ";
 				// check for boolean attributes: 
 				if( $var['value'] == 'false' || $var['value'] == 'true' ){
 					$o.=  $var['value'];
@@ -272,15 +360,17 @@ class kalturaIframe {
 		return $o;
 	}
 	private function checkIframePlugins(){
-		$xml = $this->getResultObject()->getUiConfXML();
-		if( ! $xml )
+		try{
+			$xml = $this->getResultObject()->getUiConfXML();
+		} catch ( Exception $e ){
+			//$this->fatalError( $e->getMessage() );
 			return ;
+		}
 		if( isset( $xml->HBox ) && isset( $xml->HBox->Canvas ) && isset( $xml->HBox->Canvas->Plugin ) ){
 			foreach ($xml->HBox->Canvas->Plugin as $plugin ){
 				$attributes = $plugin->attributes();
 				$pluginId = (string) $attributes['id'];
 				if( in_array( $pluginId, array_keys ( self::$iframePluginMap ) ) ){
-				
 					require_once( self::$iframePluginMap[ $pluginId] );
 					$this->plugins[$pluginId] = new $pluginId( $this );
 					$this->plugins[$pluginId ]->run();
@@ -289,8 +379,7 @@ class kalturaIframe {
 		}
 	}
 	private function getSwfUrl(){
-		global $wgKalturaServiceUrl;
-		$swfUrl = $wgKalturaServiceUrl . '/index.php/kwidget';
+		$swfUrl = $this->getResultObject()->getServiceConfig('ServiceUrl') . '/index.php/kwidget';
 		// pass along player attributes to the swf:
 		$urlParams = $this->getResultObject()->getUrlParameters();	
 		foreach($urlParams as $key => $val ){
@@ -301,44 +390,20 @@ class kalturaIframe {
 		return $swfUrl;
 	}
 	
-	private function getPreFlashVars( $idOverride = false ){
-		// Check if a playlist
-		$playerName = ( $this->getResultObject()->isPlaylist() ) ? 'kaltura_playlist' : 'kaltura_player_iframe_no_rewrite';
-		
-		$playerId = ( $idOverride )? $idOverride :  $this->getIframeId();
-		
-		return '<object id="' . htmlspecialchars( $playerId ) . '" name="' . $playerName . '" ' .
-				'type="application/x-shockwave-flash" allowFullScreen="true" '.
-				'allowNetworking="all" allowScriptAccess="always" height="100%" width="100%" style="height:100%;width:100%" '.
-				'xmlns:dc="http://purl.org/dc/terms/" '.
-				'xmlns:media="http://search.yahoo.com/searchmonkey/media/" '.
-				'rel="media:video" '.
-				'resource="' . htmlspecialchars( $this->getSwfUrl() ) . '" '.
-				'data="' . htmlspecialchars( $this->getSwfUrl() ) . '"> '.
-				'<param name="wmode" value="opaque" />' .
-				'<param name="allowFullScreen" value="true" /><param name="allowNetworking" value="all" />' .
-				'<param name="allowScriptAccess" value="always" /><param name="bgcolor" value="#000000" />'.
-				'<param name="flashVars" value="';
-	}
-	
-	private function getPostFlashVars( $childHTML = '' ){
-			return '" />'.
-				'<param name="movie" value="' . htmlspecialchars( $this->getSwfUrl() ) . '" />'.
-					$childHTML .
-				'</object>';
-	}
-	
 	/**
-	 * void function to set iframe content headers
+	 * Void function to set iframe content headers
 	 */
 	private function setIFrameHeaders(){
 		global $wgKalturaUiConfCacheTime;
 
 		// Set relevent expire headers:
 		if( $this->getResultObject()->isCachedOutput() ){
+			$time = $this->getResultObject()->getFileCacheTime();
 			header( 'Pragma: public' );
 			// Cache for $wgKalturaUiConfCacheTime
-			header( "Expires: " . gmdate( "D, d M Y H:i:s", time() + $wgKalturaUiConfCacheTime ) . " GM" );
+			header( "Cache-Control: public, max-age=$wgKalturaUiConfCacheTime, max-stale=0");
+			header( "Last-Modified: " . gmdate( "D, d M Y H:i:s", $time) . "GMT");
+			header( "Expires: " . gmdate( "D, d M Y H:i:s", $time + $wgKalturaUiConfCacheTime ) . " GM" );
 		} else {
 			header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
 			header("Pragma: no-cache");
@@ -350,9 +415,8 @@ class kalturaIframe {
 	 * Get the location of the mwEmbed library
 	 */
 	private function getMwEmbedLoaderLocation(){
-		global $wgMwEmbedPathUrl, $wgKalturaCDNUrl;
-		$loaderPath = $wgMwEmbedPathUrl . 'mwEmbedLoader.php';
-		
+		global $wgResourceLoaderUrl;
+		$loaderPath = str_replace( 'ResourceLoader.php', 'mwEmbedLoader.php', $wgResourceLoaderUrl );
 		$versionParam = '';
 		$urlParam = $this->getResultObject()->getUrlParameters();
 		if( isset( $urlParam['urid'] ) ){
@@ -364,7 +428,7 @@ class kalturaIframe {
 			foreach($xml->layout[0]->attributes() as $name => $value) {
 				if( $name == 'html5_url' ){
 					if( $value[0] == '/' ){
-						$loaderPath = $wgKalturaCDNUrl	 . $value;
+						$loaderPath = $this->getResultObject()->getServiceConfig( 'CdnUrl' ) . $value;
 					} else if( substr( $value,0, 4 ) == 'http' ) {
 						$loaderPath = $value;
 					}
@@ -378,7 +442,8 @@ class kalturaIframe {
 	 * Get the iframe css
 	 */
 	private function outputIframeHeadCss(){
-		global $wgMwEmbedPathUrl;
+		global $wgResourceLoaderUrl;
+		$path = str_replace( 'ResourceLoader.php', '', $wgResourceLoaderUrl );
 		?>
 		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
 		<title>Kaltura Embed Player iFrame</title>
@@ -421,7 +486,7 @@ class kalturaIframe {
 		} else {
 			?>
 			.loadingSpinner {
-					background: url( '<?php echo $wgMwEmbedPathUrl ?>skins/common/images/loading_ani.gif');
+					background: url( '<?php echo $path ?>skins/common/images/loading_ani.gif');
 					position: absolute;
 					top: 50%; left: 50%;
 					width:32px;
@@ -444,7 +509,7 @@ class kalturaIframe {
 				}
 				/* Should allow this to be overided */
 				#directFileLinkButton {
-					background: url( '<?php echo $wgMwEmbedPathUrl ?>skins/common/images/player_big_play_button.png');
+					background: url( '<?php echo $path ?>skins/common/images/player_big_play_button.png');
 					width: 70px;
 					height: 53px;
 					position: absolute;
@@ -459,14 +524,15 @@ class kalturaIframe {
 					width: 100%;
 					height: 100%;
 				}
-			<?php 
+			<?php
 		}
 		?>
 			</style>
 		<?php
 	}
 	function outputIFrame( ){
-		global $wgMwEmbedPathUrl;
+		global $wgResourceLoaderUrl;
+		$path = str_replace( 'ResourceLoader.php', '', $wgResourceLoaderUrl );
 		
 		// Check for plugins ( can overide output) 
 		$this->checkIframePlugins();
@@ -477,14 +543,38 @@ class kalturaIframe {
 <html>
 	<head>
 		<?php echo $this->outputIframeHeadCss(); ?>
+	</head>
+	<body>	
+		<?php 
+		// If we have an empty uiConf just pass the object off to javascript and see if it can 
+		// do anything useful
+		if( !$this->getResultObject()->getUiConf() || $this->getResultObject()->getUiConf() == '') {
+			echo $this->getFlashEmbedHTML();
+		} else {
+			if( $this->getResultObject()->isPlaylist() ){ 
+				echo $this->getPlaylistWraper( 
+					// Get video html with a default playlist video size ( we can adjust it later in js )
+					$this->getVideoHTML( $this->getPlaylistPlayerSizeCss() ) 
+				);
+			} else { 
+				echo $this->getVideoHTML();
+			} 
+		}
+		?>
+		
 		<script type="text/javascript">
+			// In same page iframe mode the script loading happens inline and not all the settings get set in time
+			// its critical that at least EmbedPlayer.IsIframeServer is set early on. 
+			preMwEmbedConfig = {};
+			preMwEmbedConfig['EmbedPlayer.IsIframeServer'] = true;
+			
 			// Insert the html5 kalturaLoader script
 			document.write(unescape("%3Cscript src='<?php echo $this->getMwEmbedLoaderLocation() ?>' type='text/javascript'%3E%3C/script%3E"));
 		</script>
 		<script type="text/javascript">
 			// Insert JSON support if in missing ( IE 7, 8 )
 			if( typeof JSON == 'undefined' ){ 
-				document.write(unescape("%3Cscript src='<?php echo $wgMwEmbedPathUrl ?>/libraries/json/json2.js' type='text/javascript'%3E%3C/script%3E"));
+				document.write(unescape("%3Cscript src='<?php echo $path ?>/libraries/json/json2.js' type='text/javascript'%3E%3C/script%3E"));
 			}
 		</script>
 		
@@ -494,39 +584,22 @@ class kalturaIframe {
 				if( $wgAllowCustomResourceIncludes && $this->getCustomPlayerIncludesJSON() ){
 					echo 'mw.setConfig( \'Mw.CustomResourceIncludes\', '. $this->getCustomPlayerIncludesJSON() .' );';
 				}
-				// Set custom global vars for this player: 
-				echo $this->getCustomPlayerConfig();
-			?>
-			// Parse any configuration options passed in via hash url:
+			?>	
 			var hashString = document.location.hash;
+			// Parse any configuration options passed in via hash url:
 			if( hashString ){
 				var hashObj = JSON.parse(
-						decodeURIComponent( hashString.replace( /^#/, '' ) )
-					);
+					decodeURIComponent( hashString.replace( /^#/, '' ) )
+				);
 				if( hashObj.mwConfig ){
 					mw.setConfig( hashObj.mwConfig );
 				}
-				if( hashObj.playerId ){
-					mw.setConfig('EmbedPlayer.IframeParentPlayerId', hashObj.playerId );
-				}
+			} else 	if( window['parent'] && window['parent']['preMwEmbedConfig'] ){ 
+				// Grab config from parent frame:
+				mw.setConfig( window['parent']['preMwEmbedConfig'] );
+				// Set the "iframeServer" to the current domain: 
+				mw.setConfig( 'EmbedPlayer.IframeParentUrl', document.URL ); 
 			}
-			
-			// Don't do an iframe rewrite inside an iframe!
-			mw.setConfig( 'Kaltura.IframeRewrite', false );
-
-			// Set a prepend flag so its easy to see whats happening on client vs server side of the iframe:
-			mw.setConfig('Mw.LogPrepend', 'iframe:' );
-
-			// Don't rewrite the video tag from the loader ( if html5 is supported it will be
-			// invoked bellow and respect the persistant video tag option for iPad overlays )
-			mw.setConfig( 'Kaltura.LoadScriptForVideoTags', false );
-
-			// Don't wait for player metada for size layout and duration Won't be needed since
-			// we add durationHint and size attributes to the video tag
-			mw.setConfig( 'EmbedPlayer.WaitForMeta', false );
-
-			// Add Packaging Kaltura Player Data ( JSON Encoded )
-			mw.setConfig( 'KalturaSupport.IFramePresetPlayerData', <?php echo $this->getResultObject()->getJSON(); ?>);
 
 			// Get the flashvars object:
 			var flashVarsString = '<?php echo $this->getFlashVarsString() ?>';
@@ -540,6 +613,33 @@ class kalturaIframe {
 			}
 			mw.setConfig( 'KalturaSupport.IFramePresetFlashvars', flashvarsObject );
 
+			// We should first read the config for the hashObj and after that overwrite with our own settings
+			// The entire block below must be after mw.setConfig( hashObj.mwConfig );
+
+			// Don't do an iframe rewrite inside an iframe
+			mw.setConfig('Kaltura.IframeRewrite', false );
+
+			// Set a prepend flag so its easy to see whats happening on client vs server side of the iframe:
+			mw.setConfig('Mw.LogPrepend', 'iframe:');
+
+			// Don't rewrite the video tag from the loader ( if html5 is supported it will be
+			// invoked bellow and respect the persistant video tag option for iPad overlays )
+			mw.setConfig( 'Kaltura.LoadScriptForVideoTags', false );
+
+			// Don't wait for player metada for size layout and duration Won't be needed since
+			// we add durationHint and size attributes to the video tag
+			mw.setConfig( 'EmbedPlayer.WaitForMeta', false );
+
+			// Add Packaging Kaltura Player Data ( JSON Encoded )
+			mw.setConfig( 'KalturaSupport.IFramePresetPlayerData', <?php echo $this->getResultObject()->getJSON(); ?>);
+
+			mw.setConfig('EmbedPlayer.IframeParentPlayerId', '<?php echo $this->getIframeId()?>' );			
+			
+			// Set uiConf global vars for this player ( overides iframe based hash url config )
+			<?php 
+			echo $this->getCustomPlayerConfig();
+			?>
+			
 			// Remove the fullscreen option if we are in an iframe: 
 			if( mw.getConfig('EmbedPlayer.IsFullscreenIframe') ){
 				mw.setConfig('EmbedPlayer.EnableFullscreen', false );
@@ -552,36 +652,12 @@ class kalturaIframe {
 			}
 			// For testing limited capacity browsers
 			//var kIsHTML5FallForward = function(){ return false };
-			//var kSupportsFlash = function(){ return false };
-
-			// Don't do an iframe rewrite inside an iframe!
-			mw.setConfig( 'Kaltura.IframeRewrite', false );
-
-			// Identify the player as an iframe server
-			mw.setConfig( "EmbedPlayer.IsIframeServer", true );
+			//var kSupportsFlash = function(){ return false	 };
 
 			<?php 
-				if( !$this->getResultObject()->isPlaylist() ){
-					echo $this->javascriptPlayerLogic();
-				}
+				echo $this->javascriptPlayerLogic();
 			?>
 		</script>
-	</head>
-	<body>	
-		<?php 
-		if( $this->getResultObject()->isPlaylist() ){
-			echo "<!-- Playlist is rewriteen from flash object ( no standard html5 representation atm ) -->\n";
-			// if playlist just output the playlist object and let javascript rewrite it:
-			echo $this->getFlashEmbedHTML() . "\n";
-		}else {
-			?>
-			<div id="videoContainer" >
-				<div id="iframeLoadingSpinner" class="loadingSpinner"></div>
-				<?php echo $this->getVideoHTML(); ?>
-			</div>
-			<?php 
-		}
-		?>
 	</body>
 </html>
 <?php
@@ -589,19 +665,23 @@ class kalturaIframe {
 	private function javaScriptPlayerLogic(){
 		?>
 		if( kIsHTML5FallForward() ){
+				// remove the no_rewrite flash object ( never used in rewrite )
+				var obj = document.getElementById('kaltura_player_iframe_no_rewrite');
+				if( obj ){
+					document.getElementById('<?php echo $this->getIframeId()?>').removeChild( obj );
+				}
+					
 				// Load the mwEmbed resource library and add resize binding
 				mw.ready(function(){
-					// remove the no_rewrite flash object:
-					$j('#kaltura_player_iframe_no_rewrite').remove();
 				
 					var embedPlayer = $j( '#<?php echo htmlspecialchars( $this->getIframeId() )?>' ).get(0);
 					// Try to seek to the IframeSeekOffset time:
 					if( mw.getConfig( 'EmbedPlayer.IframeCurrentTime' ) ){
-						//embedPlayer.currentTime = mw.getConfig( 'EmbedPlayer.IframeCurrentTime' );
+						embedPlayer.currentTime = mw.getConfig( 'EmbedPlayer.IframeCurrentTime' );					
 					}
-					// this unfortunatly won't work on iOS but will support play state for html5 browsers
+					// Maintain play state for html5 browsers
 					if( mw.getConfig('EmbedPlayer.IframeIsPlaying') ){
-						//embedPlayer.play();
+						embedPlayer.play();
 					}
 					// Bind window resize to reize the player:
 					$j( window ).resize( function(){
@@ -671,7 +751,6 @@ class kalturaIframe {
 		if( strpos( $errorTitle, "\n" ) !== false ){
 			list( $errorTitle, $errorMsg) = explode( "\n", $errorTitle);
 		};
-		
 		$this->setError( $errorTitle );
 		
 		// clear the buffer
@@ -702,6 +781,18 @@ class kalturaIframe {
 		?></div>
 	</body>
 </html><?php
+		// TODO clean up flow ( should not have two checks for callback )
+		if( isset( $_REQUEST['callback']  )) {
+			// get the output buffer:
+			$out = ob_get_contents();
+			ob_end_clean();
+			// Re-start the output buffer: 
+			if( ! ob_start("ob_gzhandler") ) ob_start();
+			header('Content-type: text/javascript' );
+			echo htmlspecialchars( $_REQUEST['callback'] ) . '(' . 
+				json_encode( array( 'content' => $out ) ) . ');';
+		} 
+
 		ob_end_flush();
 		// Iframe error exit
 		exit( 1 );

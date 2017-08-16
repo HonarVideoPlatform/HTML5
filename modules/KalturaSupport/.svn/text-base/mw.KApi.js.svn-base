@@ -1,4 +1,4 @@
-/*
+/**
  * Simple kaltura javascript api
  *
  * uses configuration Kaltura.ServiceUrl and Kaltura.ServiceBase for api entry point
@@ -14,7 +14,8 @@
  * 		Array An Array of request params for multi-request 
  * 		Object Named request params
  */
-	
+( function( mw, $ ) {
+
 mw.KApi = function( partner_id ){
 	return this.init( partner_id );	
 };
@@ -22,7 +23,7 @@ mw.KApi = function( partner_id ){
 mw.KApi.prototype = {
 	baseParam: {
 		'apiVersion' : '3.1',
-		'clientTag' : 'html5:v' + window['KALTURA_LOADER_VERSION'],
+		'clientTag' : 'html5:v' + window[ 'KALTURA_LOADER_VERSION' ],
 		'expiry' : '86400',
 		'format' : 9, // 9 = JSONP format
 		'ignoreNull' : 1
@@ -34,6 +35,9 @@ mw.KApi.prototype = {
 	init: function( partner_id ){
 		this.partner_id = partner_id;
 	},
+	// Stores a callback index for duplicate api requests
+	callbackIndex:0,
+	
 	getPartnerId: function( ){
 		return this.partner_id;
 	},
@@ -90,19 +94,9 @@ mw.KApi.prototype = {
 		// ideally this could be part of the multi-request but could not get it to work 
 		// see commented out code above. 
 		this.getKS( function( ks ){
-			// remove service tag ( hard coded into the api url ) 
-			var serviceType = param['service'];
-			delete param['service'];				
-			
 			param['ks'] = ks;
-			param['kalsig'] = _this.getSignature( param );
-			var requestUrl = _this.getApiUrl() + serviceType + '&' + $j.param( param );
 			// Do the getJSON jQuery call with special callback=? parameter: 
-			$j.getJSON( requestUrl +  '&callback=?', function( data ){
-				if( callback ){
-					callback( data );
-				}
-			});
+			_this.doApiRequest( param, callback);
 		});
 	},
 	setKS: function( ks ){
@@ -110,7 +104,7 @@ mw.KApi.prototype = {
 	},
 	getKS: function( callback ){
 		if( this.ks ){
-			callback(this.ks);
+			callback( this.ks );
 			return true;
 		}
 		var _this = this;
@@ -121,15 +115,49 @@ mw.KApi.prototype = {
         	'partnerId' : + this.partner_id // don't ask me, I did not design the API!
         };
 		// add in the base parameters:
-		var param = $j.extend( {}, this.baseParam, ksParam );
-		var requestURL = this.getApiUrl() + 'session&' + $j.param( param );
-		$j.getJSON( requestURL + '&callback=?', function( data ){
+		var param = $.extend( { 'service' : 'session' }, this.baseParam, ksParam );
+		this.doApiRequest( param, function( data ){
 			_this.ks = data.ks;
 			callback( _this.ks );
 		});
 	},
-	getApiUrl : function(){
-		return mw.getConfig( 'Kaltura.ServiceUrl' ) + mw.getConfig( 'Kaltura.ServiceBase' );
+	doApiRequest: function( param, callback ){
+		var _this = this;
+		// Remove service tag ( hard coded into the api url ) 
+		var serviceType = param['service'];
+		delete param['service'];	
+		
+		// Add the signature ( if not a session init ) 
+		if( serviceType != 'session' ){
+			param['kalsig'] = _this.getSignature( param );
+		}
+
+		// Build the request url with sorted params:
+		var requestURL = _this.getApiUrl(serviceType) + '&' + $.param( param );
+		
+		var globalCBName = 'kapi_' + _this.getSignature( param );
+		if( window[ globalCBName ] ){
+			mw.log("Error global callback name already exists: " + globalCBName );
+			// Update the globalCB name inx.
+			this.callbackIndex++;
+			globalCBName = globalCBName + this.callbackIndex;
+		}
+		window[ globalCBName ] = function( data ){
+			// issue the local scope callback:
+			callback( data );
+			// null this global function name: 
+			window[ globalCBName ] = null;
+		};
+		requestURL+= '&callback=' + globalCBName; 
+		mw.log("kAPI:: doApiRequest: " + requestURL);
+		$.getScript( requestURL );
+	},
+	getApiUrl : function( serviceType ){
+		var serviceUrl = mw.getConfig( 'Kaltura.ServiceUrl' );
+		if( serviceType && serviceType == 'stats' &&  mw.getConfig( 'Kaltura.StatsServiceUrl' ) ) {
+			serviceUrl = mw.getConfig( 'Kaltura.StatsServiceUrl' );
+		}
+		return serviceUrl + mw.getConfig( 'Kaltura.ServiceBase' ) + serviceType;
 	},
 	getSignature: function( params ){
 		params = this.ksort(params);
@@ -171,23 +199,28 @@ mw.KApi.prototype = {
 		var _this = this;
 		var requestObject = [];
 		mw.log( "KApi:: playerLoader, in cache: " + !!( this.playerLoaderCache[ this.getCacheKey( kProperties ) ] ) );
-		if( this.playerLoaderCache[ this.getCacheKey( kProperties ) ] ){
+		if( this.getCacheKey( kProperties ) && this.playerLoaderCache[ this.getCacheKey( kProperties ) ] ){
 			callback( this.playerLoaderCache[ this.getCacheKey( kProperties ) ] );
 			return ;
 		}
 		// Check if we have ks flashvar and use it for our request
 		if( kProperties.flashvars && kProperties.flashvars.ks ) {
 			this.setKS( kProperties.flashvars.ks );
-		};
+		}
+
+		// Always ask for uiConf
+		requestObject.push({
+				'service' : 'uiconf',
+				'id' : kProperties.uiconf_id,
+				'action' : 'get'
+		});
+
 		if( kProperties.entry_id ){
 			// The referring  url ( can be from the iframe if in iframe mode ) 
 			var refer = ( mw.getConfig( 'EmbedPlayer.IframeParentUrl') ) ? 
 							mw.getConfig( 'EmbedPlayer.IframeParentUrl') : 
 							document.URL;
-
-			// Removes all hash information from referrer
-			// Sometimes the hash is too long and breaks the api request
-			refer = refer.substr(0,refer.indexOf('#'));
+			refer = refer.substr(0,refer.indexOf("#"));
 			
 			// Add Context Data request 			
 			requestObject.push({
@@ -215,7 +248,7 @@ mw.KApi.prototype = {
 		        	 'entryId' : kProperties.entry_id
 		    });
 						
-		    // Get custom Metadata
+		    // Get custom Metadata	
 			requestObject.push({
 	        	 'service' : 'metadata_metadata',
 	        	 'action' : 'list',
@@ -244,16 +277,7 @@ mw.KApi.prototype = {
 			    });
 			}
 			
-		}		
-		if( kProperties.uiconf_id ){
-			// Get Ui Conf if property is present
-			requestObject.push({
-		        	'service' : 'uiconf',
-		        	'id' : kProperties.uiconf_id,
-		        	'action' : 'get'
-		    });
 		}
-
 		
 
 		// Do the request and pass along the callback
@@ -261,25 +285,24 @@ mw.KApi.prototype = {
 			mw.log( "KApi:: playerLoader got data response" );
 			var namedData = {};
 			// Name each result data type for easy access
-			if( kProperties.entry_id ){ 
-				namedData['accessControl'] = data[0];
-				namedData['flavors'] = data[1];
-				namedData['meta'] = data[2];
-				namedData['entryMeta'] = _this.convertCustomDataXML( data[3] );
 
-				if( kProperties.uiconf_id ){
-					if( data[5] ){
-						namedData['uiConf'] = data[5]['confFile'];
-					}
-				}
-				if( data[4] && data[4].totalCount > 0 ) {
-					namedData['entryCuePoints'] = data[4].objects;
-				}
-					
-			} else if( kProperties.uiconf_id ){
-				// If only loading the confFile set here: 
+			// Check if we got uiConf
+			if( data[0].code ) {
+				mw.log('Error getting uiConf: ' + data[0].message);
+			} else {
 				namedData['uiConf'] = data[0]['confFile'];
-			}	
+			}
+
+			if( kProperties.entry_id ){ 
+				namedData['accessControl'] = data[1];
+				namedData['flavors'] = data[2];
+				namedData['meta'] = data[3];
+				namedData['entryMeta'] = _this.convertCustomDataXML( data[4] );
+
+				if( data[5] && data[5].totalCount > 0 ) {
+					namedData['entryCuePoints'] = data[5].objects;
+				}
+			}
 			_this.playerLoaderCache[ _this.getCacheKey( kProperties ) ] = namedData;
 			callback( namedData );
 		});
@@ -287,9 +310,9 @@ mw.KApi.prototype = {
 	convertCustomDataXML: function( data ){
 		var result = {};
 		if( data && data.objects && data.objects[0] ){			
-			var xml = $j.parseXML( data.objects[0].xml );		
-			var $xml = $j( xml ).find('metadata').children();			
-			$j.each( $xml, function(inx, node){
+			var xml = $.parseXML( data.objects[0].xml );		
+			var $xml = $( xml ).find('metadata').children();			
+			$.each( $xml, function(inx, node){
 				result[ node.nodeName ] = node.textContent;
 			});		
 		}
@@ -302,17 +325,19 @@ mw.KApi.prototype = {
 	 */
 	getCacheKey: function( kProperties ){
 		var rKey = '';
-		$j.each(kProperties, function(inx, value){
-			if( inx == 'flashvars' ){
-				// add in the flashvars that can vary the api response
-				if( typeof kProperties.flashvars == 'object'){
-					rKey += kProperties.flashvars.getCuePointsData;
-					rKey += kProperties.flashvars.ks
+		if( kProperties ){
+			$.each(kProperties, function( inx, value ){
+				if( inx == 'flashvars' ){
+					// add in the flashvars that can vary the api response
+					if( typeof kProperties.flashvars == 'object'){
+						rKey += kProperties.flashvars.getCuePointsData;
+						rKey += kProperties.flashvars.ks
+					}
+				} else {
+					rKey+=inx + '_' + value;
 				}
-			} else {
-				rKey+=inx + '_' + value;
-			}
-		});
+			});
+		}
 		return rKey;
 	}
 };
@@ -341,8 +366,12 @@ mw.KApiPlayerLoader = function( kProperties, callback ){
 	}
 	// Convert widget_id to partner id
 	var kClient = mw.kApiGetPartnerClient( kProperties.widget_id );
-	kClient.playerLoader( kProperties, callback );
-	
+	kClient.playerLoader( kProperties, function( data ){
+		// Add a timeout so that we return the kClient before issuing the callback
+		setTimeout(function(){
+			callback( data );
+		},1);
+	});
 	// Return the kClient api object for future requests
 	return kClient;
 };
@@ -350,3 +379,5 @@ mw.KApiRequest = function( partnerId, requestObject, callback ){
 	var kClient = mw.kApiGetPartnerClient( partnerId );
 	kClient.doRequest( requestObject, callback );
 };
+
+})( window.mw, jQuery );

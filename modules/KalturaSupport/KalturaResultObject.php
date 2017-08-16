@@ -2,7 +2,8 @@
 
 // Include the kaltura client
 require_once(  dirname( __FILE__ ) . '/kaltura_client_v3/KalturaClient.php' );
-
+// Include the kaltura named multi request helper class: 
+require_once(  dirname( __FILE__ ) . '/KalturaNamedMultiRequest.php');
 
 /**
  * Generates a kaltura result object based on url Parameters 
@@ -13,6 +14,8 @@ class KalturaResultObject {
 	var $clientTag = null;
 	var $uiConfXml = null; // lazy init
 	var $noCache = false;
+	// flag to control if we are in playlist mode
+	var $isPlaylist = false;
 	
 	// Local flag to store whether output was came from cache or was a fresh request
 	private $outputFromCache = false;
@@ -29,8 +32,13 @@ class KalturaResultObject {
 		'flashvars' => null,
 		'playlist_id' => null,
 		'urid' => null,
+		// Custom service url properties ( only used when wgKalturaAllowIframeRemoteService is set to true ) 
+		'ServiceUrl'=> null,
+		'ServiceBase'=>null,
+		'CdnUrl'=> null,
+		'UseManifestUrls' => null
+	
 	);
-
 	function __construct( $clientTag = 'php'){
 		$this->clientTag = $clientTag;
 		//parse input:
@@ -38,7 +46,59 @@ class KalturaResultObject {
 		// load the request object:
 		$this->getResultObject();
 	}
+	function getServiceConfig( $name ){
+		global $wgKalturaAllowIframeRemoteService;
+		// Check if we allow URL override: 
+		if( $wgKalturaAllowIframeRemoteService ){
+			// Check for urlParameters
+			if( isset( $this->urlParameters[ $name ] ) ){
+				return $this->urlParameters[ $name ];
+			}
+		}
+		// Else use the global config: 
+		switch( $name ){
+			case 'ServiceUrl' : 
+				global $wgKalturaServiceUrl;
+				return $wgKalturaServiceUrl;
+				break;
+			case 'ServiceBase':
+				global $wgKalturaServiceBase;
+				return $wgKalturaServiceBase;
+				break;
+			case 'CdnUrl':
+				global $wgKalturaCDNUrl;
+				return $wgKalturaCDNUrl;
+				break;
+			case 'UseManifestUrls':
+				global $wgKalturaUseManifestUrls;
+				return $wgKalturaUseManifestUrls;
+				break;
+		}
+		// else thorw an erro? 
+	}
 
+	// Returns the value of given flashvar
+	// Make sure to use '===' when comparing values
+	function getFlashvarConfig( $name ) {
+		// If no flash vars retrun false
+		if( !isset ($this->urlParameters[ 'flashvars' ]) ) {
+			return null;
+		}
+
+		// If value doesn't exists retrun false
+		if( !isset( $this->urlParameters[ 'flashvars' ][ $name ] ) ) {
+			return null;
+		}
+
+		$value = $this->urlParameters[ 'flashvars' ][ $name ];
+		// If value has boolean value, return it as boolean
+		if( $value == "true") {
+			$value = true;
+		} elseif( $value == "false" ) {
+			$value = false;
+		}
+		return $value;
+	}
 	/**
 	 * Kaltura object provides sources, sometimes no sources are found or an error occurs in 
 	 * a video delivery context we don't want ~nothing~ to happen instead we send a special error
@@ -92,12 +152,15 @@ class KalturaResultObject {
 	
 	// Check if the requested url is a playlist
 	public function isPlaylist(){
+		// first check the flag
+		if( $this->isPlaylist )
+			return true;
+		// else check url params: 
 		return ( $this->urlParameters['playlist_id'] !== null || $this->urlParameters['entry_id'] === null);
 	}
 	public function isCachedOutput(){
 		return $this->outputFromCache;
 	}
-	
 	private function getUserAgent() {
 		return $_SERVER['HTTP_USER_AGENT'];
 	}
@@ -106,23 +169,18 @@ class KalturaResultObject {
 	 * this check is run as part of resultObject handling so we must pass in the uiConf string
 	 */ 
 	public function isUserAgentRestrictedPlugin( $uiConf ) {
-		// Get flashvars
-		$flashVars = $this->urlParameters[ 'flashvars' ];
+		//echo('<textarea style="width: 100%; height: 100%;">' . $uiConf . '</textarea>'); exit();
 		$restrictedMessage = true;
-		
-		
 		// Check for plugin definition in flashVars
-		if( $flashVars && isset($flashVars['restrictUserAgent.plugin']) ) {
-			$restrictedStrings = $flashVars['restrictUserAgent.restrictedUserAgents'];
-			if( isset($flashVars['restrictUserAgent.restrictedUserAgentTitle']) && isset($flashVars['restrictUserAgent.restrictedUserAgentMessage']) ) {
-				$restrictedMessage = $flashVars['restrictUserAgent.restrictedUserAgentTitle'] ."\n". $flashVars['restrictUserAgent.restrictedUserAgentMessage'];
+		if( $this->getFlashvarConfig('restrictUserAgent.plugin') ) {
+			$restrictedStrings = $this->getFlashvarConfig('restrictUserAgent.restrictedUserAgents');
+			if( $this->getFlashvarConfig('restrictUserAgent.restrictedUserAgentTitle') && $this->getFlashvarConfig('restrictUserAgent.restrictedUserAgentMessage') ) {
+				$restrictedMessage = $this->getFlashvarConfig('restrictUserAgent.restrictedUserAgentTitle') ."\n". $this->getFlashvarConfig('restrictUserAgent.restrictedUserAgentMessage');
 			}
 		} else {
-			// Use the local uiConfXml object location to avoid re-parsing the uiConf
-			// @@TODO clean up getUiConfXMl() method to handle unitialized resultObject state
-			if( !$this->uiConfXml ){
-				$this->uiConfXml = new SimpleXMLElement( $uiConf );
-			}
+		
+			// Pass in the uiConf string ( need to clean up resultObject parsing logic ) 
+			$this->getUiConfXMl( $uiConf );
 			// Check for plug definition in uiConf
 			$restrictUserAgentPlugin = $this->uiConfXml->xpath("*//Plugin[@id = 'restrictUserAgent']");
 			if( $restrictUserAgentPlugin ) {
@@ -258,7 +316,7 @@ class KalturaResultObject {
 
 		/* Country Restricted */
 		if( $accessControl->isCountryRestricted) {
-			return "Un authorized country\nWe're sorry, this content is only available on certain countries.";
+			return "Un authorized country\nWe're sorry, this content is only available in certain countries.";
 		}
 
 		/* IP Address Restricted */
@@ -282,28 +340,32 @@ class KalturaResultObject {
 		if( isset( $accessControl->isUserAgentRestricted ) && $accessControl->isUserAgentRestricted ) {
 			return $userAgentMessage;
 		} else {
-			$userAgentRestricted = $this->isUserAgentRestrictedPlugin( $resultObject[ 'uiConf'] );
-			if( $userAgentRestricted === false ) {
-				return true;
-			} else {
-				if( $userAgentRestricted === true ) {
-					return $userAgentMessage;
+			if( isset( $resultObject['uiConf'] ) ){
+				$userAgentRestricted = $this->isUserAgentRestrictedPlugin( $resultObject['uiConf'] );
+				if( $userAgentRestricted === false ) {
+					return true;
 				} else {
-					return $userAgentRestricted;
+					if( $userAgentRestricted === true ) {
+						return $userAgentMessage;
+					} else {
+						return $userAgentRestricted;
+					}
 				}
 			}
 		}
 		return true;
 	}
+	
 	// Load the Kaltura library and grab the most compatible flavor
 	public function getSources(){
-		global $wgKalturaServiceUrl, $wgKalturaCDNUrl, $wgKalturaUseManifestUrls, $wgKalturaUseAppleAdaptive;
+		global $wgKalturaServiceUrl, $wgKalturaUseAppleAdaptive;
 		// Check the access control before returning any source urls
 		if( !$this->isAccessControlAllowed() ) {
 			return array();
 		}
 
 		$resultObject =  $this->getResultObject(); 
+		
 		// add any web sources
 		$sources = array();
 
@@ -323,16 +385,19 @@ class KalturaResultObject {
 		$iphoneFlavors = '';
 
 		// Decide if to use playManifest or flvClipper URL
-		if( $wgKalturaUseManifestUrls ){
-			$flavorUrl =  $wgKalturaServiceUrl .'/p/' . $this->getPartnerId() . '/sp/' .
+		if( $this->getServiceConfig( 'UseManifestUrls' ) ){
+			$flavorUrl =  $this->getServiceConfig( 'ServiceUrl' ) .'/p/' . $this->getPartnerId() . '/sp/' .
 			$this->getPartnerId() . '00/playManifest/entryId/' . $this->urlParameters['entry_id'];			
 		} else {
-			$flavorUrl = $wgKalturaCDNUrl .'/p/' . $this->getPartnerId() . '/sp/' .
+			$flavorUrl = $this->getServiceConfig( 'CdnUrl' ) .'/p/' . $this->getPartnerId() . '/sp/' .
 			$this->getPartnerId() . '00/flvclipper/entry_id/' .
 			$this->urlParameters['entry_id'];
 		}
 		
 		$videoIsTranscodingFlag = false;
+		if( !isset( $resultObject['flavors'] ) ){
+			return array();
+		}
 		foreach( $resultObject['flavors'] as $KalturaFlavorAsset ){
 			// if flavor status is not ready - continute to the next flavor
 			if( $KalturaFlavorAsset->status != 2 ) { 
@@ -449,7 +514,7 @@ class KalturaResultObject {
 			);
 		}
 		// Add in playManifest authentication tokens ( both the KS and referee url ) 
-		if( $wgKalturaUseManifestUrls ){
+		if( $this->getServiceConfig( 'UseManifestUrls' ) ){
 			foreach($sources as &$source ){
 				if( isset( $source['src'] )){
 					$source['src'] .= '?ks=' . $this->getKS() . '&referrer=' . base64_encode( $this->getReferer() );
@@ -462,7 +527,7 @@ class KalturaResultObject {
 	
 	// Parse the embedFrame request and sanitize input
 	private function parseRequest(){
-		global $wgAllowRemoteKalturaService, $wgEnableScriptDebug, $wgKalturaUseAppleAdaptive, 
+		global $wgEnableScriptDebug, $wgKalturaUseAppleAdaptive, 
 				$wgKalturaPartnerDisableAppleAdaptive;
 		// Support /key/value path request:
 		if( isset( $_SERVER['PATH_INFO'] ) ){
@@ -491,8 +556,16 @@ class KalturaResultObject {
 				}
 			}
 		}
-
-		// add p == _widget
+		// string to bollean  
+		foreach( $this->urlParameters as $k=>$v){
+			if( $v == 'false'){
+				$this->urlParameters[$k] = false;
+			}
+			if( $v == 'true' ){
+				$this->urlParameters[$k] = true;
+			}
+		}
+		
 		if( isset( $this->urlParameters['p'] ) && !isset( $this->urlParameters['wid'] ) ){
 			$this->urlParameters['wid'] = '_' . $this->urlParameters['p'];  
 		}
@@ -514,18 +587,6 @@ class KalturaResultObject {
 			throw new Exception( 'Can not display player, missing widget id' );
 		}
 		
-		// If remote service is allowed enable the $wgKalturaServiceUrl $wgKalturaCDNUrl and $wgKalturaServiceBase to be set via iframe request
-		// NOTE this is kind of dangerous XSS wise and should only be used in testing
-		if( $wgAllowRemoteKalturaService ){
-			global $wgKalturaServiceUrl, $wgKalturaCDNUrl,  $wgKalturaServiceBase;
-			if( isset( $_REQUEST['host'] ) ){
-				$wgKalturaServiceUrl = 'http://' . $_REQUEST['host'];
-			}
-			if( isset( $_REQUEST['cdnHost'] ) ){
-				$wgKalturaCDNUrl = 'http://' .  $_REQUEST['cdnHost'];
-			}
-		}
-		
 		// Dissable apple adaptive per partner id:
 		if( in_array( $this->getPartnerId(), $wgKalturaPartnerDisableAppleAdaptive ) ){
 			$wgKalturaUseAppleAdaptive = false;
@@ -545,7 +606,6 @@ class KalturaResultObject {
 	 * Returns a cache key for the result object based on Referer and partner id
 	 */
 	private function getResultObjectCacheKey(){
-		global $wgKalturaServiceUrl;		
 		// Get a key based on partner id,  entry_id and ui_confand and refer url:
 		$playerUnique = ( isset( $this->urlParameters['entry_id'] ) ) ?  $this->urlParameters['entry_id'] : '';
 		$playerUnique .= ( isset( $this->urlParameters['uiconf_id'] ) ) ?  $this->urlParameters['uiconf_id'] : '';
@@ -553,93 +613,166 @@ class KalturaResultObject {
 		$playerUnique .= $this->getReferer();
 
 		// hash the service url, the partner_id, the player_id and the Referer url: 
-		return substr( md5( $wgKalturaServiceUrl ), 0, 5 ) . '_' . $this->getPartnerId() . '_' . 
+		return substr( md5( $this->getServiceConfig( 'ServiceUrl' )  ), 0, 5 ) . '_' . $this->getPartnerId() . '_' . 
 			   substr( md5( $playerUnique ), 0, 16 );
 	}
 
 	private function getResultObjectFromApi(){
-		$client = $this->getClient();
-		if( ! $client ){
-			return array();
-		}
-		$client->startMultiRequest();
 		if( $this->isPlaylist() ){
-			return $this->getPlaylistResult( $client );
+			return $this->getPlaylistResult();
 		} else {
-			return $this->getEntryResult( $client );
+			return $this->getEntryResult();
 		}
+	
 	}
-	function getPlaylistResult( &$client ){
-
+	function getPlaylistResult(){
 		// if no uiconf_id .. now way to return playlist data
 		if( !$this->urlParameters['uiconf_id']) {
 			return array();
 		}
-		try{
+		$client = $this->getClient();
+		try {
 			$client->addParam( $kparams, "id",  $this->urlParameters['uiconf_id'] );
 			$client->queueServiceActionCall( "uiconf", "get", $kparams );
 			$kparams = array();
 			
 			$rawResultObject = $client->doQueue();
 		} catch( Exception $e ){
-			// update the Exception and pass it upward
+			// Update the Exception and pass it upward
 			throw new Exception( KALTURA_GENERIC_SERVER_ERROR . "\n" . $e->getMessage() );
 			return array();
 		}
-		
 		$resultObject = $this->getBaseResultObject();
-		if( isset( $rawResultObject[0] ) && $rawResultObject[0]->confFile ){
+		if( isset( $rawResultObject ) && $rawResultObject->confFile ){
 			$resultObject[ 'uiconf_id' ] = $this->urlParameters['uiconf_id'];
-			$resultObject[ 'uiConf'] = $rawResultObject[0]->confFile;
+			$resultObject[ 'uiConf'] = $rawResultObject->confFile;
 		}
-		return $resultObject;
+		
+		// Try to parse the uiconf data: 
+		$uiConfXml = new SimpleXMLElement( $resultObject[ 'uiConf'] );
+		
+		// Get the first playlist list:
+		$playlistId =  $this->getFirstPlaylistId( $uiConfXml );
+		$playlistObject = $this->getPlaylistObject( $playlistId  );
+
+		// Create an empty resultObj
+		if( isset( $playlistObject[0] ) && $playlistObject[0]->id ){
+			// Set the isPlaylist flag now that we are for sure dealing with a playlist
+			$this->isPlaylist = true;
+			$this->urlParameters['entry_id'] = $playlistObject[0]->id;
+			// Now that we have all the entry data, return that:
+			$resultObj = $this->getEntryResult();
+			
+			// Include the playlist in the response:
+			$resultObj[ 'playlistCache' ] = array(
+				$playlistId => $playlistObject
+			);
+			return $resultObj;
+		} else {
+			// XXX could not get first playlist item: 	
+			return array();
+		}
+		
 	}
-	function getEntryResult( &$client ){
+	/**
+	 * Get playlist object
+	 */
+	function getPlaylistObject( $playlistId ){ 
+		$client = $this->getClient();
+		// Build the reqeust: 
+		$kparams = array();
+		try {
+			$client->addParam( $kparams, "id", $playlistId);
+			$client->queueServiceActionCall( "playlist", "execute", $kparams );
+			$kparams = array();
+			
+			return $client->doQueue();
+		} catch( Exception $e ){
+			// Throw an Exception and pass it upward
+			throw new Exception( KALTURA_GENERIC_SERVER_ERROR . "\n" . $e->getMessage() );
+			return false;
+		}
+	}
+	/**
+	 * Get the XML for the first playlist ( the one likely to be displayed ) 
+	 * 
+	 * this is so we can pre-load details about the first entry for fast playlist loading,
+	 * and so that the first entry video can be in the page at load time.   
+	 */
+	function getFirstPlaylistId( &$uiConfXml ){
+		// Setup the intial playlist id to null 
+		$playlistId = null;
+		$checkFlashVar = true;
+		// Check for uiConf style playlist id ( should only match one )
+		$result = $uiConfXml->xpath( "*//var[@key = 'playlistAPI.kpl0Url']" );
+		if( isset( $result[0] ) ){
+			foreach ( $result[0]->attributes() as $key => $val ) {
+				if( $key == 'value' ){
+					$playlistId = urldecode( $val );
+				}
+				if( $key == 'overrideflashvar' && $val == 'true' ){
+					$checkFlashVar = false;	
+				}
+			}
+		}
+		// Check for flashvar style playlist id
+		if( $checkFlashVar && $this->getFlashvarConfig('playlistAPI.kpl0Url') ){
+			// Check for flashvar 
+			$playlistId = $this->getFlashvarConfig('playlistAPI.kpl0Url');
+			
+		}
+		$playlistId = htmlspecialchars_decode( $playlistId );
+		// Parse out the "playlistId from the url ( if its a url )
+		$plParsed = parse_url( $playlistId );
+
+		if( is_array( $plParsed ) && isset( $plParsed['query'] ) ){
+			$args = explode("&", $plParsed['query'] );
+			foreach( $args as $inx => $argSet ){
+				list( $key, $val )	= explode('=', $argSet );
+				if( $key == 'playlist_id' ){
+					$playlistId = $val;
+				}
+			}
+		}
+		return $playlistId;
+	}
+	
+	function getEntryResult(){
 		global $wgKalturaEnableCuePointsRequest;
-		try{
+		$client = $this->getClient();
+		$client->startMultiRequest();
+		try {
 			// NOTE this should probably be wrapped in a service class
 			$kparams = array();
 
-			// if no cache flag is on, ask the client to get request without cache
+			// If no cache flag is on, ask the client to get request without cache
 			if( $this->noCache ) {
 				$client->addParam( $kparams, "nocache",  true );
 				$default_params = $kparams;
 			} else {
 				$default_params = array();
 			}
-
-			// sources
-			$client->addParam( $kparams, "entryId",  $this->urlParameters['entry_id'] );
-			$client->queueServiceActionCall( "flavorAsset", "getByEntryId", $kparams );
-			$kparams = $default_params;
+			$namedMultiRequest = new KalturaNamedMultiRequest( $client, $default_params );
 			
-			// access control NOTE: kaltura does not use http header spelling of Referer instead kaltura uses: "referrer"
-			$client->addParam( $kparams, "entryId",  $this->urlParameters['entry_id'] );
-			$client->addParam( $kparams, "contextDataParams",  array( 'referrer' =>  $this->getReferer() ) );
-			$client->queueServiceActionCall( "baseEntry", "getContextData", $kparams );
-			$kparams = $default_params;
+			// Flavors: 
+			$entryParam = array( 'entryId' => $this->urlParameters['entry_id'] );
+			$namedMultiRequest->addNamedRequest( 'flavors', 'flavorAsset', 'getByEntryId', $entryParam );
+				
+			// Access control NOTE: kaltura does not use http header spelling of Referer instead kaltura uses: "referrer"
+			$params = array_merge( $entryParam, array( "contextDataParams" => array( 'referrer' =>  $this->getReferer() ) ) );
+			$namedMultiRequest->addNamedRequest( 'accessControl', 'baseEntry', 'getContextData', $params );
 
 			// Entry Meta
-			$client->addParam( $kparams, "entryId",  $this->urlParameters['entry_id'] );
-			$client->queueServiceActionCall( "baseEntry", "get", $kparams );						
-			$kparams = $default_params;
-
-			// UiconfId
-			if( $this->urlParameters['uiconf_id']) {
-				$client->addParam( $kparams, "id",  $this->urlParameters['uiconf_id'] );
-				$client->queueServiceActionCall( "uiconf", "get", $kparams );
-				$kparams = $default_params;
-			}
-
-			// Entry Custom Metadata
-			// Load entry custom metadata only when this flashvar available (same as KDP).
-			$loadCustomMetadata = false;
-			if( isset( $this->urlParameters[ 'flashvars' ][ 'requiredMetadataFields' ] ) &&
-					$this->urlParameters[ 'flashvars' ][ 'requiredMetadataFields' ] == "true" ) {
-				$loadCustomMetadata = true;
+			$namedMultiRequest->addNamedRequest( 'meta', 'baseEntry', 'get', $entryParam );
+			
+			if( $this->urlParameters['uiconf_id'] ) {
+				$params =  array( "id" =>  $this->urlParameters['uiconf_id'] );
+				$namedMultiRequest->addNamedRequest( 'uiConf', "uiconf", "get", $params );
 			}
 			
-			if( $loadCustomMetadata ) {
+			// Entry Custom Metadata
+			// Always get custom metadata for now 
+			//if( $this->getFlashvarConfig('requiredMetadataFields') ) {
 				$filter = new KalturaMetadataFilter();
 				$filter->orderBy = KalturaMetadataOrderBy::CREATED_AT_ASC;
 				$filter->objectIdEqual = $this->urlParameters['entry_id'];
@@ -647,80 +780,61 @@ class KalturaResultObject {
 				$metadataPager =  new KalturaFilterPager();
 				$metadataPager->pageSize = 1;
 
-				$client->addParam( $kparams, "filter",  $filter );
-				$client->addParam( $kparams, "metadataPager",  $metadataPager );
-				$client->queueServiceActionCall( "metadata_metadata", "list", $kparams );
-				$kparams = $default_params;
-			}
-
+				$params = array( 'filter' => $filter, 'metadataPager', $metadataPager );
+				$namedMultiRequest->addNamedRequest( 'entryMeta', 'metadata_metadata', 'list', $params );
+			//}
+			
 			// Entry Cue Points
-			// By default we load the cue points unless there's a flashvar who says no
-			$loadCuePoints = true; 
-			if( isset( $this->urlParameters[ 'flashvars' ][ 'getCuePointsData' ] ) &&
-					$this->urlParameters[ 'flashvars' ][ 'getCuePointsData' ] == "false" ) {
-				$loadCuePoints = false;
-			}
-
-			if( $loadCuePoints && $wgKalturaEnableCuePointsRequest ) {
+			if( $this->getFlashvarConfig('getCuePointsData') !== false ) {
 				$filter = new KalturaCuePointFilter();
 				$filter->orderBy = KalturaAdCuePointOrderBy::START_TIME_ASC;
 				$filter->entryIdEqual = $this->urlParameters['entry_id'];
 
-				$client->addParam( $kparams, "filter",  $filter );
-				$client->queueServiceActionCall( "cuepoint_cuepoint", "list", $kparams );
-				$kparams = $default_params;
+				$params = array( 'filter' => $filter );
+				$namedMultiRequest->addNamedRequest( 'entryCuePoints', "cuepoint_cuepoint", "list", $params );
 			}
+			// Get the result object as a combination of baseResult and multiRequest
+			$resultObject = $namedMultiRequest->doQueue();
+			// merge in the base result object:
+			$resultObject = array_merge( $this->getBaseResultObject(), $resultObject);
 			
-			$rawResultObject = $client->doQueue();
-
 			// Check if the server cached the result by search for "cached-dispatcher" in the request headers
 			// If not, do not cache the request (Used for Access control cache issue)
 			$requestCached = strpos($client->getHeaders(), "X-Kaltura: cached-dispatcher");
 			if( $requestCached === false ) {
 				$this->noCache = true;
 			}
-
-			$client->throwExceptionIfError( $this->resultObj );
+			
 		} catch( Exception $e ){
 			// Update the Exception and pass it upward
 			throw new Exception( KALTURA_GENERIC_SERVER_ERROR . "\n" . $e->getMessage() );
 			return array();
 		}
-
-		// Check that the ks was valid: 
-		if( isset( $rawResultObject[0]['code'] ) && $rawResultObject[0]['code'] == 'INVALID_KS' ){
+		// Check that the ks was valid on the first response ( flavors ) 
+		if( isset( $resultObject['flavors']['code'] ) && $resultObject['flavors']['code'] == 'INVALID_KS' ){
 			throw new Exception( 'Error invalid KS');
 			return array();
 		}
-
-		$resultObject = array_merge( $this->getBaseResultObject(), array(
-			'flavors' 			=> 	$rawResultObject[0],
-			'accessControl' 	=> 	$rawResultObject[1],
-			'meta'				=>	$rawResultObject[2]
-		) );
-
-		if( isset( $rawResultObject[3] ) && $rawResultObject[3]->confFile ){
-			$resultObject[ 'uiconf_id' ] = $this->urlParameters['uiconf_id'];
-			$resultObject[ 'uiConf'] = $rawResultObject[3]->confFile;
-		}
-
-		if( isset( $rawResultObject[4]->objects ) &&
-			isset( $rawResultObject[4]->objects[0] ) &&
-			isset( $rawResultObject[4]->objects[0]->xml )
-		){
-			$resultObject['entryMeta'] = $this->xmlToArray( new SimpleXMLElement( $rawResultObject[3]->objects[0]->xml ) );
+		// Convert entryMeta to entryMeta XML
+		if( isset( $resultObject['entryMeta'] ) && 
+			isset( $resultObject['entryMeta']->objects[0] ) && 
+			isset( $resultObject['entryMeta']->objects[0]->xml )
+		){			
+			$resultObject['entryMeta'] = $this->xmlToArray( new SimpleXMLElement( $resultObject['entryMeta']->objects[0]->xml ) );
 		}
 		
-		//echo '<pre>'; print_r( $rawResultObject[4] ); exit();
-		//echo htmlspecialchars($rawResultObject[4]->confFile); exit();
-
-		// Set cuePoints index if we load custom metadata or not
-		$cuePointsIndex = ($loadCustomMetadata) ? 5 : 4;
-		// Add Cue Point data. Also check for 'code' error
-		if( isset( $rawResultObject[$cuePointsIndex] ) && is_object( $rawResultObject[$cuePointsIndex] ) && $rawResultObject[$cuePointsIndex]->totalCount > 0 ){
-			$resultObject[ 'entryCuePoints' ] = $rawResultObject[$cuePointsIndex]->objects;
+		// Convert uiConf to confFile response
+		if( isset( $resultObject['uiConf'] ) && $resultObject['uiConf']->confFile ){
+			$resultObject[ 'uiconf_id' ] = $this->urlParameters['uiconf_id'];
+			$resultObject[ 'uiConf'] = $resultObject['uiConf']->confFile;
 		}
 
+		// Add Cue Point data. Also check for 'code' error
+		if( isset( $resultObject['entryCuePoints'] ) && is_object( $resultObject['entryCuePoints'] )
+			&& $resultObject['entryCuePoints']->totalCount > 0 ){
+			$resultObject[ 'entryCuePoints' ] = $resultObject['entryCuePoints']->objects;
+		}
+		
 		// Check access control and throw an exception if not allowed: 
 		$acStatus = $this->isAccessControlAllowed( $resultObject );
 		if( $acStatus !== true ){
@@ -729,6 +843,7 @@ class KalturaResultObject {
 		
 		return $resultObject;
 	}
+
 	function getBaseResultObject(){
 		$baseResultObject = array(
 			'partner_id'		=>	$this->getPartnerId(),
@@ -741,19 +856,19 @@ class KalturaResultObject {
 	}
 	
 	/**
-	 * convert smimple xml to array
+	 * convert xml data to array
 	 */
 	function xmlToArray ( $data ){
-		if (is_object($data)) $data = get_object_vars($data);
+		if ( is_object($data) ){
+			$data = get_object_vars($data);
+		}
 		return (is_array($data)) ? array_map( array( $this, __FUNCTION__) ,$data) : $data;
-	}
-	
+	}	
 	private function getReferer(){
 		return ( isset( $_SERVER['HTTP_REFERER'] ) ) ? $_SERVER['HTTP_REFERER'] : 'http://www.kaltura.org/';
 	}
-
 	private function getClient(){
-		global $mwEmbedRoot, $wgKalturaUiConfCacheTime, $wgKalturaServiceUrl, $wgScriptCacheDirectory, 
+		global $mwEmbedRoot, $wgKalturaUiConfCacheTime, $wgScriptCacheDirectory, 
 			$wgMwEmbedVersion, $wgKalturaServiceTimeout;
 
 		$cacheDir = $wgScriptCacheDirectory;
@@ -763,14 +878,15 @@ class KalturaResultObject {
 
 		$conf = new KalturaConfiguration( $this->getPartnerId() );
 
-		$conf->serviceUrl = $wgKalturaServiceUrl;
+		$conf->serviceUrl = $this->getServiceConfig( 'ServiceUrl' );
+		$conf->serviceBase = $this->getServiceConfig( 'ServiceBase' );
 		$conf->clientTag = $this->clientTag;
 		$conf->curlTimeout = $wgKalturaServiceTimeout;
 		$conf->userAgent = $this->getUserAgent();
 		
 		$client = new KalturaClient( $conf );
-		if( isset($this->urlParameters[ 'flashvars' ]) && isset($this->urlParameters[ 'flashvars' ][ 'ks' ]) ) {
-			$this->ks = $this->urlParameters[ 'flashvars' ][ 'ks' ];
+		if( $this->getFlashvarConfig('ks') ) {
+			$this->ks = $this->getFlashvarConfig('ks');
 		} else {
 			// Check modify time on cached php file
 			$filemtime = @filemtime($cacheFile);  // returns FALSE if file does not exist
@@ -825,14 +941,37 @@ class KalturaResultObject {
 			return false;
 		}
 	}
-	public function getUiConfXML(){
+	public function getUiConfXML( $uiConf  = false ){
 		global $wgKalturaIframe;
 		if( !$this->uiConfXml ){
-			if( ! $this->getUiConf() ){
-				return false;
+			if( !$uiConf ){
+				// TODO we need to clean this up because getResultObject has a bit of parsing logic right now.
+				//  getResultObject should not call any parsing functions
+				$uiConf = $this->getUiConf();
 			}
-			$uiConf = str_replace( '[kClick="', 'kClick="', $this->getUiConf() );
+			if( $uiConf == '' ) {
+				// Empty uiConf ( don't try and parse, return an empty object)
+				return new SimpleXMLElement('<xml />' );
+			}
 			// remove this hack as soon as possible
+			$uiConf = str_replace( '[kClick="', 'kClick="', $uiConf);
+			// remove this hack as soon as possible as well!
+			$brokenFlashVarXMl =  'autoPlay=false&screensLayer.startScreenOverId=startScreen&screensLayer.startScreenId=startScreen';
+			$uiConf = str_replace( $brokenFlashVarXMl, htmlentities( $brokenFlashVarXMl ), $uiConf );
+			// handle any non-escapsed &
+			$uiConf = preg_replace('/&[^; ]{0,6}.?/e', "((substr('\\0',-1) == ';') ? '\\0' : '&amp;'.substr('\\0',1))", $uiConf);
+			
+			/*
+			libxml_use_internal_errors(true);
+			$sxe = simplexml_load_string($uiConf);
+			if (!$sxe) {
+			    echo "Failed loading XML\n";
+			    foreach(libxml_get_errors() as $error) {
+			        echo "\t", $error->message;
+			    }
+			}
+			*/
+			
 			$this->uiConfXml = new SimpleXMLElement( $uiConf );
 		}
 		return $this->uiConfXml;
@@ -846,7 +985,6 @@ class KalturaResultObject {
 		}
 	}
 	private function getResultObject(){
-	
 		global $wgKalturaUiConfCacheTime;
 		// Check if we have a cached result object:
 		if( !$this->resultObj ){
@@ -866,6 +1004,10 @@ class KalturaResultObject {
 			}
 		}
 		return $this->resultObj;
+	}
+	public function getFileCacheTime() {
+		$cacheFile = $this->getCacheDir() . '/' . $this->getResultObjectCacheKey() . ".entry.txt";
+		return ( @filemtime( $cacheFile ) )? @filemtime( $cacheFile ) : time();
 	}
 	private function isCachableRequest(){
 		if( $this->isAccessControlAllowed( $this->resultObj ) !== true  ){

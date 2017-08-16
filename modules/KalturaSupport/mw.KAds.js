@@ -1,15 +1,15 @@
 /**
 * Supports the parsing of ads
 */
-
+( function( mw, $ ) {
 //Global mw.addKAd manager
-mw.addKalturaAds = function( embedPlayer, $uiConf, callback ) {
-	embedPlayer.ads = new mw.KAds( embedPlayer, $uiConf, callback );
+mw.addKalturaAds = function( embedPlayer, callback ) {
+	embedPlayer.ads = new mw.KAds( embedPlayer, callback );
 };
 
 mw.sendBeaconUrl = function( beaconUrl ){
-	$j('body').append( 
-		$j( '<img />' ).attr({
+	$('body').append( 
+		$( '<img />' ).attr({
 			'src' : beaconUrl,
 			'width' : 0,
 			'height' : 0
@@ -17,9 +17,9 @@ mw.sendBeaconUrl = function( beaconUrl ){
 	);
 };
 
-mw.KAds = function( embedPlayer, $uiConf, callback) {
+mw.KAds = function( embedPlayer, callback) {
 	// Create a Player Manager
-	return this.init( embedPlayer, $uiConf ,callback );
+	return this.init( embedPlayer, callback );
 };
 
 mw.KAds.prototype = {
@@ -30,87 +30,101 @@ mw.KAds.prototype = {
 		"Interval": 'frequency',
 		"StartAt": 'start'
 	},
-	// Displayed ads
 	displayedCuePoints: [],
+
+	bindPostfix: '.KAds',
 	
-	init: function( embedPlayer, $uiConf, callback ){
+	init: function( embedPlayer, callback ){
 		var _this = this; 
-		this.embedPlayer = embedPlayer;
+
+		// Inherit BaseAdPlugin
+		mw.inherit( this, new mw.BaseAdPlugin(  embedPlayer, callback ) );
+		
+		$( embedPlayer ).bind( 'onChangeMedia' + _this.bindPostfix, function(){
+			_this.destroy();
+		});
+		_this.destroy();
+		
+		// setup local pointer: 
+		var $uiConf = embedPlayer.$uiConf;
 		this.$notice = $uiConf.find( 'label#noticeMessage' );
 		this.$skipBtn = $uiConf.find( 'button#skipBtn' );
-		var configSet = ['htmlCompanions' , 'flashCompanions' ];
-		
-		$.each(this.namedAdTimelineTypes, function( inx, adType ){
-			$j.each( _this.adAttributeMap, function( adAttributeName,  displayConfName ){
-				// Add all the ad types to the config set: 
-				configSet.push( adType + adAttributeName);
-			});
-			// Add the ad type Url
-			configSet.push( adType + 'Url');
-		});
 
-		this.adConfig = kWidgetSupport.getPluginConfig(
-			embedPlayer,
-			$uiConf, 
-			'vast',
-			configSet
-		);
-
-		// Load adTimeline
-		if (!embedPlayer.adTimeline) {
-			embedPlayer.adTimeline = new mw.AdTimeline( embedPlayer );
-		}
-		
 		// Load the Ads from uiConf
 		_this.loadAds( function(){
 			mw.log( "KAds::All ads have been loaded" );
 			callback();
 		});
-
+		
 		// We can add this binding here, because we will always have vast in the uiConf when having cue points
 		// Catch Ads from adOpportunity event
-		$j( this.embedPlayer ).bind('KalturaSupport_AdOpportunity', function( event, cuePoint ) {
-			_this.loadAd( cuePoint );
+		$( embedPlayer ).bind('KalturaSupport_AdOpportunity' + _this.bindPostfix, function( event, cuePointWrapper ) {
+			_this.loadAd( cuePointWrapper );
 		});
+
 	},
-
-	// Load the ad from cue point
-	loadAd: function( cuePoint ) {
+	/**
+	 * Get ad config
+	 * @param name
+	 * @return
+	 */
+	getConfig: function( name ){
 		var _this = this;
-		var adType = _this.getAdTypeFromCuePoint( cuePoint );
+		if( ! this.config ){
+			// Build out the selection of kAds
+			var configSet = [ 'preSequence', 'postSequence', 'htmlCompanions' , 'flashCompanions' ];
+			$.each( this.namedAdTimelineTypes, function( inx, adType ){
+				$.each( _this.adAttributeMap, function( adAttributeName,  displayConfName ){
+					// Add all the ad types to the config set: 
+					configSet.push( adType + adAttributeName);
+				});
+				// Add the ad type Url
+				configSet.push( adType + 'Url');
+			});
 
+			this.config = this.embedPlayer.getKalturaConfig(
+				'vast',
+				configSet
+			);
+		}
+		return this.config[ name ];
+	},
+	// Load the ad from cue point
+	loadAd: function( cuePointWrapper ) {
+		var _this = this;
+		var embedPlayer = this.embedPlayer;
+		var cuePoint = cuePointWrapper.cuePoint;
+		var adType = this.embedPlayer.kCuePoints.getAdSlotType( cuePointWrapper );
+		var adDuration = Math.round( cuePoint.duration / 1000);
 		// Check if cue point already displayed
-		if( $j.inArray(cuePoint.cuePoint.id, _this.displayedCuePoints) >= 0 ) {
+		if( $.inArray( cuePoint.id, _this.displayedCuePoints) >= 0 ) {
 			return ;
 		}
 
-		if( cuePoint.cuePoint.sourceUrl ) {
+		// Load adTimeline
+		if (!_this.embedPlayer.adTimeline) {
+			_this.embedPlayer.adTimeline = new mw.AdTimeline( _this.embedPlayer );
+		}
 
-			// If ad type is midroll pause the video
-			if( adType == 'midroll' ) {
-				// Pause the video
-				_this.embedPlayer.stopEventPropagation();
-				_this.embedPlayer.pause();
-
-				// Add a loader to the embed player:
-				$( _this.embedPlayer )
-				.getAbsoluteOverlaySpinner()
-				.attr('id', _this.embedPlayer.id + '_mappingSpinner' );
-			}
-			
-			mw.AdLoader.load( cuePoint.cuePoint.sourceUrl, function( adConf ){
-
+		// If ad type is midroll pause the video
+		if( adType == 'midroll' ) {
+			_this.embedPlayer.pauseLoading();
+		}
+		
+		if( cuePoint.sourceUrl ) {
+			mw.AdLoader.load( cuePoint.sourceUrl, function( adConf ){
+				
 				var adCuePointConf = {
-					duration: ( (cuePoint.cuePoint.endTime - cuePoint.cuePoint.startTime) / 1000 ),
-					start: ( cuePoint.cuePoint.startTime / 1000  )
+					duration: ( (cuePoint.endTime - cuePoint.startTime) / 1000 ),
+					start: ( cuePoint.startTime / 1000  )
 				};
 
 				var adsCuePointConf = {
 					ads: [
-						$j.extend( adConf.ads[0], adCuePointConf )
+						$.extend( adConf.ads[0], adCuePointConf )
 					],
 					skipBtn: {
-						'text' : "Skip ad",
+						'text' : "Skip ad", // TODO i8ln 
 						'css' : {
 							'right': '5px',
 							'bottom' : '5px'
@@ -119,51 +133,39 @@ mw.KAds.prototype = {
 					type: adType
 				};
 
-				// Add the cue point to Ad Timeline
-				mw.addAdToPlayerTimeline( 
-					_this.embedPlayer,
-					adType,
-					adsCuePointConf
-				);
-
-				var originalSrc = _this.embedPlayer.getSrc();
-				var seekTime = ( parseFloat( cuePoint.cuePoint.startTime / 1000 ) / parseFloat( _this.embedPlayer.duration ) );
-				var oldDuration = _this.embedPlayer.duration;
-
-				// Set restore function
-				var restorePlayer = function() {
-					_this.embedPlayer.restoreEventPropagation();
-					_this.embedPlayer.enableSeekBar();
-				};
+				var originalSrc = embedPlayer.getSrc();
+				var seekTime = ( parseFloat( cuePoint.startTime / 1000 ) / parseFloat( embedPlayer.duration ) );
+				var oldDuration = embedPlayer.duration;
 
 				// Set switch back function
 				var doneCallback = function() {
+					// continue playback ( if not already playing ) 
+					embedPlayer.play();
 					// Add cuePoint Id to displayed cuePoints array
-					_this.displayedCuePoints.push(cuePoint.cuePoint.id);
-
-					var vid = _this.embedPlayer.getPlayerElement();
+					_this.displayedCuePoints.push( cuePoint.id );
+					
+					var vid = embedPlayer.getPlayerElement();
 					// Check if the src does not match original src if
 					// so switch back and restore original bindings
 					if ( originalSrc != vid.src ) {
-						_this.embedPlayer.switchPlaySrc(originalSrc, function() {
+						embedPlayer.switchPlaySrc( originalSrc, function() {
 							mw.log( "AdTimeline:: restored original src:" + vid.src);
 							// Restore embedPlayer native bindings
 							// async for iPhone issues
 							setTimeout(function(){
-								restorePlayer();
+								embedPlayer.adTimeline.restorePlayer();
 							}, 100 );
 
 							// Sometimes the duration of the video is zero after switching source
 							// So i'm re-setting it to it's old duration
-							_this.embedPlayer.duration = oldDuration;
+							embedPlayer.duration = oldDuration;
 							if( adType == 'postroll' ) {
-								mw.log('KAds:: Postroll ended, trigger stop');
 								// Run stop for now.
 								setTimeout( function() {
-									_this.embedPlayer.stop();
+									embedPlayer.stop();
 								}, 100);
 
-								mw.log( "KAds:: run video pause ");
+								mw.log( "AdTimeline:: run video pause ");
 								if( vid && vid.pause ){
 									// Pause playback state
 									vid.pause();
@@ -171,42 +173,33 @@ mw.KAds.prototype = {
 									setTimeout( function(){ if( vid && vid.pause ){ vid.pause(); } }, 100 );
 								}
 							} else {
-								// Seek to where we did the switch
-								_this.embedPlayer.doSeek( seekTime );
-								$j( _this.embedPlayer ).bind('seeked.ad', function() {
+								
+								$( embedPlayer ).bind('seeked' + _this.bindPostfix, function() {
+									embedPlayer.play();
 									setTimeout( function() {
-										_this.embedPlayer.play();
-									}, 150);
-									$j( _this.ebmedPlayer ).unbind('seeked.ad');
+										embedPlayer.play();
+									}, 250);
 								});
+
+								// Seek to where we did the switch
+								embedPlayer.doSeek( seekTime );
 							}
 						});
 					} else {
-						restorePlayer();
+						embedPlayer.adTimeline.restorePlayer();
 					}
 				};
 
 				// If out ad is preroll/midroll/postroll, disable the player 
 				if( adType == 'preroll' || adType == 'midroll' || adType == 'postroll' ){
-					//
-					_this.embedPlayer.disableSeekBar();
-
-					// Remove big play button if we have one
-					if( _this.embedPlayer.$interface ){
-						_this.embedPlayer.$interface.find( '.play-btn-large' ).remove();
-					}
-
-					// Remove loading spinner
-					$j('#' + _this.embedPlayer.id + '_mappingSpinner' ).remove();
-
+					_this.embedPlayer.$interface.find( '.play-btn-large' ).remove();
 				} else {
 					// in case of overlay do nothing
 					doneCallback = function() {};
 				}
 
 				// Tell the player to show the Ad
-				var adDuration = Math.round(cuePoint.cuePoint.duration / 1000);
-				_this.embedPlayer.adTimeline.display( adType, doneCallback, adDuration );
+				_this.embedPlayer.adTimeline.display( adsCuePointConf, doneCallback, adDuration );
 			});
 		}
 	},
@@ -218,28 +211,32 @@ mw.KAds.prototype = {
 		var baseDisplayConf = this.getBaseDisplayConf();
 		// Get ad Configuration
 		this.getAdConfigSet( function( adConfigSet){
-			
 			// Get global timeout ( should be per adType ) 
-			if( _this.adConfig.timeout ){
-				baseDisplayConf[ 'timeout' ] = _this.adConfig.timeout; 
+			if( _this.getConfig( 'timeout' ) ){
+				baseDisplayConf[ 'timeout' ] = _this.getConfig('timeout'); 
 			}
 			
-			// Merge in the companion targets and add to player timeline: 
+			// add in a binding for the adType
 			for( var adType in adConfigSet ){
 				// Add to timeline only if we have ads
 				if( adConfigSet[ adType ].ads ) {
-					mw.addAdToPlayerTimeline(
-						_this.embedPlayer,
-						adType,
-						$j.extend({}, baseDisplayConf, adConfigSet[ adType ] ) // merge in baseDisplayConf
-					);
+					$( _this.embedPlayer ).bind( 'AdSupport_' + adType + _this.bindPostfix, function( event, sequenceProxy ){
+						// add to sequenceProxy:
+						sequenceProxy[ _this.getSequenceIndex( adType ) ] = function( doneCallback ){		
+							var adConfig = $.extend( {}, baseDisplayConf, adConfigSet[ adType ] );
+							adConfig.type = adType;
+							_this.embedPlayer.adTimeline.display( adConfig, function(){
+								// Done playing Ad issue sequenceProxy callback: 
+								doneCallback();
+							});
+						};
+					});
 				}
-			};
+			}
 			// Run the callabck once all the ads have been loaded. 
 			callback();
 		});
 	},
-	
 	/** 
 	 * Get base display configuration:
 	 */
@@ -287,22 +284,22 @@ mw.KAds.prototype = {
 		};
 		
 		// Add timeline events: 	
-		$j( this.namedAdTimelineTypes ).each( function( na, adType ){
+		$( this.namedAdTimelineTypes ).each( function( na, adType ){
 			var adConf = {};
 
-			$j.each( _this.adAttributeMap, function( adAttributeName,  displayConfName ){
-				if( _this.adConfig[ adType + adAttributeName ] ){
-					adConf[ displayConfName ] =  _this.adConfig[ adType + adAttributeName ];
+			$.each( _this.adAttributeMap, function( adAttributeName,  displayConfName ){
+				if( _this.getConfig( adType + adAttributeName ) ){
+					adConf[ displayConfName ] = _this.getConfig( adType + adAttributeName );
 				}
 			});
 
-			if( _this.adConfig[ adType + 'Url' ] ){
+			if( _this.getConfig( adType + 'Url' ) ){
 				loadQueueCount++;				
 				// Load and parse the adXML into displayConf format
-				mw.AdLoader.load( _this.adConfig[ adType + 'Url' ] , function( adDisplayConf ){
+				mw.AdLoader.load( _this.getConfig( adType + 'Url' ) , function( adDisplayConf ){
 					mw.log("KalturaAds loaded: " + adType );
 					loadQueueCount--;
-					addAdCheckLoadDone( adType,  $j.extend({}, adConf, adDisplayConf ) );
+					addAdCheckLoadDone( adType,  $.extend({}, adConf, adDisplayConf ) );
 				});
 			} else {
 				// No async request
@@ -328,10 +325,10 @@ mw.KAds.prototype = {
 				}
 			}
 		};
-		if( this.adConfig.htmlCompanions ) {
-			addCompanions( 'html',  this.adConfig.htmlCompanions );			
-		} else if( this.adConfig.flashCompanions ){
-			addCompanions( 'flash', this.adConfig.flashCompanions );
+		if( this.getConfig( 'htmlCompanions' ) ){
+			addCompanions( 'html',  this.getConfig( 'htmlCompanions' ) );			
+		} else if( this.getConfig( 'flashCompanions') ){
+			addCompanions( 'flash', this.getConfig( 'flashCompanions') );
 		}
 		return companionTargets;
 	},
@@ -344,28 +341,10 @@ mw.KAds.prototype = {
 			'height' :  companionParts[2]
 		};
 	},
-	// Get Ad Type from Cue Point
-	getAdTypeFromCuePoint: function( cuePoint ) {
-		//['preroll', 'bumper','overlay', 'midroll', 'postroll']
-		var type = null;
-		switch (cuePoint.context) {
-			case 'pre':
-				type = 'preroll';
-				break;
-			case 'post':
-				type = 'postroll';
-				break;
-			case 'mid':
-				// Midroll
-				if( cuePoint.cuePoint.adType == 1 ) {
-					type = 'midroll';
-				}
-				// Overlay
-				else if ( cuePoint.cuePoint.adType == 2 ) {
-					type = 'overlay';
-				}
-				break;
-		}
-		return type;
+
+	destroy: function(){
+		$( this.embedPlayer ).unbind( this.bindPostfix );
 	}
 };
+
+})( window.mw, window.jQuery );

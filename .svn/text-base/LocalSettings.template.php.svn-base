@@ -17,7 +17,7 @@ $wgKalturaVersion = basename(getcwd()); // Gets the version by the folder name
 $wgKalturaServiceUrl = $wgHTTPProtocol . '://' . $kConf->get('www_host');
 
 // Default Kaltura CDN url:
-$wgKalturaCDNUrl = $wgHTTPProtocol . '://' . $kConf->get('cdn_host');
+$wgKalturaCDNUrl = $wgHTTPProtocol. '://' . $kConf->get('cdn_host_https');
 
 // Default Kaltura service url:
 $wgKalturaServiceBase = '/api_v3/index.php?service=';
@@ -43,10 +43,10 @@ $wgEnableIpadHTMLControls = true;
 $wgKalturaUseManifestUrls = true;
 
 $wgAllowRemoteKalturaService = true;
-
-$wgKalturaEnableCuePointsRequest = true;
+$wgKalturaAllowIframeRemoteService = true;
 
 // Define which modules to load
-$wgMwEmbedEnabledModules = array( 'EmbedPlayer', 'KalturaSupport', 'AdSupport', 'Playlist', 'TimedText', 'FreeWheel' );
+$wgMwEmbedEnabledModules = array( 'EmbedPlayer', 'KalturaSupport', 'AdSupport', 'Playlist', 'TimedText', 'Omniture',
+									'Plymedia', 'FreeWheel', 'EmbedWizard',  'SyntaxHighlighter', 'DoubleClick', 'Comscore' );
 
 ?>

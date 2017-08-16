@@ -76,7 +76,7 @@ mw.MediaElement.prototype = {
 	getTextTracks: function(){
 		var textTracks = [];
 		$.each( this.sources, function(inx, source ){
-			if (  source.nodeName == 'track' || source.mimeType && source.mimeType.indexOf('text/') !== -1 ){
+			if (  source.nodeName == 'track' || ( source.mimeType && source.mimeType.indexOf('text/') !== -1 )){
 				textTracks.push( source );
 			}
 		});
@@ -183,7 +183,7 @@ mw.MediaElement.prototype = {
 		});
 
 		// Set via module driven preference:
-		$( this ).trigger( 'AutoSelectSource', [ playableSources ] );
+		$( this ).trigger( 'AutoSelectSource', playableSources );
 		
 		if( _this.selectedSource ){
 			mw.log('MediaElement::autoSelectSource: Set via trigger::' + _this.selectedSource.getTitle() );
@@ -341,6 +341,7 @@ mw.MediaElement.prototype = {
 	 * Checks if media is a playable type
 	 */
 	isPlayableType: function( mimeType ) {
+//		mw.log("isPlayableType:: " + mimeType);
 		if ( mw.EmbedTypes.getMediaPlayers().defaultPlayer( mimeType ) ) {
 			return true;
 		} else {
@@ -356,10 +357,10 @@ mw.MediaElement.prototype = {
 	 *      element <video>, <source> or <mediaSource> <text> element.
 	 */
 	tryAddSource: function( element ) {
-		mw.log( 'mw.MediaElement::tryAddSource:' + $( element ).attr( "src" ) );
+		//mw.log( 'mw.MediaElement::tryAddSource:' + $( element ).attr( "src" ) );
 		var newSrc = $( element ).attr( 'src' );
 		if ( newSrc ) {
-			// make sure an existing element with the same src does not already exist:
+			// Make sure an existing element with the same src does not already exist:
 			for ( var i = 0; i < this.sources.length; i++ ) {
 				if ( this.sources[i].src == newSrc ) {
 					// Source already exists update any new attr:

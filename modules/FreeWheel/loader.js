@@ -2,27 +2,49 @@
 ( function( mw, $ ) {
 	
 mw.addResourcePaths({
-	"mw.freeWheelController": "mw.freeWheelController.js",
-	"tv.freewheel.SDK" : "freeWheelAdMannager.js"
-		
+	"mw.FreeWheelController": "mw.FreeWheelController.js"
 });
 // Set the base config:
 mw.setConfig({
-	'FreeWheel.AdManagerUrl': 'http://adm.fwmrm.net/p/release/latest-JS/adm/prd/AdManager.js'
+	// The url for the ad Manager
+	'FreeWheel.AdManagerUrl': 'http://adm.fwmrm.net/p/release/latest-JS/adm/prd/AdManager.js',
+	
+	// Controls if companions should be setup on the iframe then passing to the client page.
+	// you can set this to "false" if the html5 library is on the same domain as the content page. 
+	'FreeWheel.PostMessageIframeCompanions': false
 });
 
-mw.addModuleLoader( 'FreeWheel', ['mw.freeWheelController']);
+mw.addModuleLoader( 'FreeWheel', ['AdSupport', 'mw.FreeWheelController'] );
 
-// To support companion ads.
+// Check if the plugin is enabled: 
+$( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
+	$( embedPlayer ).bind( 'KalturaSupport_CheckUiConf', function( event, $uiConf, callback ){
+		// Check if the freewheel plugin is enabled:
+		if( embedPlayer.getKalturaConfig( 'FreeWheel',  'plugin' ) ){
+			mw.load( ["FreeWheel"], function(){
+				mw.addFreeWheelControler( embedPlayer, callback );
+			});
+		} else {
+			// no freewheel plugin issue callback to continue player build out
+			callback();
+		}
+	});
+});
+
+////////////////////////////////////////////////////////
+// To support companion ads across the iframe
+////////////////////////////////////////////////////////
 $( mw ).bind( 'AddIframePlayerMethods', function( event, exportedMethods ){
 	exportedMethods.push( 'setFreeWheelAddCompanions' );
 });
 
 $( mw ).bind( 'AddIframePlayerBindings', function( event, exportedBindings){
+	// If iframe bridge is enabled add hook
 	exportedBindings.push( 'FreeWheel_GetAddCompanions', 'FreeWheel_UpdateCompanion' );
 });
 
 $( mw ).bind( 'newIframePlayerClientSide', function( event, playerProxy ){
+	// If iframe bridge is enabled add hook
 	$( playerProxy ).bind( 'FreeWheel_GetAddCompanions', function(){
 		var companionSet = [];
 		$('._fwph').each(function(inx, node){

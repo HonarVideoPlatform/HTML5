@@ -1,9 +1,7 @@
-/**
-* EmbedPlayer loader
-*/
-/**
-* Default player module configuration
-*/
+
+( function ($) { //wacky wrapper to allow us to use jQuery as $ w/o collision...
+
+//support for Internet Archive (archive.org) site audio/video pages using mwEmbed
 
 mw.IA =
 {
@@ -115,12 +113,12 @@ mw.IA =
 
   // Set up so that:
   //   - when "click to play" clicked, resize video window and playlist
-  //   - we advance to the next clip (when 2+ present)
+  //   - we indicate which clip in playlist is playing
   newEmbedPlayerEvent:function(arg)
   {
     mw.IA.log('newEmbedPlayerEvent');
 
-    if (typeof($('#iframeVidso').get(0)) != 'undefined')
+    if ($('#iframeVidso').length)
     {
       mw.setConfig( {
         'EmbedPlayer.EnabledOptionsMenuItems':
@@ -141,18 +139,18 @@ mw.IA =
 
     if (typeof(mw.IA.mrss)!='undefined')
     {
+      player.unbind('onplay').bind('onplay', mw.IA.onPlay);
+        
       if (mw.IA.video)
       {
         mw.IA.log('this is /details/ video!');
         mw.IA.video = true;
 
-        player.unbind('onplay').bind('onplay', mw.IA.resize);
-        
         // player.bind('pause', mw.IA.pause); //xxx hash not quite ready yet 
         if (!mw.isMobileDevice())
         {
           player.bind('onCloseFullScreen', function(){ setTimeout(function() { 
-            mw.IA.resize(); }, 500); });
+            mw.IA.onPlay(); }, 500); });
         }
       }
       else
@@ -175,16 +173,32 @@ mw.IA =
       '/start=' + Math.round($('#mwplayer').get(0).currentTime * 10) / 10;
   },
 
+  
+  indicateIsPlaying:function()
+  {
+    if (!mw.IA.playlist)
+      return;
+    
+    var player = $('#'+mw.playerManager.getPlayerList()[0]).get(0);
+    if (!player)
+      return;
 
-  resize:function()
+    $('div.playlistItem').removeClass('IA-active');
+    $($('div.playlistItem').get(mw.IA.playlist.clipIndex)).addClass('IA-active');
+  },
+  
+
+  onPlay:function()
   {
     if (mw.isMobileDevice())
       return;
+   
+    mw.IA.indicateIsPlaying();
     
     if (!mw.IA.video)
       return;
     
-    mw.IA.log('resize');
+    mw.IA.log('onPlay');
     
     var av=$('div.mv-player video, div.mv-player object, div.mv-player embed').parent().get(0);
     
@@ -202,8 +216,7 @@ mw.IA =
         av.resizePlayer({'width': wd, 'height':ht}, true);
     }
 
-    $('         #mwplayer_videolist').css('top', ht);
-    $('#plholder_mwplayer_videolist').css('top', ht);
+    $('#video-list-wrapper-plholder_mwplayer').css('top', ht);
       
     $('#avplaydiv').css('width', wd);
       
@@ -211,6 +224,14 @@ mw.IA =
     $('#plholder_mwplayer').css('width',  wd);
     $(         '#mwplayer').css('height', ht + mw.IA.VIDEO_PLAYLIST_HEIGHT);
     $('#plholder_mwplayer').css('height', ht + mw.IA.VIDEO_PLAYLIST_HEIGHT);
+    
+    // NOTE: done this way to override jQuery dynamic $...css() re/setting
+    mw.IA.css(
+      ".mv-player .overlay-win { "+
+      "height:"+ht+"px !important;"+
+      "width:"+wd+"px !important;"+
+      "top:0px !important; left:-5px !important;"+
+      "}");
   },
 
 
@@ -221,7 +242,7 @@ mw.IA =
     
     if (str==mw.IA.mrss)
     {
-      console.dirxml($j.parseXML(unescape(mw.IA.mrss).replace(/\+/g,' ')));
+      console.dirxml($.parseXML(unescape(mw.IA.mrss).replace(/\+/g,' ')));
       return;
     }
     mw.log('      ---IA------------------------------>   '+str);
@@ -236,6 +257,7 @@ mw.IA =
     if (mw.IA.startcalled)
       return;
     mw.IA.startcalled = true;
+    mw.IA.playlist = playlist; //stash this away for "indicateIsPlaying()"
     
     var star = (mw.IA.arg('start') ? parseFloat(mw.IA.arg('start')) : 0);
     if (!star)
@@ -294,7 +316,7 @@ mw.IA =
   },
   
   
-  oldswapper:function()
+  oldswapper:function()// unused.  just here now for reminiscence
   {
     mw.ready(function(){
 
@@ -344,15 +366,21 @@ audio { z-index:666 !important; position:absolute !important; bottom:0px !import
 div.playlistItem {\n\
   font-family:Lucida Grande;\n\
   margin:0px 5px 0px 5px !important;\n\
+  padding:1px 5px 1px 5px !important;\n\
+  min-height:15px !important;\n\
+}\n\
+div.playlistItem > div {\n\
+  height:15px !important;\n\
 }\n\
 div.maudio div.playlistItem { padding:0px !important; }\n\
+div.maudio div.play_head { right:160px !important; }\n\
 div.playlist-title { display:none; }\n\
 div.playlistItem img { display:none; }\n\
 div.playlistItem span.clipTitle     { padding-left:15px; }\n\
 div.playlistItem span.tn            { display:inline-block; width:25px; text-align:right; padding-right:5px; border-right:1px solid gray; }\n\
 div.playlistItem div.clipDuration  { padding-right:20px; padding-top:1px; }\n\
 div.movies div.playlistItem div.clipDuration  { display:none; }\n\
-div.ui-state-active {\n\
+div.playlistItem div.ui-state-active, .IA-active {\n\
   background-image:url(/images/orange_arrow.gif) !important;\n\
   background-position:10px 2px !important;\n\
   background-repeat:no-repeat !important;\n\
@@ -372,6 +400,7 @@ div.control-bar { -moz-border-radius:6px; -webkit-border-radius:6px; -khtml-bord
 \n\
 \n\
 div.movies div.media-rss-video-list { background-image:url(/logos/hires/ia-tight-60x60-one-third-opacity.png); background-position:bottom; background-repeat:no-repeat; }\n\
+div.maudio #video-list-wrapper-plholder_mwplayer { top:30px !important; }\n\
 div.maudio div.media-rss-video-list { background-image:url(/logos/hires/ia-tight-240x240-one-third-opacity.png); background-position:bottom; background-repeat:no-repeat; }\n\
 div.maudio div.fullscreen-btn { display:none !important; }\n\
 div.maudio img.playerPoster   { display:none; } \n\
@@ -380,21 +409,6 @@ div.maudio div.media-rss-video-player { height:26px !important; } \n\
 div.maudio div.mrss_mwplayer_0 { height:26px !important; } \n\
 div.maudio div.mv-player  { height:26px !important; } \n\
 div.maudio div.control-bar { display:block !important; } \n\
-\n\
-\n\
-\n\
-\n\
-div.overlay-content { background-color:#666 !important; } \n\
-div.overlay-content div h2 { background-color:transparent; }\n\
-div.overlay-content        {\n\
-  padding-top:0px !important; \n\
-  border: 1px solid #666; \n\
-  -moz-border-radius: 10px;\n\
-  -webkit-border-radius:10px;\n\
-  -khtml-border-radius:10px;\n\
-  border-radius: 10px;\n\
-}\n\
-.mv-player .overlay-win textarea { height:60px !important; }\n\
 ");
 
     
@@ -413,12 +427,8 @@ div.overlay-content        {\n\
                     
         'imagesPath' : 'http://www/archive.org/images/', //xxxxxxx not working yet
                     
-        'Playlist.TitleLength': 30
+        'Playlist.TitleLength': 26
       });
-
-    if (!mw.isMobileDevice())
-      mw.setConfig({'Playlist.ShowScrollButtons':false});
-
 
     // NOTE: keep this outside "mw.ready()" so that "click-to-play" does indeed
     // cause the newEmbedPlayerEvent() call
@@ -431,4 +441,7 @@ div.overlay-content        {\n\
   }
 };
 
-mw.IA.setup();
+  if (!location.pathname.match(/^\/(~tracey|test)\//))
+    mw.IA.setup();
+
+}) ( jQuery );//wacky wrapper to allow us to use jQuery as $ w/o collision...

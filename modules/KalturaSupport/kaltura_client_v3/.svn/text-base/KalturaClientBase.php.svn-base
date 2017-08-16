@@ -3,6 +3,7 @@
  * @package External
  * @subpackage Kaltura
  */
+
 class KalturaClientBase 
 {
 	const KALTURA_SERVICE_FORMAT_JSON = 1;
@@ -46,9 +47,8 @@ class KalturaClientBase
 
 	public function readHeader($ch, $string)
 	{
-		$length = strlen($string);
 		self::$headers .= $string;
-		return $length;
+		return strlen($string);
 	}
 
 	public function getHeaders()
@@ -140,7 +140,7 @@ class KalturaClientBase
 		$signature = $this->signature($params);
 		$this->addParam($params, "kalsig", $signature);
 		
-		$url = $this->config->serviceUrl . "/api_v3/index.php?service={$call->service}&action={$call->action}";
+		$url = $this->config->serviceUrl . $this->config->serviceBase . "{$call->service}&action={$call->action}";
 		$url .= '&' . http_build_query($params); 
 		$this->log("Returned url [$url]");
 		return $url;
@@ -182,7 +182,7 @@ class KalturaClientBase
 		$this->addParam($params, "format", $this->config->format);
 		$this->addParam($params, "clientTag", $this->config->clientTag);
 		
-		$url = $this->config->serviceUrl."/api_v3/index.php?service=";
+		$url = $this->config->serviceUrl . $this->config->serviceBase;
 		if ($this->isMultiRequest)
 		{
 			$url .= "multirequest";
@@ -208,8 +208,8 @@ class KalturaClientBase
 		
 		$signature = $this->signature($params);
 		$this->addParam($params, "kalsig", $signature);
-		
-		list($postResult, $error) = $this->doHttpRequest($url, $params, $files);
+
+		list( $postResult, $error ) = $this->doHttpRequest($url, $params, $files);
 		
 		if ($error)
 		{
@@ -225,13 +225,8 @@ class KalturaClientBase
 			if ($this->config->format == self::KALTURA_SERVICE_FORMAT_PHP)
 			{
 				$result = @unserialize($postResult);
-
 				if ($result === false && serialize(false) !== $postResult) 
 				{
-					/*print $url . "\n\n";
-					print_r( $params);
-					print "resutl:$postResult\n ";
-					die();*/
 					throw new KalturaClientException("failed to unserialize server result\n$postResult", KalturaClientException::ERROR_UNSERIALIZE_FAILED);
 				}
 				$dump = print_r($result, true);
@@ -247,7 +242,6 @@ class KalturaClientBase
 		$endTime = microtime (true);
 		
 		$this->log("execution time for [".$url."]: [" . ($endTime - $startTime) . "]");
-		
 		return $result;
 	}
 
@@ -350,7 +344,7 @@ class KalturaClientBase
 			$cookiesStr = http_build_query($cookies, null, '; ');
 			curl_setopt($ch, CURLOPT_COOKIE, $cookiesStr);
 		} 
-
+ 
 		$result = curl_exec($ch);
 		$curlError = curl_error($ch);
 		curl_close($ch);

@@ -51,7 +51,7 @@ $wgEnableScriptDebug = false;
 $wgHTTPProtocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? "https" : "http";
 
 // The default Kaltura service url:
-$wgKalturaServiceUrl = $wgHTTPProtocol . '://www.kaltura.com';
+$wgKalturaServiceUrl = $wgHTTPProtocol . '://cdnapi.kaltura.com';
 
 // Default Kaltura CDN url: 
 $wgKalturaCDNUrl = $wgHTTPProtocol . '://cdnsecakmi.kaltura.com';
@@ -67,10 +67,10 @@ $wgKalturaEnableCuePointsRequest = false;
 
 // If the iframe will accept 3rd party domain remote service requests 
 // should be left "off" in production. 
-$wgAllowRemoteKalturaService = false;
+$wgKalturaAllowIframeRemoteService = false;
 
 // Default expire time for ui conf api queries in seconds 
-$wgKalturaUiConfCacheTime = 600;
+$wgKalturaUiConfCacheTime = 60*10; // 10 min
 
 // By default enable the iframe rewrite
 $wgKalturaIframeRewrite = true;
@@ -100,5 +100,20 @@ if( is_file( $wgLocalSettingsFile ) ){
 	require_once( $wgLocalSettingsFile );
 }
 
+/*
+if( class_exists('kConf') ) {
+	$kConf = new kConf();
+
+	$wgKalturaVersion = basename(getcwd()); // Gets the version by the folder name
+	$wgKalturaServiceUrl = $wgHTTPProtocol . '://' . $kConf->get('www_host');
+	$wgKalturaCDNUrl = $wgHTTPProtocol. '://' . $kConf->get('cdn_host_https');
+	$wgScriptCacheDirectory = $kConf->get('cache_root_path') . 'html5/' . $wgKalturaVersion;
+	$wgResourceLoaderUrl = $wgKalturaServiceUrl . '/html5/html5lib/' . $wgKalturaVersion . '/ResourceLoader.php';
+	$wgKalturaAllowIframeRemoteService = true;
+}
+ */
+
+// Check if we have local setting for Stats url
+$wgKalturaStatsServiceUrl = isset($wgKalturaStatsServiceUrl) ? $wgKalturaStatsServiceUrl : $wgKalturaServiceUrl;
 
 ?>

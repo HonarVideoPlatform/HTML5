@@ -4,7 +4,7 @@
 /**
 * Default player module configuration
 */
-( function( mw ) {
+( function( mw, $ ) {
 
 	mw.setDefaultConfig( {
 		// If the player controls should be overlaid on top of the video ( if supported by playback method)
@@ -12,13 +12,19 @@
 		'EmbedPlayer.OverlayControls' : true,
 
 		// The preferred media format order 
-		'EmbedPlayer.CodecPreference': [ 'webm', 'h264', 'ogg' ],
+		'EmbedPlayer.CodecPreference': [ 'webm', 'h264', 'mp3', 'ogg' ],
 		
 		// If the iPad should use html controls 
 		// With html controls you can't access native fullscreen 
 		// With html controls you can support html themed controls, overlays, ads etc. )
 		'EmbedPlayer.EnableIpadHTMLControls': false,
 		
+		// If webkitSupportsFullscreen is true, this option will make the fullscreen button 
+		// use the native players fullscreen ( rather than pop-up a new window with the in-browser
+		// fullscreen. 
+		'EmbedPlayer.EnableIpadNativeFullscreen': true,
+		
+		// The attribution library page
 		'EmbedPlayer.LibraryPage': 'http://www.kaltura.org/project/HTML5_Video_Media_JavaScript_Library',
 
 		// A default apiProvider ( ie where to lookup subtitles, video properties etc )
@@ -38,7 +44,7 @@
 		// The attribution button
 		'EmbedPlayer.AttributionButton' :{
 			'title' : 'Kaltura html5 video library',
-		 	'href' : 'http://www.kaltura.org/project/HTML5_Video_Media_JavaScript_Library',
+		 	'href' : 'http://www.kaltura.com',
 			// Style icon to be applied
 			'class' : 'kaltura-icon',
 			// Style to be applied to the outer attribution button container div
@@ -49,6 +55,9 @@
 		
 		// If the options control bar menu item should be enabled: 
 		'EmbedPlayer.EnableOptionsMenu' : true,
+		
+		// If users can right click on the player
+		'EmbedPlayer.EnableRightClick' : true,
 
 		// Default supported menu items is merged with skin menu items
 		'EmbedPlayer.EnabledOptionsMenuItems' : [
@@ -96,7 +105,7 @@
 		"EmbedPlayer.FirefoxLink" : 'http://www.mozilla.com/en-US/firefox/upgrade.html?from=mwEmbed',
 		
 		// The z-index given to the player interface during full screen ( high z-index )
-		"EmbedPlayer.FullScreenZIndex" : 999998,
+		"EmbedPlayer.FullScreenZIndex" : 10001,
 
 		// The default share embed mode ( can be "object" or "videojs" )
 		//
@@ -126,7 +135,10 @@
 		'EmbedPLayer.IFramePlayer.DomainWhiteList' : '*',
 		
 		// If the iframe should send and receive javascript events across domains via postMessage 
-		'EmbedPlayer.EnableIframeApi' : true
+		'EmbedPlayer.EnableIframeApi' : true,
+		
+		// If set to true will output the iframe as inline contents on the same domain as page contents 
+		'EmbedPlayer.PageDomainIframe' : true
 	} );
 	
 	/**
@@ -173,132 +185,7 @@
 		'titleKey'
 	] );
 	
-	/** 
-	 * Merge in the default video attributes supported by embedPlayer:
-	 */
-	mw.mergeConfig('EmbedPlayer.Attributes', {
-		/*
-		 * Base html element attributes:
-		 */
-
-		// id: Auto-populated if unset
-		"id" : null,
-
-		// Width: alternate to "style" to set player width
-		"width" : null,
-
-		// Height: alternative to "style" to set player height
-		"height" : null,
-
-		/*
-		 * Base html5 video element attributes / states also see:
-		 * http://www.whatwg.org/specs/web-apps/current-work/multipage/video.html
-		 */
-
-		// Media src URI, can be relative or absolute URI
-		"src" : null,
-
-		// Poster attribute for displaying a place holder image before loading
-		// or playing the video
-		"poster" : null,
-
-		// Autoplay if the media should start playing
-		"autoplay" : false,
-
-		// Loop attribute if the media should repeat on complete
-		"loop" : false,
-
-		// If the player controls should be displayed
-		"controls" : true,
-
-		// Video starts "paused"
-		"paused" : true,
-
-		// ReadyState an attribute informs clients of video loading state:
-		// see: http://www.whatwg.org/specs/web-apps/current-work/#readystate
-		"readyState" : 0,
-
-		// Loading state of the video element
-		"networkState" : 0,
-
-		// Current playback position
-		"currentTime" : 0,
-
-		// Previous player set time
-		// Lets javascript use $j('#videoId').get(0).currentTime = newTime;
-		"previousTime" : 0,
-
-		// Previous player set volume
-		// Lets javascript use $j('#videoId').get(0).volume = newVolume;
-		"previousVolume" : 1,
-
-		// Initial player volume:
-		"volume" : 0.75,
-
-		// Caches the volume before a mute toggle
-		"preMuteVolume" : 0.75,
-
-		// Media duration: Value is populated via
-		// custom durationHint attribute or via the media file once its played
-		"duration" : null,
-
-		// Mute state
-		"muted" : false,
-
-		/**
-		 * Custom attributes for embedPlayer player: (not part of the html5
-		 * video spec)
-		 */
-
-		// Default video aspect ratio
-		'videoAspect' : '4:3',
-
-		// Start time of the clip
-		"start" : 0,
-
-		// End time of the clip
-		"end" : null,
-
-		// A apiTitleKey for looking up subtitles, credits and related videos
-		"apiTitleKey" : null,
-
-		// The apiProvider where to lookup the title key
-		"apiProvider" : null,
-
-		// If the player controls should be overlaid
-		// ( Global default via config EmbedPlayer.OverlayControls in module
-		// loader.js)
-		"overlaycontrols" : true,
-
-		// Attribute to use 'native' controls
-		"usenativecontrols" : false,
-
-		// If the player should include an attribution button:
-		'attributionbutton' : true,
-		
-		// A player error state ( lets you propagate an error instead of a play button ) 
-		// ( while keeping the full player api available )
-		'data-playerError': null,
-
-		// If serving an ogg_chop segment use this to offset the presentation
-		// time
-		// ( for some plugins that use ogg page time rather than presentation
-		// time )
-		"startOffset" : 0,
-
-		// Thumbnail (same as poster)
-		"thumbnail" : null,
-
-		// Source page for media asset ( used for linkbacks in remote embedding
-		// )
-		"linkback" : null,
-
-		// If the download link should be shown
-		"download_link" : true,
-
-		// Content type of the media
-		"type" : null
-	} );
+	
 
 	
 	// Add class file paths
@@ -339,7 +226,7 @@
 	*/
 	mw.documentHasPlayerTags = function() {
 		var rewriteSelect = mw.getConfig( 'EmbedPlayer.RewriteSelector' );
-		if( rewriteSelect && $j( rewriteSelect ).length != 0 ) {
+		if( rewriteSelect && $( rewriteSelect ).length != 0 ) {
 			return true;
 		}
 		return false;
@@ -360,30 +247,30 @@
 		
 		// Allow modules to do tag rewrites as well: 
 		var doModuleTagRewrites = function(){
-			$j( mw ).triggerQueueCallback( 'LoadeRewritePlayerTags', callback);
+			$( mw ).triggerQueueCallback( 'LoadeRewritePlayerTags', callback);
 		};
 		
 		if( mw.documentHasPlayerTags() ) {
 			var rewriteElementCount = 0;
 
 			// Set each player to loading ( as early on as possible )
-			$j( mw.getConfig( 'EmbedPlayer.RewriteSelector' ) ).each( function( index, element ){
+			$( mw.getConfig( 'EmbedPlayer.RewriteSelector' ) ).each( function( index, element ){
 
 				// Assign an the element an ID ( if its missing one )
-				if ( $j( element ).attr( "id" ) == '' ) {
-					$j( element ).attr( "id", 'v' + ( rewriteElementCount++ ) );
+				if ( $( element ).attr( "id" ) == '' ) {
+					$( element ).attr( "id", 'v' + ( rewriteElementCount++ ) );
 				}
 				// Add an absolute positioned loader
-				$j( element )
+				$( element )
 					.getAbsoluteOverlaySpinner()
-					.attr('id', 'loadingSpinner_' + $j( element ).attr('id') )
+					.attr('id', 'loadingSpinner_' + $( element ).attr('id') )
 					.addClass( 'playerLoadingSpinner' );
 
 			});
 			// Load the embedPlayer module ( then run queued hooks )
 			mw.load( 'EmbedPlayer', function ( ) {
 				// Rewrite the EmbedPlayer.RewriteSelector with the
-				$j( mw.getConfig( 'EmbedPlayer.RewriteSelector' ) ).embedPlayer( doModuleTagRewrites );
+				$( mw.getConfig( 'EmbedPlayer.RewriteSelector' ) ).embedPlayer( doModuleTagRewrites );
 			})
 		} else {
 			doModuleTagRewrites();
@@ -396,7 +283,7 @@
 	mw.addModuleLoader( 'EmbedPlayer', function() {
 		var _this = this;
 		// Hide videonojs class
-		$j( '.videonojs' ).hide();
+		$( '.videonojs' ).hide();
 
 		// Set up the embed video player class request: (include the skin js as well)
 		var dependencyRequest = [
@@ -428,23 +315,23 @@
 		];
 
 		// Pass every tag being rewritten through the update request function
-		$j( mw.getConfig( 'EmbedPlayer.RewriteSelector' ) ).each( function(inx, playerElement) {
+		$( mw.getConfig( 'EmbedPlayer.RewriteSelector' ) ).each( function(inx, playerElement) {
 			mw.embedPlayerUpdateLibraryRequest( playerElement, dependencyRequest[ 2 ] )
 		} );
 
 		// Add PNG fix code needed:
-		if ( $j.browser.msie && $j.browser.version < 7 ) {
-			dependencyRequest[0].push( '$j.fn.pngFix' );
+		if ( $.browser.msie && $.browser.version < 7 ) {
+			dependencyRequest[0].push( '$.fn.pngFix' );
 		}
 
 		// Do short detection, to avoid extra player library request in ~most~ cases.
 		//( If browser is firefox include native, if browser is IE include java )
-		if( $j.browser.msie ) {
+		if( $.browser.msie ) {
 			dependencyRequest[0].push( 'mw.EmbedPlayerJava' );
 		}
 
 		// Safari gets slower load since we have to detect ogg support
-		if( !!document.createElement('video').canPlayType && !$j.browser.safari ) {
+		if( !!document.createElement('video').canPlayType && !$.browser.safari ) {
 			dependencyRequest[0].push( 'mw.EmbedPlayerNative' )
 		}
 		// Check if the iFrame player api is enabled and we have a parent iframe url: 
@@ -453,7 +340,7 @@
 			mw.getConfig( 'EmbedPlayer.IframeParentUrl' ) 
 		){
 			dependencyRequest[0].push('mw.EmbedPlayerNative');
-			dependencyRequest[0].push('$j.postMessage');
+			dependencyRequest[0].push('$.postMessage');
 			dependencyRequest[0].push('mw.IFramePlayerApiServer');
 		}
 
@@ -472,25 +359,25 @@
 	 * @param {Array} dependencyRequest The library request array
 	 */
 	mw.embedPlayerUpdateLibraryRequest = function(playerElement, dependencyRequest ){
-		var skinName = $j( playerElement ).attr( 'class' );
+		var skinName = $( playerElement ).attr( 'class' );
 		// Set playerClassName to default if unset or not a valid skin
-		if( ! skinName || $j.inArray( skinName.toLowerCase(), mw.validSkins ) == -1 ){
+		if( ! skinName || $.inArray( skinName.toLowerCase(), mw.validSkins ) == -1 ){
 			skinName = mw.getConfig( 'EmbedPlayer.SkinName' );
 		}
 		skinName = skinName.toLowerCase();
 		// Add the skin to the request
 		var skinCaseName = skinName.charAt(0).toUpperCase() + skinName.substr(1);
 		// The skin js:
-		if( $j.inArray( 'mw.PlayerSkin' + skinCaseName, dependencyRequest ) == -1 ){
+		if( $.inArray( 'mw.PlayerSkin' + skinCaseName, dependencyRequest ) == -1 ){
 			dependencyRequest.push( 'mw.PlayerSkin' + skinCaseName );
 		}
 		// The skin css
-		if( $j.inArray( 'mw.style.PlayerSkin' + skinCaseName, dependencyRequest ) == -1 ){
+		if( $.inArray( 'mw.style.PlayerSkin' + skinCaseName, dependencyRequest ) == -1 ){
 			dependencyRequest.push( 'mw.style.PlayerSkin' + skinCaseName );
 		}
 
 		// Allow extension to extend the request.
-		$j( mw ).trigger( 'LoaderEmbedPlayerUpdateRequest',
+		$( mw ).trigger( 'LoaderEmbedPlayerUpdateRequest',
 				[ playerElement, dependencyRequest ] );
 	};
 	
@@ -511,4 +398,4 @@
 		);
 	};
 	
-} )( window.mw );
+})( mediaWiki, jQuery );

@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4b30/libraries/jquery/plugins/jquery.menu
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4c9/libraries/jquery/plugins/jquery.menu
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-09-18T06:55:13.485360Z
-6464
+2011-10-02T09:34:20.739824Z
+6564
 rany
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T19:59:58.000000Z
+2017-07-03T19:45:54.000000Z
 3fbc4c55d1be935f7ea345eb5f45530e
-2011-09-18T06:55:13.485360Z
-6464
+2011-10-02T09:34:20.739824Z
+6564
 rany
 
 
@@ -66,10 +66,10 @@ file
 
 
 
-2017-07-03T19:59:58.000000Z
-e0e658b6c5d5db9119d78e6bdec0c2b6
-2011-09-18T06:55:13.485360Z
-6464
+2017-07-03T19:45:54.000000Z
+6a43421db45b972a621f7b4c50a3da11
+2011-10-02T09:34:20.739824Z
+6564
 rany
 
 
@@ -92,5 +92,5 @@ rany
 
 
 
-27764
+27687
 

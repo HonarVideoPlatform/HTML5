@@ -3,6 +3,9 @@
 *
 * Enables embedPlayer support for native html5 browser playback system
 */
+
+( function( mw, $ ) {
+
 mw.EmbedPlayerNative = {
 
 	//Instance Name
@@ -41,7 +44,7 @@ mw.EmbedPlayerNative = {
 		'waiting',
 		'playing',
 		'canplay',
-		'canplaythough',
+		'canplaythrough',
 		'seeking',
 		'seeked',
 		'timeupdate',
@@ -84,7 +87,7 @@ mw.EmbedPlayerNative = {
 	doEmbedHTML : function () {
 		var _this = this;
 		var vid = _this.getPlayerElement();
-		if( vid && $j( vid ).attr('src') == this.getSrc( this.currentTime ) ){
+		if( vid && $( vid ).attr('src') == this.getSrc( this.currentTime ) ){
 			_this.postEmbedJS();
 			return ;
 		}
@@ -100,7 +103,7 @@ mw.EmbedPlayerNative = {
 		_this.bufferStartFlag = false;
 		_this.bufferEndFlag = false;
 		
-		$j( this ).html(
+		$( this ).html(
 			_this.getNativePlayerHtml()
 		);
 
@@ -145,7 +148,7 @@ mw.EmbedPlayerNative = {
 
 		var tagName = ( this.isAudio() ) ? 'audio' : 'video';
 
-		return	$j( '<' + tagName + ' />' )
+		return	$( '<' + tagName + ' />' )
 			// Add the special nativeEmbedPlayer to avoid any rewrites of of this video tag.
 			.addClass( 'nativeEmbedPlayerPid' )
 			.attr( playerAttribtues )
@@ -164,8 +167,8 @@ mw.EmbedPlayerNative = {
 			return ;
 		}
 		// Update the player source ( if needed ) 
-		if( $j( '#' + this.pid ).attr( 'src') !=  this.getSrc( this.currentTime )  ){
-			$j( '#' + this.pid ).attr( 'src', this.getSrc( this.currentTime ) );
+		if( $( '#' + this.pid ).attr( 'src') !=  this.getSrc( this.currentTime )  ){
+			$( '#' + this.pid ).attr( 'src', this.getSrc( this.currentTime ) );
 		}
 
 		// Apply media element bindings:
@@ -198,42 +201,52 @@ mw.EmbedPlayerNative = {
 			vid.load();
 			vid.play();
 		}
-		
-		setTimeout( function() {
-			_this.monitor();
-		}, 100 );
 	},
+	// disabled for now.. use native layout support
 	applyIntrinsicAspect: function(){
+		return ;
+		/*
 		var vid = this.getPlayerElement();
 		// check if a video tag is present 
 		if( !vid ){
 			return this.parent_applyIntrinsicAspect();
 		}
-
-		var pHeight = $j( vid ).height();
+		var pHeight = $( vid ).height();
 		// Check for intrinsic width and maintain aspect ratio
 		if( vid.videoWidth && vid.videoHeight ){
+			
 			var pWidth = parseInt(  vid.videoWidth / vid.videoHeight * pHeight);
 			if( pWidth > this.$interface.width() ){
 				pWidth = this.$interface.width();
 				pHeight =  parseInt( vid.videoHeight / vid.videoWidth * pWidth );
 			}
-			mw.log( 'EmbedPlayerNative: applyIntrinsicAspect:: left:' + ( ( $j( this ).width() - pWidth ) * .5 ) + ' this width:' +  $j( this ).width() );
 			// see if we need to leave room for controls: 
 			var controlBarOffset = 0;
 			if( ! this.controlBuilder.isOverlayControls() ){
 				controlBarOffset = this.controlBuilder.height;
 			}
-			$j( vid ).css({
+			// Check for existing offset:
+			/*
+			 * Comment for now, if vid has top:auto it doesn't get calculated
+			 * for now always calculate the top position of vid tag.
+			var topOffset = $( vid ).css('top') ?
+					$( vid ).css('top') :
+					( ( this.$interface.height() - controlBarOffset - pHeight ) * .5 ) + 'px';
+			
+		   var topOffset = ( ( this.$interface.height() - controlBarOffset - pHeight ) * .5 ) + 'px';
+
+			mw.log( 'EmbedPlayerNative: applyIntrinsicAspect:: top: ' + topOffset + ' left:' + ( ( $( this ).width() - pWidth ) * .5 ) + ' this width:' +  $( this ).width() );
+			$( vid ).css({
+				'position' : 'absolute',
 				'height' : pHeight + 'px',
 				'width':  pWidth + 'px',
 				'left': ( ( this.$interface.width() - pWidth ) * .5 ) + 'px',
-				'top': ( ( this.$interface.height() - controlBarOffset - pHeight ) * .5 ) + 'px'
+				'top': topOffset
 			});
 			
 		}
+		*/
 	},
-	
 	/**
 	 * Apply media element bindings
 	 */
@@ -244,16 +257,16 @@ mw.EmbedPlayerNative = {
 			mw.log( " Error: applyMediaElementBindings without player elemnet");
 			return ;
 		}
-		$j.each( _this.nativeEvents, function( inx, eventName ){
-			$j( vid ).unbind( eventName + '.embedPlayerNative').bind( eventName + '.embedPlayerNative', function(){
+		$.each( _this.nativeEvents, function( inx, eventName ){
+			$( vid ).unbind( eventName + '.embedPlayerNative').bind( eventName + '.embedPlayerNative', function(){
 				if( _this._propagateEvents ){
-					var argArray = $j.makeArray( arguments );
+					var argArray = $.makeArray( arguments );
 					// Check if there is local handler:
 					if( _this['on' + eventName ] ){
 						_this['on' + eventName ].apply( _this, argArray);
 					} else {
 						// No local handler directly propagate the event to the abstract object:
-						$j( _this ).trigger( eventName, argArray );
+						$( _this ).trigger( eventName, argArray );
 					}
 				}
 			});
@@ -297,7 +310,7 @@ mw.EmbedPlayerNative = {
 		
 		// trigger the seeking event: 
 		mw.log('Native::doSeek:trigger');
-		$j( this ).trigger( 'seeking' );
+		$( this ).trigger( 'seeking' );
 		
 		// Run the onSeeking interface update
 		this.controlBuilder.onSeek();
@@ -334,8 +347,8 @@ mw.EmbedPlayerNative = {
 		this.seek_time_sec = 0;
 		this.setCurrentTime( ( percent * this.duration ) , function(){
 			_this.seeking = false;
-			// done seeking:
-			$j( _this ).trigger( 'seeked' );
+			// done seeking: 
+			$( _this ).trigger( 'seeked' );
 			_this.monitor();
 		});
 	},
@@ -393,6 +406,9 @@ mw.EmbedPlayerNative = {
 				callback();
 				return;
 			}
+			// Enforce a specific amount of decimal digits
+			// http://blog.millermedeiros.com/2011/03/html5-video-issues-on-the-ipad-and-how-to-solve-them/
+			time = time.toFixed(1);
 			var once = function( event ) {
 				if( callback ){
 					callback();
@@ -437,7 +453,7 @@ mw.EmbedPlayerNative = {
 	// Update the poster src ( updates the native object if in dom ) 
 	updatePosterSrc: function( src ){
 		if( this.getPlayerElement() ){
-			$j( this.getPlayerElement() ).attr('poster', src );
+			$( this.getPlayerElement() ).attr('poster', src );
 		}
 		// Also update the embedPlayer poster 
 		this.parent_updatePosterSrc( src );
@@ -455,81 +471,82 @@ mw.EmbedPlayerNative = {
 	 */
 	switchPlaySrc: function( src, switchCallback, doneCallback ){
 		var _this = this;
-		mw.log( 'EmbedPlayerNative:: switchPlaySrc:' + src + ' native time: ' + this.getPlayerElement().currentTime );
-		if( !src ){
+		var vid = this.getPlayerElement();
+		mw.log( 'EmbedPlayerNative:: switchPlaySrc:' + src + ' native time: ' + vid.currentTime );
+
+		// Make sure the switch source is different: 
+		if( !src || src == vid.src ){
 			if( switchCallback ){
-				switchCallback();
+				switchCallback( vid );
 			}
 			setTimeout(function(){
 				if( doneCallback )
 					doneCallback();
-			},100);
+			}, 100);
 			return ;
 		}
+		
 		// Update some parent embedPlayer vars: 
 		this.duration = 0;
 		this.currentTime = 0;
 		this.previousTime = 0;
-		var vid = this.getPlayerElement();		
+	
 		if ( vid ) {
 			try {
-				// Issue a play request on the source
-				vid.play();
-				setTimeout(function(){
-					// Remove all native player bindings
-					$j(vid).unbind();
-					vid.pause();
-					var orginalControlsState = vid.controls;
-					// Hide controls ( to not display native play button while switching sources ) 
-					vid.removeAttribute('controls');
-					
-					// Local scope update source and play function to work around google chrome bug
-					var updateSrcAndPlay = function() {
+				// Remove all native player bindings
+				$(vid).unbind();
+				vid.pause();
+				var orginalControlsState = vid.controls;
+				// Hide controls ( to not display native play button while switching sources ) 
+				vid.removeAttribute('controls');
+				
+				// Local scope update source and play function to work around google chrome bug
+				var updateSrcAndPlay = function() {
+					var vid = _this.getPlayerElement();
+					if (!vid){
+						mw.log( 'Error: switchPlaySrc no vid');
+						return ;
+					}
+					vid.src = src;
+					// Give iOS 50ms to figure out the src got updated ( iPad OS 4.0 )
+					setTimeout( function() {
 						var vid = _this.getPlayerElement();
 						if (!vid){
 							mw.log( 'Error: switchPlaySrc no vid');
 							return ;
-						}
-						vid.src = src;
-						// Give iOS 50ms to figure out the src got updated ( iPad OS 4.0 )
-						setTimeout( function() {
-							var vid = _this.getPlayerElement();
-							if (!vid){
-								mw.log( 'Error: switchPlaySrc no vid');
-								return ;
-							}	
-							vid.load();
-							vid.play();
-							// Wait another 100ms then bind the end event and any custom events
-							// for the switchCallback
-							setTimeout(function() {
-								var vid = _this.getPlayerElement();			
-								// Restore controls 
-								vid.controls = orginalControlsState;
-								// add the end binding: 
-								$j( vid ).bind( 'ended', function( event ) {
-									if(typeof doneCallback == 'function' ){
-										doneCallback();
-									}
-									return false;
-								});
-								if (typeof switchCallback == 'function') {
-									switchCallback(vid);
+						}	
+						vid.load();
+						vid.play();
+						// Wait another 100ms then bind the end event and any custom events
+						// for the switchCallback
+						setTimeout(function() {
+							var vid = _this.getPlayerElement();			
+							// Restore controls 
+							vid.controls = orginalControlsState;
+							// add the end binding: 
+							$( vid ).bind( 'ended', function( event ) {
+								if(typeof doneCallback == 'function' ){
+									doneCallback();
 								}
-							}, 100);
-						}, 100);
-					};
-					if (navigator.userAgent.toLowerCase().indexOf('chrome') != -1) {
-						// Null the src and wait 50ms ( helps unload video without crashing
-						// google chrome 7.x )
-						vid.src = '';
-						setTimeout( updateSrcAndPlay, 100);
-					} else {
-						updateSrcAndPlay();
-					}
-				}, 100 );
+								return false;
+							});
+							if (typeof switchCallback == 'function') {
+								switchCallback(vid);
+							}
+							_this.hidePlayerSpinner();
+						}, 50);
+					}, 50);
+				};
+				if (navigator.userAgent.toLowerCase().indexOf('chrome') != -1) {
+					// Null the src and wait 50ms ( helps unload video without crashing
+					// google chrome 7.x )
+					vid.src = '';
+					setTimeout( updateSrcAndPlay, 100);
+				} else {
+					updateSrcAndPlay();
+				}
 			} catch (e) {
-				mw.log("Error: Error in swiching source playback");
+				mw.log("Error: Error in switching source playback");
 			}
 		}
 	},
@@ -537,9 +554,9 @@ mw.EmbedPlayerNative = {
 	/*switchPlaySrc: function( src, switchCallback, doneCallback ){
 		var vid = this.getPlayerElement();
 		
-		$j(vid).unbind();
+		$(vid).unbind();
 		
-		$j( vid ).bind( 'ended', function( event ) {
+		$( vid ).bind( 'ended', function( event ) {
 			if( doneCallback ){
 				doneCallback();
 			}
@@ -581,13 +598,13 @@ mw.EmbedPlayerNative = {
 			this.monitor();
 		}
 	},
+	
 	/**
 	 * Stop the player ( end all listeners )
 	 */
 	stop: function(){
 		var _this = this;
-		if( this.playerElement ){
-			this.stopEventPropagation();
+		if( this.playerElement && this.playerElement.currentTime){
 			this.playerElement.currentTime = 0;
 			this.playerElement.pause();
 			// Restore event propagation after stop; 
@@ -662,7 +679,7 @@ mw.EmbedPlayerNative = {
 		this.getPlayerElement();
 		if ( !this.playerElement ) {
 			// No vid loaded
-			mw.log( 'native::load() ... doEmbed' );
+			mw.log( 'EmbedPlayerNative::load() ... doEmbed' );
 			this.onlyLoadFlag = true;
 			this.doEmbedHTML();
 			this.onLoadedCallback = callback;
@@ -678,7 +695,7 @@ mw.EmbedPlayerNative = {
 	* Get /update the playerElement value
 	*/
 	getPlayerElement: function () {
-		this.playerElement = $j( '#' + this.pid ).get( 0 );
+		this.playerElement = $( '#' + this.pid ).get( 0 );
 		return this.playerElement;
 	},
 
@@ -691,7 +708,7 @@ mw.EmbedPlayerNative = {
 	* fired when "seeking"
 	*/
 	onseeking: function() {
-		mw.log( "native:onSeeking " + this.seeking);
+		mw.log( "EmbedPlayerNative::onSeeking " + this.seeking);
 		// Trigger the html5 seeking event
 		//( if not already set from interface )
 		if( !this.seeking ) {
@@ -701,8 +718,8 @@ mw.EmbedPlayerNative = {
 			this.controlBuilder.onSeek();
 
 			// Trigger the html5 "seeking" trigger
-			mw.log("native:seeking:trigger:: " + this.seeking);
-			$j( this ).trigger( 'seeking' );
+			mw.log("EmbedPlayerNative::seeking:trigger:: " + this.seeking);
+			$( this ).trigger( 'seeking' );
 		}
 	},
 
@@ -711,22 +728,26 @@ mw.EmbedPlayerNative = {
 	* fired when done seeking
 	*/
 	onseeked: function() {
-		mw.log("native:onSeeked " + this.seeking + ' ct:' + this.playerElement.currentTime );
+		mw.log("EmbedPlayerNative::onSeeked " + this.seeking + ' ct:' + this.playerElement.currentTime );
 		// sync the seek checks so that we don't re-issue the seek request
 		this.previousTime = this.currentTime = this.playerElement.currentTime;
 		// Trigger the html5 action on the parent
 		if( this.seeking ){
 			this.seeking = false;
-			$j( this ).trigger( 'seeked' );
+			if( this._propagateEvents ){
+				$( this ).trigger( 'seeked' );
+			}
 		}
 		this.seeking = false;
+		// update the playhead status
+		this.monitor();
 	},
 
 	/**
 	* Handle the native paused event
 	*/
 	onpause: function(){
-		mw.log( "EmbedPlayer:native: OnPaused:: " +  this._propagateEvents );
+		mw.log( "EmbedPlayerNative:: OnPaused:: " +  this._propagateEvents );
 		if(  this._propagateEvents && ! this.paused){
 			this.parent_pause();
 		}
@@ -764,7 +785,7 @@ mw.EmbedPlayerNative = {
 
 		// Trigger "media loaded"
 		if( ! this.mediaLoadedFlag ){
-			$j( this ).trigger( 'mediaLoaded' );
+			$( this ).trigger( 'mediaLoaded' );
 			this.mediaLoadedFlag = true;
 		}
 	},
@@ -787,10 +808,7 @@ mw.EmbedPlayerNative = {
 	},
 
 	/**
-	* Local method for progress event
-	* fired as the video is downloaded / buffered
-	*
-	* Used to update the bufferedPercent
+	* Local method for end of media event
 	*/
 	onended: function() {
 		var _this = this;
@@ -802,3 +820,5 @@ mw.EmbedPlayerNative = {
 		}
 	}
 };
+
+} )( mediaWiki, jQuery );

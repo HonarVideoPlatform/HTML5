@@ -1,21 +1,28 @@
+( function( mw, $ ) {
 	
-
 	// Bind the KalturaWatermark where the uiconf includes the Kaltura Watermark 
-	$j( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
-		$j( embedPlayer ).bind( 'KalturaSupport_CheckUiConf', function( event, $uiConf, callback ){
-			// Check if the ui conf includes watermark
+	$( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
+		$( embedPlayer ).bind( 'KalturaSupport_CheckUiConf', function( event, $uiConf, callback ){
+			// Check if the uiConf xml includes a watermark 'tag' ( not a normal plugin )
 			if( $uiConf.find( 'watermark' ).length ){
 				// Wait for the player to be ready 
-				$j( embedPlayer ).bind( 'playerReady', function(){
+				$( embedPlayer ).bind( 'playerReady.watermark', function(){
 					// Run the watermark plugin code
-					watermarkPlugin( embedPlayer, $j( $uiConf ).find( 'watermark' ) );
-				})
+					watermarkPlugin( embedPlayer, $( $uiConf ).find( 'watermark' ) );
+				});
+				// Set up ad bindings to hide / re show watermark:
+				$( embedPlayer ).bind( 'AdSupport_StartAdPlayback.watermark', function(){
+					embedPlayer.$interface.find('.k-watermark-plugin').hide();
+				});
+				$( embedPlayer ).bind( 'AdSupport_EndAdPlayback.watermark', function(){
+					embedPlayer.$interface.find('.k-watermark-plugin').show();
+				});
 			}
 			// Continue trigger event regardless of if ui-conf is found or not
 			callback();
 		});
 	});
-	var watermarkPlugin = function( embedPlayer, $watermarkConf ){
+	window.watermarkPlugin = function( embedPlayer, $watermarkConf ){
 		// Make sure we have a watermark url: 
 		if( !$watermarkConf.attr('watermarkPath') ){
 			return false;
@@ -43,20 +50,21 @@
 					watermarkCss.left = '0';					
 					break;
 			}
-			watermarkCss.padding = $watermarkConf.attr('padding') + 'px';
+			watermarkCss.padding = $watermarkConf.attr( 'padding') + 'px';
 			return watermarkCss;
 		};
 		
 		var watermarkCss = getCss( $watermarkConf );
 		embedPlayer.$interface.append( 
-			$j('<span />')
+			$('<span />')
+			.addClass('k-watermark-plugin')
 			.css( watermarkCss )
 			.append( 
-				$j('<a />').attr({
+				$('<a />').attr({
 					'href' : $watermarkConf.attr('watermarkClickPath'),
 					'target' : '_blank'
 				}).append( 
-					$j('<img />').attr({
+					$('<img />').attr({
 						'src': $watermarkConf.attr('watermarkPath'),
 						'id' : embedPlayer.id + '_' + $watermarkConf.attr('id')
 					})
@@ -65,3 +73,4 @@
 		);
 	};
 	
+})( window.mw, jQuery );

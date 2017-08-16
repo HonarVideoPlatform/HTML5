@@ -91,8 +91,102 @@ mw.PlaylistHandlerMediaRss.prototype = {
 		}
 		return this.$rss.find('item').length;
 	},
-
-	getClipSources: function( clipIndex, callback ){
+	playClip: function( embedPlayer, clipIndex ){
+		var _this = this;
+		// Update the poster
+		embedPlayer.updatePosterSrc( _this.getClipPoster( clipIndex, _this.playlist.getTargetPlayerSize() ) );
+		// Empty existing sources
+	    embedPlayer.emptySources();
+	    
+	    var clipSources = this.getClipSources( clipIndex );
+		if( !clipSources ){
+			mw.log("Error: mw.Playlist no sources found for clipIndex:" + clipIndex);
+			return ;
+		}
+		for( var i =0; i < clipSources.length; i++ ){
+			var $source = $j('<source />')
+			.attr( clipSources[i] );
+			embedPlayer.mediaElement.tryAddSource( $source.get(0) ) ;
+		}
+		embedPlayer.changeMedia( function(){
+			// restore playlist bindings: 
+			// update Ui: 
+			_this.playlist.updatePlayerUi( _this.clipIndex );
+			
+			// Add playlist specific bindings: 
+			_this.playlist.addClipBindings();
+			
+			// do the actual play: 
+			embedPlayer.play();
+		});
+	},
+	
+	drawEmbedPlayer: function( clipIndex, callback ){
+		var _this = this;
+		var playerSize = _this.playlist.getTargetPlayerSize();
+		var $target = _this.playlist.getVideoPlayerTarget();
+		var $video;
+		// Check that the player is not already in the dom: 
+		if( $('#' + _this.playlist.getVideoPlayerId()).length ){
+			mw.log( 'Error :: PlaylistHandler: drawEmbedPlayer player already in DOM? ');
+		} else {
+			
+			// Build the video tag object:
+			$video = $( '<video />' )
+			.attr({
+				'id' : _this.playlist.getVideoPlayerId(),
+				'poster' : _this.getClipPoster( clipIndex, playerSize)
+			})
+			.css(
+				playerSize
+			);
+			_this.updateVideoSources( clipIndex, $video );
+			
+			// Add the video to the target:
+			$target.append( $video );
+			
+			// create the EmbedPlayer and issue the callback: 
+			$video.embedPlayer( callback );
+		}
+	},
+	/**
+	 * Adds the video sources for a given video tag
+	 * @param clipIndex
+	 * @param $video
+	 * @return
+	 */
+	updateVideoSources: function( clipIndex, $video ){
+          var _this = this;
+		var clipSources = _this.getClipSources( clipIndex );
+		if( clipSources ){
+			// Update the sources from the playlist provider:
+			for( var i =0; i < clipSources.length; i++ ){
+				var $source = $j('<source />')
+					.attr( clipSources[i] );
+				$video.append( $source );
+			}
+		}
+	},
+	updatePlayerUi: function( clipIndex ){
+		var _this = this;
+		var playerSize = _this.playlist.getTargetPlayerSize();
+		if( this.playlist.titleHeight != 0){
+			// Build and output the title
+			var $title = $('<div />' )
+				.addClass( 'playlist-title ui-state-default ui-widget-header ui-corner-all')
+				.css( {
+					'top' : '0px',
+					'height' : _this.titleHeight,
+					'width' : playerSize.width
+				} )
+				.text(
+					_this.getClipTitle( clipIndex )
+				);
+			$( _this.target + ' .media-rss-video-player-container' ).find('.playlist-title').remove();
+			$( _this.target + ' .media-rss-video-player-container' ).prepend( $title );
+		}
+	},
+	getClipSources: function( clipIndex ){
 		var _this = this;
 		var $item = $j( this.$rss.find('item')[ clipIndex ] );
 		var clipSources = [];
@@ -111,14 +205,16 @@ mw.PlaylistHandlerMediaRss.prototype = {
 				clipSources.push( clipSource );
 			}
 		});
-		callback( clipSources );
+		return clipSources;
 	},
 
 	getCustomAttributes: function( clipIndex){
 		// no custom metadata present in mrss playlist handler:
 		return {};
 	},
-	
+	addEmbedPlayerBindings: function( embedPlayer ){
+		// no custom bindings in default mrss playlist handler
+	},
 	getClipList: function(){
 		return this.$rss.find('item');
 	},

@@ -1,34 +1,27 @@
 // Wrap in mw
+( function( mw, $ ) {
 // Check for new Embed Player events: 
-$j( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
-
+$( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
 	// Check for KalturaSupport uiConf
-	$j( embedPlayer ).bind( 'KalturaSupport_CheckUiConf', function( event, $uiConf, callback ){
-
+	$( embedPlayer ).bind( 'KalturaSupport_CheckUiConf', function( event, $uiConf, callback ){
 		// Old closeCaption plugin
-		var oldCaptionConfig = kWidgetSupport.getPluginConfig(
-				embedPlayer,
-				$uiConf, 
+		var oldCaptionConfig = embedPlayer.getKalturaConfig(
 				'closedCaptions', 
 				[ 'plugin', 'relativeTo', 'position', 'width', 'height', 'skin', 'bg',
 				 'fontsize', 'opacity', 'fontFamily', 'type',  'ccUrl', 'timeOffset' ]
 		);
 
 		// closeCaption Under player plugin
-		var underCaptionConfig = kWidgetSupport.getPluginConfig(
-				embedPlayer,
-				$uiConf, 
+		var underCaptionConfig = embedPlayer.getKalturaConfig(
 				'closedCaptionsUnderPlayer', 
-				[ 'plugin', 'width', 'height', 'fontsize', 'bg', 'fontcolor', 'opacity', 'fontFamily' ]
+				[ 'plugin', 'width', 'height', 'fontsize', 'bg', 'fontcolor', 'opacity', 'fontFamily', 'timeOffset' ]
 		);
 
 		// closeCaption Over player plugin
-		var overCaptionConfig = kWidgetSupport.getPluginConfig(
-				embedPlayer,
-				$uiConf,
+		var overCaptionConfig = embedPlayer.getKalturaConfig(
 				'closedCaptionsOverPlayer',
 				[ 'plugin', 'width', 'height', 'fontsize', 'bg', 'fontColor', 'opacity',
-					'fontFamily', 'useGlow', 'glowColor', 'glowBlur' ]
+					'fontFamily', 'useGlow', 'glowColor', 'glowBlur', 'timeOffset' ]
 		);
 
 		// Select the available plugin
@@ -41,8 +34,7 @@ $j( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
 			captionConfig = overCaptionConfig;
 		}
 
-		// TODO: remove check for TempCaptions once Eagle is out
-		if( captionConfig.plugin || mw.getConfig('Kaltura.TempCaptions')){
+		if( captionConfig.plugin ){
 			captionPlugin( embedPlayer, captionConfig ,  callback );
 		} else {
 			callback();
@@ -50,7 +42,7 @@ $j( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
 	});
 });
 
-var captionPlugin = function( embedPlayer, captionConfig, callback){
+window.captionPlugin = function( embedPlayer, captionConfig, callback){
 	// Load the Kaltura TimedText and TimedText Module:
 	mw.load( [ "TimedText", "mw.KTimedText" ], function() {
 		// Add captions to the player
@@ -60,3 +52,4 @@ var captionPlugin = function( embedPlayer, captionConfig, callback){
 	});
 };
 
+})( window.mw, jQuery );

@@ -419,17 +419,24 @@ mw.includeAllModuleMessages();
 		autoSelectSource: function() {
 			var _this = this;
 			this.enabledSources = [];
-			// Check if any source matches our "local"
+			// Check if any source matches our "local" pref
 			$.each( this.textSources, function(inx, source){
 				if(	_this.config.userLanugage == source.srclang.toLowerCase() 
 					&& 
 					_this.config.userKind == source.kind
 				) {
-					// Check for kind if available
 					_this.enableSource( source );
 					return ;
 				}
 			});
+			// Check if any source is marked default:
+			$.each( this.textSources, function(inx, source){
+				if( source['default'] ){
+					_this.enableSource( source );
+					return ;
+				}
+			});
+					
 			// If no userLang, source try enabling English:
 			if( this.enabledSources.length == 0 ) {
 				for( var i=0; i < this.textSources.length; i++ ) {
@@ -767,6 +774,9 @@ mw.includeAllModuleMessages();
 			} else {
 				_this.refreshDisplay();
 			}
+
+			// Trigger the event
+			$( this.embedPlayer ).trigger( 'TimedText_ChangeSource' );
 		},
 
 		/**

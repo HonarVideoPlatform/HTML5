@@ -149,7 +149,7 @@ $enable_native   = false;
 $valid_url_regex = '/.*/';
 
 $enable_fullHeaders = true;
-$contentType_regex = '/(text|application)\/(xml|x-srt|plain)/';
+$contentType_regex = '/(text|application)\/(xml|x-srt|html|plain)/';
 $validateXML = false;
 $encodeCDATASections = true;
 $proxyCookies = true;
@@ -199,7 +199,7 @@ if ( !$url ) {
   // Forward the client ip for GeoLookup: ( geo-lookup server hopefully is not dumb and uses X-Forwarded-For ) 
   curl_setopt($ch, CURLOPT_HTTPHEADER, array(
   	'X-Forwarded-For: ' . $_SERVER['REMOTE_ADDR'],
-	'Expect:' // used to ignore "100 Continue Header" when using post
+	'Expect:' // used to ignore "100 Continue Header" when using POST
   ));
   
   
@@ -217,6 +217,15 @@ if ( !$url ) {
   
   curl_close( $ch );
 }
+// Be sure to utf8_encode contents so no remote content break JSON encoding
+if( mb_detect_encoding($contents, 'UTF-8', true) != "UTF-8" ) {
+	$contents = utf8_encode( $contents );
+}
+// remove leading ? in some kaltura cc xml responses :(
+if( $contents[0] == '?' ){
+	$contents = substr( $contents, 1 );
+}
+
 
 // Split header text into an array.
 $header_text = preg_split( '/[\r\n]+/', $header );
@@ -278,6 +287,7 @@ if ( isset( $_GET['mode'] ) == 'native' ) {
 	  	$contents = "XML failed to validate";  	
   	}  
   }
+ 
   //$encodeCDATASections = false;
   // Check if we should encode CDATA sections: 
   if( $encodeCDATASections ){
@@ -298,8 +308,7 @@ if ( isset( $_GET['mode'] ) == 'native' ) {
   }
   
   // Set the JSON data object contents, decoding it from JSON if possible.
-  $decoded_json = json_decode( $contents );
-  $data['contents'] = $decoded_json ? $decoded_json : $contents;
+  $data['contents'] = $contents;
   
   // Generate appropriate content-type header.  
   if( isset(  $_SERVER['HTTP_X_REQUESTED_WITH'] ) ){
@@ -312,14 +321,10 @@ if ( isset( $_GET['mode'] ) == 'native' ) {
   // Get JSONP callback.
   $jsonp_callback = $enable_jsonp && isset($_GET['callback']) ? $_GET['callback'] : null;
 
-  // Be sure to utf8_encode contents so no remote content break JSON encoding 
-  $data["contents"] = utf8_encode( $data["contents"] );
-
   // Generate JSON/JSONP string
   $json = json_encode( $data );
 
   print $jsonp_callback ? "$jsonp_callback($json)" : $json;
-  
 }
 
 ?>

@@ -110,8 +110,7 @@
 		addIframePlayerHooksServer: function(){
 			var _this = this;
 			mw.log("KDPMapping::addIframePlayerHooksServer");
-			
-			$( mw ).bind( 'AddIframePlayerBindings', function( event, exportedBindings){
+			$( mw ).bind( 'AddIframePlayerBindings', function( event, exportedBindings ){
 				exportedBindings.push( 'jsListenerEvent', 'Kaltura.SendAnalyticEvent' );
 			});
 			
@@ -157,11 +156,14 @@
 			});
 		},
 		
-		/*
-		 * Emulates kaltura setAttribute function
+		/**
+		 * Emulates Kaltura setAttribute function
+		 * @param {Object} embedPlayer Base embedPlayer to be affected 
+		 * @param {String} componentName Name of component to be updated
+		 * @param {String} property The value to give the named attribute
 		 */
 		setKDPAttribute: function( embedPlayer, componentName, property, value ) {
-			mw.log(" cn: " + componentName + " p:" + property + " v:" + value);
+			mw.log("KDPMapping::setKDPAttribute " + componentName + " p:" + property + " v:" + value  + ' for: ' + embedPlayer.id );
 			switch( property ) {
 				case 'autoPlay':
 					embedPlayer.autoplay = value;
@@ -173,25 +175,65 @@
 					embedPlayer.endTime = parseFloat(value);
 				break;
 			}
+			// Give kdp plugins a chance to take attribute actions 
+			$( embedPlayer ).trigger( 'Kaltura_SetKDPAttribute', [componentName, property, value] );
 		},
 		
 		/**
 		 * Emulates kaltura evaluate function
+		 * 
+		 * @@TODO move this into a separate uiConfValue parser script, 
+		 * I predict ( unfortunately ) it will expand a lot.
 		 */
 		evaluate: function( embedPlayer, objectString ){
-			// If the first character is not a { directly return the string:
-			if( objectString[0] != '{' ){
+			var _this = this;
+			var evExp;
+			if( typeof objectString != 'string'){
 				return objectString;
 			}
-			// Strip the { } from the objectString
-			objectString = objectString.replace( /\{|\}/g, '' );
-			objectPath = objectString.split('.');
+			// Replace any { } calls with evaluated expression.
+			var text = objectString.replace(/\{([^\}]*)\}/g, function(match, contents, offset, s) {
+				evExp = contents;
+			});
+			// We can't use return inside the replace callback,
+			// because if we return an object {mediaProxy.entryMetadata}
+			// It will be returned as a string [object Object]
+			if( evExp ) {
+				text = _this.evaluateExpression( embedPlayer, evExp );
+			}
+
+			// Return undefined to string: undefined, null, ''
+			if( text === "undefined" || text === "null" || text == "" )
+				text = undefined;
+
+			if( text === "false")
+				text = false;
+			if( text === "true")
+				text = true;
+			
+			return text;
+		},
+		evaluateExpression: function( embedPlayer, expression){
+			var _this = this;
+			
+			// Check if we have a function call: 
+			if( expression.indexOf( '(' ) !== -1 ){
+				var fparts = expression.split( '(' );
+				return _this.evaluateStringFunction( 
+						fparts[0], 
+						// Remove the closing ) and evaluate the Expression 
+						// should not include ( nesting !
+						_this.evaluateExpression(embedPlayer, fparts[1].slice( 0, -1) )
+				);
+			}
+			// Split the uiConf expression into parts separated by '.'
+			var objectPath = expression.split('.');
 			switch( objectPath[0] ){
 				case 'video':
 					switch( objectPath[1] ){
 						case 'volume': 
 							return embedPlayer.volume;
-						break;
+							break;
 						case 'player':
 							switch( objectPath[2] ){
 								case 'currentTime':
@@ -228,7 +270,6 @@
 						break;
 					}
 				break;
-				
 				case 'configProxy':
 					switch( objectPath[1] ){
 						case 'flashvars':
@@ -255,13 +296,12 @@
 										break;
 								}
 							} else {
-								// get flashvars
-								return $( embedPlayer ).data('flashvars' );
+								// Get flashvars
+								return $( embedPlayer ).data( 'flashvars' );
 							}
 						break;
 					}
 				break;	
-				
 				case 'playerStatusProxy':
 					switch( objectPath[1] ){
 						case 'kdpStatus': 
@@ -271,9 +311,16 @@
 				break;					
 			}
 		},
+		evaluateStringFunction: function( functionName, value ){
+			switch( functionName ){
+				case 'encodeUrl':
+					return encodeURI( value );
+					break;
+			}
+		},
 		
 		/**
-		 * Emulates kalatura addJsListener function
+		 * Emulates Kalatura addJsListener function
 		 * @param {Object} EmbedPlayer the player to bind against
 		 * @param {String} eventName the name of the event. 
 		 * @param {Mixed} String of callback name, or function ref
@@ -387,8 +434,8 @@
 					});
 					break;	
 				case 'changeMedia':
-					b( 'KalturaSupport_ChangeMedia', function( event, newEntryId){
-						callback( {'entryId' : newEntryId }, embedPlayer.id );
+					b( 'onChangeMediaDone', function( event ){
+						callback({ 'entryId' : embedPlayer.kentryid }, embedPlayer.id );
 					});
 					break;
 				case 'entryReady':
@@ -402,17 +449,17 @@
 					break;
 				case 'cuePointsReceived':
 					b( 'KalturaSupport_CuePointsReady', function( event, cuePoints ) {
-						callback( embedPlayer.entryCuePoints, embedPlayer.id );
+						callback( embedPlayer.rawCuePoints, embedPlayer.id );
 					});
 					break;
 				case 'cuePointReached':
-					b( 'KalturaSupport_CuePointReached', function( event, cuePoint ) {
-						callback( cuePoint, embedPlayer.id );
+					b( 'KalturaSupport_CuePointReached', function( event, cuePointWrapper ) {
+						callback( cuePointWrapper, embedPlayer.id );
 					});
 					break;
 				case 'adOpportunity':
-					b( 'KalturaSupport_AdOpportunity', function( event, cuePoint ) {
-						callback( cuePoint, embedPlayer.id );
+					b( 'KalturaSupport_AdOpportunity', function( event, cuePointWrapper ) {
+						callback( cuePointWrapper, embedPlayer.id );
 					});
 					break;
 				/**
@@ -437,6 +484,17 @@
 				case 'gotoContributorWindow':
 				case 'gotoEditorWindow':
 					mw.log( "Warning: kdp event: " + eventName + " does not have an html5 mapping" );
+					break;
+
+				/* For closedCaption plguin */
+				case 'ccDataLoaded':
+					b('KalturaSupport_ccDataLoaded');
+					break;
+				case 'newClosedCaptionsData':
+					b('KalturaSupport_newClosedCaptionsData');
+					break;
+				case 'changedClosedCaptions':
+					b('TimedText_ChangeSource');
 					break;
 				default:
 					mw.log("Error unkown JsListener: " + eventName );
@@ -494,32 +552,21 @@
 					    embedPlayer.emptySources();
 					    break;
 					}
-
-					// CHANGE_MEDIA (changeMedia): Start the init of change media macro commands
-					$( embedPlayer ).trigger( 'KalturaSupport_ChangeMedia', notificationData.entryId );
-					
-					var chnagePlayingMedia = embedPlayer.isPlaying();
-					// Pause player during media switch
-					embedPlayer.pause();
-
-					// Reset first play to true, to count that play event
-					embedPlayer.firstPlay = true;
-					
-					// Clear out any bootstrap data from the iframe 
-					mw.setConfig('KalturaSupport.IFramePresetPlayerData', false);
-					// Clear out any player error:
-					embedPlayer['data-playerError'] = null;
-					// Clear out the player error div:
-					embedPlayer.$interface.find('.error').remove();
-					// restore the control bar:
-					embedPlayer.$interface.find('.control-bar').show();
-					
 					// Update the entry id
 					embedPlayer.kentryid = notificationData.entryId;
+					// Clear out any bootstrap data from the iframe 
+					mw.setConfig('KalturaSupport.IFramePresetPlayerData', false);
 					// Clear player & entry meta 
 				    embedPlayer.kalturaPlayerMetaData = null;
 				    embedPlayer.kalturaEntryMetaData = null;
-					
+				    
+				    // clear cuepoint data:
+				    embedPlayer.rawCuePoints = null;
+				    embedPlayer.kCuePoints = null;
+				    
+				    // clear ad data ..
+				    embedPlayer.ads = null;
+				    
 					// Update the poster
 					embedPlayer.updatePosterSrc( 
 						mw.getKalturaThumbUrl({
@@ -529,43 +576,11 @@
 							'height' :  embedPlayer.getHeight()
 						})
 					);
-					embedPlayer.updatePosterHTML();
-					
-					// Add a loader to the embed player: 
-					$( embedPlayer )
-					.getAbsoluteOverlaySpinner()
-					.attr('id', embedPlayer.id + '_mappingSpinner' );
-					
-					if( embedPlayer.$interface ){
-						embedPlayer.$interface.find('.play-btn-large').hide(); // hide the play btn
-					}
-
 					// Empty out embedPlayer object sources
 					embedPlayer.emptySources();
 					
-					// Bind the ready state:
-					$( embedPlayer ).bind('playerReady.kdpMapping', function(){	
-						// Do normal stop then play:
-						if( chnagePlayingMedia ){
-							// make sure the play button is not displayed:
-							embedPlayer.$interface.find( '.play-btn-large' ).hide();
-							if( embedPlayer.isPersistentNativePlayer() ){
-								embedPlayer.switchPlaySrc( embedPlayer.getSrc() );
-							} else {
-								embedPlayer.stop();
-								embedPlayer.play();	
-							}
-						}
-					});
-					
-					// Load new sources per the entry id via the checkPlayerSourcesEvent hook:
-					$( embedPlayer ).triggerQueueCallback( 'checkPlayerSourcesEvent', function(){
-						$( '#' + embedPlayer.id + '_mappingSpinner' ).remove();
-						if( embedPlayer.$interface ){
-							embedPlayer.$interface.find( '.play-btn-large' ).show(); // show the play btn
-						}
-						embedPlayer.setupSourcePlayer();
-					});
+					// run the embedPlayer changeMedia function
+					embedPlayer.changeMedia();
 				break;
 			}
 		}
