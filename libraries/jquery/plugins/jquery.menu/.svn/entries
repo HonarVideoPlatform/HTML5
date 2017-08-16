@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.2/modules/MiroSubs/mirosubs/media/images/prettyPhoto/facebook
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4a6/libraries/jquery/plugins/jquery.menu
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-01-01T08:58:44.295160Z
-7103
+2011-07-05T15:47:07.353936Z
+5770
 rany
 
 
@@ -26,18 +26,17 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-contentPatternBottom.png
+jquery.menu.css
 file
 
 
 
 
-2017-07-03T22:43:21.000000Z
-a6fab9b4551a6274d71703b610eb6abd
-2012-01-01T08:58:44.295160Z
-7103
+2017-07-03T19:01:31.000000Z
+3fbc4c55d1be935f7ea345eb5f45530e
+2011-07-05T15:47:07.353936Z
+5770
 rany
-has-props
 
 
 
@@ -58,20 +57,20 @@ has-props
 
 
 
-142
+
+4262
 
-btnPrevious.png
+jquery.menu.js
 file
 
 
 
 
-2017-07-03T22:43:21.000000Z
-b251170307bcb724ac5b4e97482dc6ed
-2012-01-01T08:58:44.295160Z
-7103
+2017-07-03T19:01:31.000000Z
+b7dcb0b557dd97eac4121f5782cab410
+2011-07-05T15:47:07.353936Z
+5770
 rany
-has-props
 
 
 
@@ -92,209 +91,6 @@ has-props
 
 
 
-828
-
-btnNext.png
-file
 
-
-
-
-2017-07-03T22:43:21.000000Z
-b8d4bf8440aae57321064ecaf2efea7e
-2012-01-01T08:58:44.295160Z
-7103
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-845
-
-contentPatternLeft.png
-file
-
-
-
-
-2017-07-03T22:43:21.000000Z
-3b7f995669ad8cbf24acccb8f1d70f4d
-2012-01-01T08:58:44.295160Z
-7103
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-137
-
-contentPatternRight.png
-file
-
-
-
-
-2017-07-03T22:43:21.000000Z
-74bfb933f639e76971ca5db1ae612011
-2012-01-01T08:58:44.295160Z
-7103
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-136
-
-sprite.png
-file
-
-
-
-
-2017-07-03T22:43:21.000000Z
-7e88957ba7614dede5cdd0edf96173e5
-2012-01-01T08:58:44.295160Z
-7103
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3752
-
-loader.gif
-file
-
-
-
-
-2017-07-03T22:43:21.000000Z
-df46993044576f83f2c2cc1a64e18f31
-2012-01-01T08:58:44.295160Z
-7103
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2545
-
-contentPatternTop.png
-file
-
-
-
-
-2017-07-03T22:43:21.000000Z
-c2e5c4ec6fc9ee4e49c79ff7e18c9695
-2012-01-01T08:58:44.295160Z
-7103
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-142
+27321
 
