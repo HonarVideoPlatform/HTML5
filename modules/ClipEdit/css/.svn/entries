@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.13/modules/ClipEdit/css
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.16/modules/ClipEdit/css
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-06-10T15:13:53.759960Z
-7636
+2012-07-05T12:23:19.320576Z
+7744
 hagaio
 
 
@@ -35,10 +35,10 @@ file
 
 
 
-2017-07-03T19:55:14.000000Z
+2017-07-03T20:07:53.000000Z
 2563cec7debbeb96877648945cd6615c
-2012-06-10T15:13:53.759960Z
-7636
+2012-07-05T12:23:19.320576Z
+7744
 hagaio
 has-props
 
