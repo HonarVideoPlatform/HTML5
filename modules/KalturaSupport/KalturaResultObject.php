@@ -11,6 +11,7 @@ class KalturaResultObject {
 	 
 	var $resultObj = null; // lazy init with getResultObject
 	var $clientTag = null;
+	var $uiConfXml = null; // lazy init
 	
 	// Local flag to store whether output was came from cache or was a fresh request
 	private $outputFromCache = false;
@@ -88,7 +89,7 @@ class KalturaResultObject {
 		);
 	}
 	
-	// check if the requested url is a playlist
+	// Check if the requested url is a playlist
 	public function isPlaylist(){
 		return ( $this->urlParameters['playlist_id'] !== null || $this->urlParameters['entry_id'] === null);
 	}
@@ -98,6 +99,58 @@ class KalturaResultObject {
 	
 	private function getUserAgent() {
 		return $_SERVER['HTTP_USER_AGENT'];
+	}
+	/**
+	 * Checks if a user agent is restricted via the user restriction plugin present in the uiConf XML
+	 * this check is run as part of resultObject handling so we must pass in the uiConf string
+	 */ 
+	public function isUserAgentRestrictedPlugin( $uiConf ) {
+		// Get flashvars
+		$flashVars = $this->urlParameters[ 'flashvars' ];
+		$restrictedMessage = true;
+		
+		
+		// Check for plugin definition in flashVars
+		if( $flashVars && isset($flashVars['restrictUserAgent.plugin']) ) {
+			$restrictedStrings = $flashVars['restrictUserAgent.restrictedUserAgents'];
+			if( isset($flashVars['restrictUserAgent.restrictedUserAgentTitle']) && isset($flashVars['restrictUserAgent.restrictedUserAgentMessage']) ) {
+				$restrictedMessage = $flashVars['restrictUserAgent.restrictedUserAgentTitle'] ."\n". $flashVars['restrictUserAgent.restrictedUserAgentMessage'];
+			}
+		} else {
+			// Use the local uiConfXml object location to avoid re-parsing the uiConf
+			// @@TODO clean up getUiConfXMl() method to handle unitialized resultObject state
+			if( !$this->uiConfXml ){
+				$this->uiConfXml = new SimpleXMLElement( $uiConf );
+			}
+			// Check for plug definition in uiConf
+			$restrictUserAgentPlugin = $this->uiConfXml->xpath("*//Plugin[@id = 'restrictUserAgent']");
+			if( $restrictUserAgentPlugin ) {
+				$restrictUserAgentPlugin = $restrictUserAgentPlugin[0]->attributes();
+				$restrictedStrings = $restrictUserAgentPlugin->restrictedUserAgents;
+				if( isset($restrictUserAgentPlugin->restrictedUserAgentTitle) && isset($restrictUserAgentPlugin->restrictedUserAgentMessage) ) {
+					$restrictedMessage = $restrictUserAgentPlugin->restrictedUserAgentTitle . "\n" . $restrictUserAgentPlugin->restrictedUserAgentMessage;
+				}
+			}else {
+				return false;
+			}
+		}
+		
+		// If we don't have any string to search for, return true
+		if( !isset($restrictedStrings) || empty($restrictedStrings) ) { return false; }
+
+		// Lower case user agents string
+		$userAgent = strtolower( $this->getUserAgent() );
+		$restrictedStrings = strtolower( $restrictedStrings );
+		$restrictedStrings = explode(",", $restrictedStrings);
+		
+		foreach( $restrictedStrings as $string ) {
+			$string = str_replace(".*", "", $string); // Removes .*
+			$string = trim($string);
+			if( ! strpos( $userAgent, $string ) === false ) {
+				return $restrictedMessage;
+			}
+		}
+		return false;
 	}
 
 	public function getSourceForUserAgent( $sources = null, $userAgent = false ){
@@ -203,8 +256,13 @@ class KalturaResultObject {
 		}
 
 		/* Country Restricted */
-		if($accessControl->isCountryRestricted) {
+		if( $accessControl->isCountryRestricted) {
 			return "Un authorized country\nWe're sorry, this content is only available on certain countries.";
+		}
+
+		/* IP Address Restricted */
+		if( $accessControl->isIpAddressRestricted) {
+			return "Un authorized IP address\nWe're sorry, this content is only available for ceratin IP addresses.";
 		}
 
 		/* Session Restricted */
@@ -212,10 +270,28 @@ class KalturaResultObject {
 			return "No KS where KS is required\nWe're sorry, access to this content is restricted.";
 		}
 
-		if($accessControl->isScheduledNow === 0) {
+		if( $accessControl->isScheduledNow === 0) {
 			return "Out of scheduling\nWe're sorry, this content is currently unavailable.";
 		}
-
+		
+		//echo $this->getUserAgent() . '<br />';
+		//echo '<pre>'; print_r($accessControl); exit();
+		//die($this->getKS());
+		$userAgentMessage = "User Agent Restricted\nWe're sorry, this content is not available for your device.";
+		if( isset( $accessControl->isUserAgentRestricted ) && $accessControl->isUserAgentRestricted ) {
+			return $userAgentMessage;
+		} else {
+			$userAgentRestricted = $this->isUserAgentRestrictedPlugin( $resultObject[ 'uiConf'] );
+			if( $userAgentRestricted === false ) {
+				return true;
+			} else {
+				if( $userAgentRestricted === true ) {
+					return $userAgentMessage;
+				} else {
+					return $userAgentRestricted;
+				}
+			}
+		}
 		return true;
 	}
 	// Load the Kaltura library and grab the most compatible flavor
@@ -376,7 +452,8 @@ class KalturaResultObject {
 	
 	// Parse the embedFrame request and sanitize input
 	private function parseRequest(){
-		global $wgAllowRemoteKalturaService, $wgEnableScriptDebug;
+		global $wgAllowRemoteKalturaService, $wgEnableScriptDebug, $wgKalturaUseAppleAdaptive, 
+				$wgKalturaPartnerDisableAppleAdaptive;
 		// Support /key/value path request:
 		if( isset( $_SERVER['PATH_INFO'] ) ){
 			$urlParts = explode( '/', $_SERVER['PATH_INFO'] );
@@ -433,6 +510,12 @@ class KalturaResultObject {
 				$wgKalturaCDNUrl = 'http://' .  $_REQUEST['cdnHost'];
 			}
 		}
+		
+		// Dissable apple adaptive per partner id:
+		if( in_array( $this->getPartnerId(), $wgKalturaPartnerDisableAppleAdaptive ) ){
+			$wgKalturaUseAppleAdaptive = false;
+		}
+		
 	}
 	private function getCacheDir(){
 		global $mwEmbedRoot, $wgScriptCacheDirectory;
@@ -568,7 +651,7 @@ class KalturaResultObject {
 			throw new Exception( 'Error invalid KS');
 			return array();
 		}
-		
+
 		$resultObject = array_merge( $this->getBaseResultObject(), array(
 			'flavors' 			=> 	$rawResultObject[0],
 			'accessControl' 	=> 	$rawResultObject[1],
@@ -582,22 +665,24 @@ class KalturaResultObject {
 			
 			$resultObject['entryMeta'] = $this->xmlToArray( new SimpleXMLElement( $rawResultObject[3]->objects[0]->xml ) );
 		}
+		
 		if( isset( $rawResultObject[4] ) && $rawResultObject[4]->confFile ){
 			$resultObject[ 'uiconf_id' ] = $this->urlParameters['uiconf_id'];
 			$resultObject[ 'uiConf'] = $rawResultObject[4]->confFile;
 		}
-		//echo '<pre>'; print_r( $rawResultObject[5] ); exit();
+		//echo '<pre>'; print_r( $rawResultObject[4] ); exit();
+		//echo htmlspecialchars($rawResultObject[4]->confFile); exit();
 		// Add Cue Point data. Also check for 'code' error
 
 		if( isset( $rawResultObject[5] ) && is_object( $rawResultObject[5] ) && $rawResultObject[5]->totalCount > 0 ){
 			$resultObject[ 'entryCuePoints' ] = $rawResultObject[5]->objects;
 		}
-
 		// Check access control and throw an exception if not allowed: 
 		$acStatus = $this->isAccessControlAllowed( $resultObject );
 		if( $acStatus !== true ){
 			throw new Exception( $acStatus );
 		}	
+		
 		return $resultObject;
 	}
 	function getBaseResultObject(){
@@ -637,6 +722,7 @@ class KalturaResultObject {
 		$conf->serviceUrl = $wgKalturaServiceUrl;
 		$conf->clientTag = $this->clientTag;
 		$conf->curlTimeout = $wgKalturaServiceTimeout;
+		$conf->userAgent = $this->getUserAgent();
 		
 		$client = new KalturaClient( $conf );
 		if( isset($this->urlParameters[ 'flashvars' ]) && isset($this->urlParameters[ 'flashvars' ][ 'ks' ]) ) {
@@ -695,6 +781,18 @@ class KalturaResultObject {
 			return false;
 		}
 	}
+	public function getUiConfXML(){
+		global $wgKalturaIframe;
+		if( !$this->uiConfXml ){
+			if( ! $this->getUiConf() ){
+				return false;
+			}
+			$uiConf = str_replace( '[kClick="', 'kClick="', $this->getUiConf() );
+			// remove this hack as soon as possible
+			$this->uiConfXml = new SimpleXMLElement( $uiConf );
+		}
+		return $this->uiConfXml;
+	}
 	public function getMeta(){
 		$result = $this->getResultObject();
 		if( isset( $result['meta']  ) ){
@@ -704,11 +802,12 @@ class KalturaResultObject {
 		}
 	}
 	private function getResultObject(){
+	
 		global $wgKalturaUiConfCacheTime;
 		// Check if we have a cached result object:
 		if( !$this->resultObj ){
 			$cacheFile = $this->getCacheDir() . '/' . $this->getResultObjectCacheKey() . ".entry.txt";
-	
+			
 			// Check modify time on cached php file
 			$filemtime = @filemtime( $cacheFile );  // returns FALSE if file does not exist
 			if ( !$filemtime || filesize( $cacheFile ) === 0 || ( time() - $filemtime >= $wgKalturaUiConfCacheTime ) ){
@@ -717,13 +816,19 @@ class KalturaResultObject {
 				$this->outputFromCache = true;
 				$this->resultObj = unserialize( file_get_contents( $cacheFile ) );
 			}
-			
 			// Test if the resultObject can be cached ( no access control restrictions )
-			if( $this->isAccessControlAllowed( $this->resultObj ) === true ){
+			if( $this->isCachableRequest() ){
 				$this->putCacheFile( $cacheFile, serialize( $this->resultObj  ) );
 			}
 		}
 		return $this->resultObj;
+	}
+	private function isCachableRequest(){
+		if( $this->isAccessControlAllowed( $this->resultObj ) !== true  ){
+			return false;
+		}
+		// No prestrictions 
+		return true;
 	}
 	private function putCacheFile( $cacheFile, $data ){
 		global $wgEnableScriptDebug;

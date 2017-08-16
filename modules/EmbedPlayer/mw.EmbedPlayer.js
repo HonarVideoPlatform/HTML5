@@ -604,14 +604,9 @@ mw.EmbedPlayer.prototype = {
 		// Set the plugin id
 		this.pid = 'pid_' + this.id;
 
-
+		// move to mediaWiki support
 		if( this.apiTitleKey ){
 			this.apiTitleKey = decodeURI( this.apiTitleKey );
-		}
-
-		// Hide "controls" if using native player controls:
-		if( this.useNativePlayerControls() ){
-			_this.controls = false;
 		}
 
 		// Set the poster:
@@ -1143,7 +1138,7 @@ mw.EmbedPlayer.prototype = {
 				// Hide / remove track container
 				_this.$interface.find( '.track' ).remove();
 				// We have to re-bind hoverIntent ( has to happen in this scope )
-				if( _this.controls && _this.controlBuilder.isOverlayControls() ){
+				if( !this.useNativePlayerControls() && _this.controls && _this.controlBuilder.isOverlayControls() ){
 					_this.controlBuilder.showControlBar();
 					_this.$interface.hoverIntent({
 						'sensitivity': 4,
@@ -1384,7 +1379,6 @@ mw.EmbedPlayer.prototype = {
 				$j('#' + this.pid ).css('height', this.height - _this.controlBuilder.height );
 			}
 			$j( this ).show();
-			this.controls = true;
 		}
 		if(  !this.useNativePlayerControls() && !this.isPersistentNativePlayer() && !_this.controlBuilder.isOverlayControls() ){
 			// Update the video size per available control space.
@@ -1395,12 +1389,14 @@ mw.EmbedPlayer.prototype = {
 		this.updatePosterHTML();
 
 		// Add controls if enabled:
-		if ( this.controls ) {
-			this.controlBuilder.addControls();
-		} else {
+		if ( this.useNativePlayerControls() ) {
 			// Need to think about this some more...
 			// Interface is hidden if controls are "off"
 			this.$interface.hide();
+		} else {
+			if( this.controls ){
+				this.controlBuilder.addControls();
+			}
 		}
 
 		// Update temporal url if present
@@ -1538,7 +1534,7 @@ mw.EmbedPlayer.prototype = {
 				gM( 'mwe-embedplayer-download-warn', mw.getConfig('EmbedPlayer.FirefoxLink') )
 			);
 			// Make sure we have a play btn:
-			if( ! $j( this ).find('.play-btn-large').length ) {
+			if( $j( this ).find('.play-btn-large').length == 0) {
 				this.$interface.append(
 						this.controlBuilder.getComponent( 'playButtonLarge' )
 				);
@@ -1698,9 +1694,11 @@ mw.EmbedPlayer.prototype = {
 				.addClass( 'playerPoster' )
 			);
 		}
-		if ( this.controls && this.controlBuilder
+		if ( !this.useNativePlayerControls()  && this.controlBuilder
 			&& this.height > this.controlBuilder.getComponentHeight( 'playButtonLarge' )
+			&& $j( this ).find('.play-btn-large').length == 0
 		) {
+			
 			$j( this ).append(
 				this.controlBuilder.getComponent( 'playButtonLarge' )
 			);
@@ -1739,9 +1737,6 @@ mw.EmbedPlayer.prototype = {
 			} else {
 				// Set warning that your trying to do iPad controls without
 				// persistent native player:
-				if( mw.getConfig('EmbedPlayer.EnableIpadHTMLControls') ){
-					mw.log("Error:: Trying to set EnableIpadHTMLControls without Persistent Native Player");
-				}
 				return true;
 			}
 		}
@@ -1778,11 +1773,13 @@ mw.EmbedPlayer.prototype = {
 		// Setup videoAttribues
 		var videoAttribues = {
 			'poster': _this.poster,
-			'src' : source.getSrc(),
-			'controls' : 'true'
+			'src' : source.getSrc()
 		};
+		if( this.controls ){
+			videoAttribues.controls = 'true';
+		}
 		if( this.loop ){
-			videoAttribues[ 'loop' ] = 'true';
+			videoAttribues.loop = 'true';
 		}
 		var cssStyle = {
 			'width' : _this.width,
@@ -2090,11 +2087,13 @@ mw.EmbedPlayer.prototype = {
 			this.paused = true;
 			mw.log('EmbedPlayer:trigger pause:' + this.paused);
 			if(  this._propagateEvents ){
+				// "pause" will be deprecated in favor of "onpause"
 				$j( this ).trigger( 'pause' );
+				$j( this ).trigger( 'onpause' );
 			}
 		}
 
-		// update the ctrl "paused state"
+		// Update the ctrl "paused state"
 		if( this.$interface ){
 			this.$interface.find('.play-btn span' )
 			.removeClass( 'ui-icon-pause' )
@@ -2523,7 +2522,7 @@ mw.EmbedPlayer.prototype = {
 	updatePlayHead: function( perc ) {
 		//mw.log( 'EmbedPlayer: updatePlayHead: '+ perc);
 		$playHead = this.$interface.find( '.play_head' );
-		if ( this.controls && $playHead.length != 0 ) {
+		if ( !this.useNativePlayerControls() && $playHead.length != 0 ) {
 			var val = parseInt( perc * 1000 );
 			$playHead.slider( 'value', val );
 		}

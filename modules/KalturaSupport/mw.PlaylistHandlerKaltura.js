@@ -29,7 +29,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 	
 	loadPlaylist: function ( callback ){
 		var _this = this;
-		
+		mw.log( "mw.PlaylistHandlerKaltura:: loadPlaylist > ");
 		// Get the kaltura client:
 		this.getKClient().playerLoader({
 			'uiconf_id' : this.uiconf_id
@@ -47,8 +47,6 @@ mw.PlaylistHandlerKaltura.prototype = {
 			}
 			// Add all playlists to playlistSet
 			var $uiConf = $j( playerData.uiConf );
-			
-			
 			
 			// Check for autoContinue ( we check false state so that by default we autoContinue ) 
 			var $ac = $uiConf.find("uivars [key='playlistAPI.autoContinue']");
@@ -72,6 +70,9 @@ mw.PlaylistHandlerKaltura.prototype = {
 			if( $uiConf.find('#playlist').get(0) ){
 				// Check for videolist width
 				_this.videolistWidth = $uiConf.find('#playlist').get(0).getAttribute('width');
+				if( parseInt( _this.videolistWidth ) == 0 ){
+					_this.includeInLayout = false;
+				}
 			} else {
 				_this.videolistWidth = 250;
 			}

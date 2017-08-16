@@ -34,7 +34,48 @@ mw.KWidgetSupport.prototype = {
 			});
 		});
 	},
-	
+	rewriteTarget: function( widgetTarget, callback ){
+		var _this = this;
+		this.loadPlayerData( widgetTarget, function( playerData ){
+			// look for widget type in uiConf file: 
+			switch( _this.getWidgetType( playerData.uiConf ) ){
+				case 'playlist' :
+					mw.load( [ 'EmbedPlayer', 'Playlist', 'KalturaPlaylist' ], function(){
+						// Quick non-ui conf check for layout mode 
+						// @@TOOD we can fix this now!
+						var layout = ( $j( widgetTarget ).width() > $j( widgetTarget ).height() ) 
+										? 'horizontal' : 'vertical';
+						$j( '#' + widgetTarget.id ).playlist({
+							'layout': layout,
+							'titleHeight' : 0 // kaltura playlist don't include the title ontop of the video
+						}); 
+						callback();
+					});
+				break;
+				case 'pptwidget': 
+					mw.load([ 'EmbedPlayer', 'mw.KPPTWidget', 'mw.KLayout'], function(){
+						new mw.KPPTWidget( widgetTarget, playerData.uiConf, callback );
+					});
+				break;
+				default:
+					mw.log("Error:: Could not read widget type for uiconf:\n " + playerData.uiConf );
+				break;
+			}
+		});
+		/*
+		
+		*/
+	},
+	getWidgetType: function( uiConf ){
+		var $uiConf = $j( uiConf );
+		if( $uiConf.find('plugin#playlistAPI').length ){
+			return 'playlist';
+		}
+		if( $uiConf.find('plugin#pptWidgetAPI') ){
+			return 'pptwidget';
+		}
+		return null;
+	},
 	/**
 	 * Load and bind embedPlayer from kaltura api entry request
 	 * @param embedPlayer
@@ -134,7 +175,7 @@ mw.KWidgetSupport.prototype = {
 			embedPlayer.duration = playerData.meta.duration;
 			// We have to assign embedPlayer metadata as an attribute to bridge the iframe
 			embedPlayer.kalturaPlayerMetaData = playerData.meta;
-			$j( embedPlayer ).trigger( 'KalturaSupport_MetaDataReady', embedPlayer.kalturaPlayerMetaData );
+			$j( embedPlayer ).trigger( 'KalturaSupport_EntryDataReady', embedPlayer.kalturaPlayerMetaData );
 		}
 
 		// TODO: Remove this when Eagle is out
@@ -189,7 +230,6 @@ mw.KWidgetSupport.prototype = {
 		if( $j.inArray( 'plugin', attr ) != -1 ){
 			attr.push( "disableHTML5" );
 		}
-		
 
 		var config = {};
 		var $plugin = [];
@@ -219,8 +259,10 @@ mw.KWidgetSupport.prototype = {
 		// @@TODO the iframe really should apply the "data" instead of this hacky merge here:
 		var fv = mw.getConfig( 'KalturaSupport.IFramePresetFlashvars' );
 		// Check for embedPlayer flashvars ( will overwrite iframe values if present )
-		if( $j( embedPlayer ).data('flashvars' ) ){
-			fv = $j( embedPlayer ).data('flashvars' );
+		if( embedPlayer ) {
+			if( $j( embedPlayer ).data('flashvars' ) ){
+				fv = $j( embedPlayer ).data('flashvars' );
+			}
 		}
 		$j.each( attr, function(inx, attrName ){
 			if( $plugin.length ){
@@ -306,7 +348,7 @@ mw.KWidgetSupport.prototype = {
 		var playerRequest = {};
 		// Check for widget id	 
 		if( ! embedPlayer.kwidgetid ){
-			mw.log( "Error: missing required widget paramater");
+			mw.log( "Error: missing required widget paramater ( kwidgetid ) ");
 			callback( false );
 			return false;
 		} else {
@@ -374,6 +416,9 @@ mw.KWidgetSupport.prototype = {
 		}
 		if( ac.isScheduledNow === 0 ){
 			return 'is not scheduled now';
+		}
+		if( ac.isIpAddressRestricted ) {
+			return 'ip restricted';
 		}
 		if( ac.isSessionRestricted && ac.previewLength === -1 ){
 			return 'session restricted';
@@ -480,8 +525,8 @@ mw.KWidgetSupport.prototype = {
 		var deviceSources = {};
 		
 		// Setup the src defines
-		var ipadFlavors = '';
-		var iphoneFlavors = '';
+		var ipadAdaptiveFlavors = [];
+		var iphoneAdaptiveFlavors = [];
 
 		// Setup flavorUrl
 		if( mw.getConfig( 'Kaltura.UseManifestUrls' ) ){
@@ -491,7 +536,6 @@ mw.KWidgetSupport.prototype = {
 			var flavorUrl = mw.getConfig('Kaltura.CdnUrl') + '/p/' + partner_id +
 				   '/sp/' +  partner_id + '00/flvclipper';
 		}
-
 		// Find a compatible stream
 		for( var i = 0 ; i < flavorData.length; i ++ ) {
 			var asset = flavorData[i];
@@ -507,7 +551,7 @@ mw.KWidgetSupport.prototype = {
 
 				var src  = flavorUrl + '/entryId/' + asset.entryId;
 
-				// Check for Apple http streaming
+				// Check if Apple http streaming is enabled and the tags include applembr
 				if( asset.tags.indexOf('applembr') != -1 ) {
 					src += '/format/applehttp/protocol/http';
 					deviceSources['AppleMBR'] = src + '/a.m3u8';
@@ -518,16 +562,16 @@ mw.KWidgetSupport.prototype = {
 			} else {
 				var src  = flavorUrl + '/entry_id/' + asset.entryId + '/flavor/' + asset.id ;
 			}
-
-			// Add iPad Akamai flavor to iPad flavor Ids list
+			
+			// Add iPad Akamai flavor to iPad flavor Ids list id list
 			if( asset.fileExt == 'mp4' && asset.tags.indexOf('ipadnew') != -1 ){
-				ipadFlavors += asset.id + ',';
+				ipadAdaptiveFlavors.push( asset.id );
 			}
 
 			// Add iPhone Akamai flavor to iPad&iPhone flavor Ids list
 			if( asset.fileExt == 'mp4' && asset.tags.indexOf('iphonenew') != -1 ){
-				ipadFlavors += asset.id + ',';
-				iphoneFlavors += asset.id + ',';
+				ipadAdaptiveFlavors.push( asset.id );
+				iphoneAdaptiveFlavors.push( asset.id );
 			}
 
 			// Check the tags to read what type of mp4 source
@@ -556,17 +600,14 @@ mw.KWidgetSupport.prototype = {
 			}
 		}
 
-		ipadFlavors = ipadFlavors.substr(0, (ipadFlavors.length-1) );
-		iphoneFlavors = iphoneFlavors.substr(0, (iphoneFlavors.length-1) );
-
 		// Create iPad flavor for Akamai HTTP
-		if(ipadFlavors.length != 0) {
-			deviceSources['iPadNew'] = flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + ipadFlavors + '/format/applehttp/protocol/http/a.m3u8';
+		if( ipadAdaptiveFlavors.length != 0) {
+			deviceSources['iPadNew'] = flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + ipadAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/http/a.m3u8';
 		}
 
 		// Create iPhone flavor for Akamai HTTP
-		if(iphoneFlavors.length != 0) {
-			deviceSources['iPhoneNew'] = flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + iphoneFlavors + '/format/applehttp/protocol/http/a.m3u8';
+		if(iphoneAdaptiveFlavors.length != 0) {
+			deviceSources['iPhoneNew'] = flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + iphoneAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/http/a.m3u8';
 		}
 		
 		// Append KS to all source if available 
@@ -602,19 +643,21 @@ mw.KWidgetSupport.prototype = {
 			// Check if we like to use iPad flavor for iPad & iPhone4
 			var useIpadFlavor = ( mw.isIpad() || mw.isIphone4() );
 
-			// Prefer Apple HTTP streaming
-			if( deviceSources['AppleMBR'] ) {
-				addSource( deviceSources['AppleMBR'] , 'application/vnd.apple.mpegurl' );
-				return sources;
-			}
-			if( deviceSources['iPadNew'] && useIpadFlavor ){
-				mw.log( "KwidgetSupport:: Add iPad Source using Akamai HTTP" );
-				addSource( deviceSources['iPadNew'] , 'application/vnd.apple.mpegurl' );
-				return sources;
-			} else if ( deviceSources['iPhoneNew']) {
-				mw.log( "KwidgetSupport:: Add iPhone Source using Akamai HTTP" );
-				addSource( deviceSources['iPhoneNew'], 'application/vnd.apple.mpegurl' );
-				return sources;
+			// Prefer Apple HTTP streaming if enabled: 
+			if( mw.getConfig('Kaltura.UseAppleAdaptive') ){
+				if( deviceSources['AppleMBR'] ) {
+					addSource( deviceSources['AppleMBR'] , 'application/vnd.apple.mpegurl' );
+					return sources;
+				}
+				if( deviceSources['iPadNew'] && useIpadFlavor ){
+					mw.log( "KwidgetSupport:: Add iPad Source using Akamai HTTP" );
+					addSource( deviceSources['iPadNew'] , 'application/vnd.apple.mpegurl' );
+					return sources;
+				} else if ( deviceSources['iPhoneNew']) {
+					mw.log( "KwidgetSupport:: Add iPhone Source using Akamai HTTP" );
+					addSource( deviceSources['iPhoneNew'], 'application/vnd.apple.mpegurl' );
+					return sources;
+				}
 			}
 
 			if( deviceSources['iPad'] && useIpadFlavor ){
@@ -661,6 +704,18 @@ mw.KWidgetSupport.prototype = {
 		}
 		
 		return sources;
+	},
+
+	getPlayerMode: function( $uiConf ) {
+		// Set default mode to empty
+		var mode = 'empty';
+
+		// Check if we have playlist plugin
+		if( this.getPluginConfig( false, $uiConf, 'playlistAPI', 'plugin') ) {
+			mode = 'playlist';
+		}
+		console.log(mode);
+		return mode;
 	}
 };
 
@@ -675,4 +730,9 @@ if( !window.kWidgetSupport ){
 mw.getEntryIdSourcesFromApi = function( widgetId, entryId, callback ){
 	kWidgetSupport.getEntryIdSourcesFromApi( widgetId, entryId, callback);
 };
-
+/**
+ * Register a global shortcuts for getting Player mode by uiConf
+ */
+mw.getPlayerMode = function( $uiConf ) {
+	kWidgetSupport.getPlayerMode( $uiConf );
+};

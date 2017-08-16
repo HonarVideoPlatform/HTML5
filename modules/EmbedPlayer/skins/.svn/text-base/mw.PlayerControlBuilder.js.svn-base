@@ -657,7 +657,7 @@ mw.PlayerControlBuilder.prototype = {
 			// Remove parent dbl click ( so we can handle play clicks )
 			$( embedPlayer ).unbind("click.onplayer").bind('click.onplayer', function() {
 				// Don't bind anything if native controls displayed:
-				if( embedPlayer.getPlayerElement().controls ) {
+				if( embedPlayer.usenativecontrols ) {
 					return ;
 				}		
 				var clickTime = new Date().getTime();
@@ -1673,6 +1673,7 @@ mw.PlayerControlBuilder.prototype = {
 					} )
 					// Add play hook:
 					.click( function() {
+						$(this).remove();
 						ctrlObj.embedPlayer.play();						
 						return false; // Event Stop Propagation
 					} );

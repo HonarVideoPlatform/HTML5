@@ -35,7 +35,7 @@
 *	'EmbedPlayer.EnableIframeApi' : true
 */
 // The version of this script
-KALTURA_LOADER_VERSION = '1.4b21';
+KALTURA_LOADER_VERSION = '1.4b27';
 // Static script loader url: 
 var SCRIPT_LOADER_URL = 'http://www.kaltura.org/apis/html5lib/mwEmbed/ResourceLoader.php';
 var SCRIPT_FORCE_DEBUG = false;
@@ -398,7 +398,7 @@ function kOverideJsFlashEmbed(){
 	}
 }
 
-function getFlashVersion(){
+function kGetFlashVersion(){
 	// navigator browsers:
 	if (navigator.plugins && navigator.plugins.length) {
 		try {
@@ -535,7 +535,7 @@ function kSupportsHTML5(){
 	return false;
 }
 function kSupportsFlash(){
-    var version = getFlashVersion().split(',').shift();
+    var version = kGetFlashVersion().split(',').shift();
     if( version < 10 ){
     	return false;
     } else {
@@ -662,7 +662,7 @@ function kAddScript( callback ){
 	kLoadJsRequestSet( jsRequestSet, callback );
 }
 
-function isIE(){
+function kIsIE(){
 	return /msie/i.test(navigator.userAgent) && !/opera/i.test(navigator.userAgent);
 }
 
@@ -674,7 +674,7 @@ function kAppendScriptUrl( url, callback ) {
 	if( callback ){
 		// IE sucks .. issues onload callback before ready 
 		// xxx could conditional the callback delay on user 
-		if( isIE() ){
+		if( kIsIE() ){
 			script.onload = new function(){
 				setTimeout(function(){
 					callback();
@@ -753,7 +753,14 @@ if ( document.readyState === "complete" ) {
 	kRunMwDomReady();
 }
 // fallback function that should fire for all browsers 
+var kOrgOnLoad = false;
+if( window.onload ){
+	kOrgOnLoad = window.onload;
+}
 window.onload = function(){
+	if( typeof kOrgOnLoad == 'function' ){
+		kOrgOnLoad();
+	}
 	kRunMwDomReady();
 };
 // Cleanup functions for the document ready method
@@ -979,6 +986,6 @@ var restoreKalturaKDPCallback = function(){
 	}
 };
 
-// Check inline and when the dom is ready:
+// Check inline and when the DOM is ready:
 checkForKDPCallback();
 kAddReadyHook( checkForKDPCallback );

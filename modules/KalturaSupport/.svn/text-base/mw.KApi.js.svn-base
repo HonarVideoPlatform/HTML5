@@ -218,6 +218,23 @@ mw.KApi.prototype = {
 	        	 'pager:pageSize' : 1
 		    });
 			
+			// Get Cue Points if not disable and on an entry_id
+			var loadCuePoints = true;
+			if( kProperties.flashvars && kProperties.flashvars.getCuePointsData && kProperties.flashvars.getCuePointsData == "false") {
+				loadCuePoints = false;
+			}
+
+			if( loadCuePoints ){
+				requestObject.push({
+		        	 'service' : 'cuepoint_cuepoint',
+		        	 'action' : 'list',
+		        	 'filter:objectType' : 'KalturaCuePointFilter',
+		        	 'filter:orderBy' : '+startTime',
+		        	 'filter:statusEqual' : 1,
+		        	 'filter:entryIdEqual' : kProperties.entry_id
+			    });
+			}
+			
 		}		
 		if( kProperties.uiconf_id ){
 			// Get Ui Conf if property is present
@@ -228,22 +245,7 @@ mw.KApi.prototype = {
 		    });
 		}
 
-		// Get Cue Points if not disable
-		var loadCuePoints = true;
-		if( kProperties.flashvars && kProperties.flashvars.getCuePointsData && kProperties.flashvars.getCuePointsData == "false") {
-			loadCuePoints = false;
-		}
-
-		if( loadCuePoints ){
-			requestObject.push({
-	        	 'service' : 'cuepoint_cuepoint',
-	        	 'action' : 'list',
-	        	 'filter:objectType' : 'KalturaCuePointFilter',
-	        	 'filter:orderBy' : '+startTime',
-	        	 'filter:statusEqual' : 1,
-	        	 'filter:entryIdEqual' : kProperties.entry_id
-		    });
-		}
+		
 
 		// Do the request and pass along the callback
 		this.doRequest( requestObject, function( data ){
@@ -328,17 +330,18 @@ mw.kApiGetPartnerClient = function( partnerOrWidgetId ){
 	}
 	return mw.KApiPartnerCache[ partner_id ];
 };
-
 mw.KApiPlayerLoader = function( kProperties, callback ){
 	if( !kProperties.widget_id ) {
 		mw.log( "Error:: mw.KApiPlayerLoader:: cant run player loader with widget_id "  + kProperties.widget_id );
 	}
 	// Convert widget_id to partner id
-	var partner_id = kProperties.widget_id.replace(/_/g, '');
-	
-	var kClient = mw.kApiGetPartnerClient( partner_id );
+	var kClient = mw.kApiGetPartnerClient( kProperties.widget_id );
 	kClient.playerLoader( kProperties, callback );
 	
 	// Return the kClient api object for future requests
 	return kClient;
+};
+mw.KApiRequest = function( partnerId, requestObject, callback ){
+	var kClient = mw.kApiGetPartnerClient( partnerId );
+	kClient.doRequest( requestObject, callback );
 };

@@ -70,6 +70,8 @@
 		"mw.KDPMapping" : "mw.KDPMapping.js",
 		"mw.KApi" : "mw.KApi.js",		
 		"mw.KAds" : "mw.KAds.js",
+		"mw.KPPTWidget" : "mw.KPPTWidget.js",
+		"mw.KLayout" : "mw.KLayout.js",
 		"faderPlugin" : "uiConfComponents/faderPlugin.js",
 		"watermarkPlugin" :  "uiConfComponents/watermarkPlugin.js",
 		"adPlugin"	: 	"uiConfComponents/adPlugin.js",
@@ -131,12 +133,12 @@
 			if( mw.isHTML5FallForwardNative() || mw.getConfig( 'Kaltura.IframeRewrite' ) ){
 				
 				// setup load flags
-				var loadEmbedPlayerFlag = loadPlaylistFlag = false;
+				var loadEmbedPlayerFlag = loadWidgetFlag = false;
 				
 				$j.each( kalturaObjectPlayerList, function( inx, element ){
 					// don't rewrite special id
 					if( $j(element).attr('name') == 'kaltura_player_iframe_no_rewrite' ){
-						return true;;
+						return true;
 					}
 					// Clear the kalturaSwapObjectClass
 					var kalturaSwapObjectClass = '';
@@ -161,15 +163,19 @@
 						swfSource = $j( element ).find( "param[name=data]" ).attr( 'value' );						                                      
 					}
 					var kEmbedSettings = mw.getKalturaEmbedSettings( swfSource, flashvars );
-			
+
 					// Check if its a playlist or a entryId
 					mw.log( "Got kEmbedSettings.entryId: " + kEmbedSettings.entry_id + " uiConf: " + kEmbedSettings.uiconf_id);
+					if(!kEmbedSettings.uiconf_id || !kEmbedSettings.wid ) {
+						mw.log( "Error: Missing uiConfId/widgetId!");
+					}
+					
 					var height = $j( element ).attr('height');
 					var width = $j( element ).attr('width');
 					
 					// Check that the id is unique per player embed instance ( else give it a vid_{inx} id: 
 					var videoId = $j( element ).attr('id');
-					$j('.mwEmbedKalturaVideoSwap,.mwEmbedKalturaPlaylistSwap').each(function( inx, swapElement){
+					$j('.mwEmbedKalturaVideoSwap,.mwEmbedKalturaWidgetSwap').each(function( inx, swapElement){
 						if( $j( swapElement ).attr('id') ==  videoId ){
 							videoId = 'vid_' + inx;
 						}
@@ -184,13 +190,13 @@
 						'kuiconfid' : kEmbedSettings.uiconf_id,
 						'style' : $j( element ).attr('style')
 					};
-					
+
 					if( kEmbedSettings.entry_id ) {
 						loadEmbedPlayerFlag = true;
 						kalturaSwapObjectClass = 'mwEmbedKalturaVideoSwap';
 						videoEmbedAttributes.kentryid = kEmbedSettings.entry_id;
 						if( kEmbedSettings.p ){
-							// if we have flashvar  we need to pass the ks to thumbnail url
+							// If we have flashvar  we need to pass the ks to thumbnail url
 							var ks = ( flashvars && flashvars.loadThumbnailWithKs ) ? flashvars.ks : false;
 							var thumb_url =  mw.getKalturaThumbUrl({
 								'partner_id': kEmbedSettings.p,
@@ -211,9 +217,9 @@
 							});
 						}
 					} else {
-						// Assume playlist 
-						loadPlaylistFlag = true;
-						kalturaSwapObjectClass = 'mwEmbedKalturaPlaylistSwap';
+						// Assume widget ( can be playlist or other widgets )
+						loadWidgetFlag = true;
+						kalturaSwapObjectClass = 'mwEmbedKalturaWidgetSwap';
 					}
 					
 					var widthType = ( width.indexOf('%') == -1 )? 'px' : '';
@@ -228,7 +234,10 @@
 							'height' : height + heightType,
 							'display' : 'inline-block' // more or less the <object> tag default display
 						})
-						.data( 'flashvars', flashvars )
+						.data( {
+							'flashvars': flashvars,
+							'cache_st': kEmbedSettings.cacheSt
+						})
 						.addClass( kalturaSwapObjectClass )
 						.append(
 							$imgThumb, 
@@ -244,6 +253,11 @@
 							.loadingSpinner()
 						)
 					);
+					var elm = $j('#' + videoEmbedAttributes.id ).get(0);
+					// assign values to DOM object methods ( not just attributes ) 
+					$j.each( videoEmbedAttributes, function( attrName, attrValue ){
+						elm[ attrName ] = attrValue;
+					});
 				});
 				
 				// Check if we are doing iFrame rewrite ( skip local library loading )
@@ -257,11 +271,11 @@
 						}
 					};
 					// if there were no targets to rewrite just issue the callback directly
-					if( $j( '.mwEmbedKalturaVideoSwap,.mwEmbedKalturaPlaylistSwap' ).length == 0 ){
+					if( $j( '.mwEmbedKalturaVideoSwap,.mwEmbedKalturaWidgetSwap' ).length == 0 ){
 						rewriteDoneCallback();
 						return ;
 					}
-					$j( '.mwEmbedKalturaVideoSwap,.mwEmbedKalturaPlaylistSwap' ).each( function(inx, playerTarget ) {
+					$j( '.mwEmbedKalturaVideoSwap,.mwEmbedKalturaWidgetSwap' ).each( function(inx, playerTarget ) {
 						var kParams = {};
 						var iframeRequestMap = {
 								'kwidgetid': 'wid',
@@ -277,39 +291,39 @@
 						if( $j( playerTarget).data( 'flashvars' ) ){
 							kParams['flashvars'] = $j( playerTarget).data('flashvars');
 						}
+						// Pass along cache_st to remove cache
+						if( $j( playerTarget).data( 'cache_st' ) ){
+							kParams['cache_st'] = $j( playerTarget).data('cache_st');
+						}
 
-						// XXX UGLY TEMPORARY HACK ( don't use iframe for playlist ) 
 						iframeRewriteCount++;
 						$j( playerTarget )
-							.removeClass('mwEmbedKalturaPlaylistSwap')
+							.removeClass('mwEmbedKalturaWidgetSwap')
 							.removeClass('mwEmbedKalturaVideoSwap')
 							.kalturaIframePlayer( kParams, doneWithIframePlayer);
 					});					
 					// if there are no playlists left to process return: 
-					if( $j( '.mwEmbedKalturaPlaylistSwap' ).length == 0 ){
+					if( $j( '.mwEmbedKalturaWidgetSwap' ).length == 0 ){
 						rewriteDoneCallback();
 						return true;
 					}
 				}
 				
 				// Do loading then rewrite each tag:
-				if( loadPlaylistFlag ){
+				if( loadWidgetFlag ){
 					kLoadKalturaSupport = true;
-					var playlistRequest = [ 'EmbedPlayer', 'Playlist', 'KalturaPlaylist' ];
-					mw.load( playlistRequest, function(){
-						// kalturaPlaylistObject has player loader built in: 
-						$j('.mwEmbedKalturaPlaylistSwap').each( function( inx, playlistTarget ) {
-							// Quick non-ui conf check for layout mode
-							var layout = ( $j( playlistTarget ).width() > $j( playlistTarget ).height() ) 
-											? 'horizontal' : 'vertical';
-							var playlistPlayer = $j( '#' + playlistTarget.id ).playlist({
-								'layout': layout,
-								'titleHeight' : 0 // kaltura playlist don't include the title ontop of the video
-							});
+					// Have kWidget Support handle the uiConf swap: 
+					mw.load( [ 'mw.KAPI', 'mw.KWidgetSupport' ], function(){
+						var rewriteCount = 0;
+						$j('.mwEmbedKalturaWidgetSwap').each( function( inx, widgetTarget ) {
+							rewriteCount++;
+							window.kWidgetSupport.rewriteTarget( widgetTarget, function(){
+								rewriteCount--;
+								if( rewriteCount == 0){
+									rewriteDoneCallback();
+								}
+							})
 						});
-						// XXX todo playlist is not really ready for api calls at this point :(
-						// we need to setup a binding and ready event
-						rewriteDoneCallback();
 					});
 				}
 				if( loadEmbedPlayerFlag ){
@@ -320,7 +334,7 @@
 					});
 				}
 				// no loader, run the callback directly: 
-				if( !loadPlaylistFlag && !loadEmbedPlayerFlag ){
+				if( !loadWidgetFlag && !loadEmbedPlayerFlag ){
 					rewriteDoneCallback();
 				}
 			}
@@ -570,7 +584,7 @@
 				case 'entry_id':
 					embedSettings.entry_id = prevUrlPart;
 				break;
-				case 'uiconf_id':
+				case 'uiconf_id': case 'ui_conf_id':
 					embedSettings.uiconf_id = prevUrlPart;
 				break;
 				case 'cache_st':
@@ -587,6 +601,18 @@
 		if( embedSettings[ 'entryid' ] ){
 			embedSettings['entry_id'] =  embedSettings['entryid'];
 		}
+
+				
+		// Use entryId from flashvar
+		if( flashvars && flashvars.entryId ) {
+			embedSettings['entry_id'] = flashvars.entryId;
+		}
+
+		// Use uiConf from flashvar
+		if( flashvars && flashvars.uiConfId ) {
+			embedSettings['uiconf_id'] = flashvars.uiConfId;
+		}
+
 		return embedSettings;
 	};
 } )( window.mw );

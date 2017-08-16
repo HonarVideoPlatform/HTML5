@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.8/modules/MiroSubs/mirosubs/media/images/prettyPhoto/light_square
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4b27/libraries/jquery/plugins/jquery.menu
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-02-08T21:59:19.048153Z
-7234
-mdale
+2011-08-22T12:41:54.848676Z
+6262
+rany
 
 
 
@@ -26,18 +26,17 @@ mdale
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-btnPrevious.png
+jquery.menu.css
 file
 
 
 
 
-2017-07-03T22:47:09.000000Z
-9ad8565740908ecab23ff67990e590cc
-2012-02-08T21:59:19.048153Z
-7234
-mdale
-has-props
+2017-07-03T22:48:55.000000Z
+3fbc4c55d1be935f7ea345eb5f45530e
+2011-08-22T12:41:54.848676Z
+6262
+rany
 
 
 
@@ -58,20 +57,20 @@ has-props
 
 
 
-1442
+
+4262
 
-btnNext.png
+jquery.menu.js
 file
 
 
 
 
-2017-07-03T22:47:09.000000Z
-0a89018b6e4a1492623ca2b608b606ff
-2012-02-08T21:59:19.048153Z
-7234
-mdale
-has-props
+2017-07-03T22:48:55.000000Z
+e0e658b6c5d5db9119d78e6bdec0c2b6
+2011-08-22T12:41:54.848676Z
+6262
+rany
 
 
 
@@ -92,73 +91,6 @@ has-props
 
 
 
-1411
-
-sprite.png
-file
 
-
-
-
-2017-07-03T22:47:09.000000Z
-50d50dc301facac07c414041a2d11389
-2012-02-08T21:59:19.048153Z
-7234
-mdale
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3303
-
-loader.gif
-file
-
-
-
-
-2017-07-03T22:47:09.000000Z
-df46993044576f83f2c2cc1a64e18f31
-2012-02-08T21:59:19.048153Z
-7234
-mdale
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2545
+27764
 
