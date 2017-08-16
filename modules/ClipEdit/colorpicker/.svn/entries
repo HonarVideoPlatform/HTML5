@@ -2,7 +2,7 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.3.3/modules/ClipEdit/colorpicker
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.3a/modules/ClipEdit/colorpicker
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
@@ -38,7 +38,7 @@ file
 
 
 
-2017-07-03T22:42:02.000000Z
+2017-07-03T22:41:04.000000Z
 931d2cf93be5cebac95bd98cad2c0722
 2011-03-27T09:35:08.218980Z
 5036
