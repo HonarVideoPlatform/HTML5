@@ -500,7 +500,7 @@ mw.KAdPlayer.prototype = {
 				clearInterval( _this.adMonitorInterval );
 			}
 			time =  videoPlayer.currentTime;
-			dur = videoPlayer.duration;
+			var dur = videoPlayer.duration;
 			
 			// Update the timeRemaining sequence proxy
 			_this.embedPlayer.adTimeline.updateSequenceProxy( 'timeRemaining', parseInt ( dur - time ) );

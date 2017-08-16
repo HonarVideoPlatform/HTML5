@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4b30/modules/MiroSubs/mirosubs/media/js/widget/translate
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.4/modules/KalturaSupport/uiConfComponents
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-09-18T06:55:13.485360Z
-6464
+2012-03-16T14:56:40.514686Z
+7347
 rany
 
 
@@ -26,16 +26,16 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-editabletranslation.js
+shareSnippet.js
 file
 
 
 
 
-2017-07-03T19:59:45.000000Z
-f98a0cbbc7524d636b366e709c58f3ca
-2011-09-18T06:55:13.485360Z
-6464
+2017-07-03T20:19:27.000000Z
+77d2e0b840c88829a62c2a56a6bae21b
+2012-03-16T14:56:40.514686Z
+7347
 rany
 
 
@@ -58,18 +58,18 @@ rany
 
 
 
-1643
+6188
 
-translationlist.js
+myLogo.js
 file
 
 
 
 
-2017-07-03T19:59:45.000000Z
-ee2a46eedccd077ce80884ae466bbfc2
-2011-09-18T06:55:13.485360Z
-6464
+2017-07-03T20:19:27.000000Z
+948d42b52dae8501118610a798bddda1
+2012-03-16T14:56:40.514686Z
+7347
 rany
 
 
@@ -92,18 +92,18 @@ rany
 
 
 
-2842
+2384
 
-translationrightpanel.js
+statisticsPlugin.js
 file
 
 
 
 
-2017-07-03T19:59:45.000000Z
-80b742dd305e7cec59bb819af7ccbf15
-2011-09-18T06:55:13.485360Z
-6464
+2017-07-03T20:19:27.000000Z
+39dff6ae73e7faf6c72def834619ee8f
+2012-03-16T14:56:40.514686Z
+7347
 rany
 
 
@@ -126,18 +126,18 @@ rany
 
 
 
-2518
+500
 
-translationpanel.js
+bumperPlugin.js
 file
 
 
 
 
-2017-07-03T19:59:45.000000Z
-0d5f0f090ee8219dfea0472613daee8b
-2011-09-18T06:55:13.485360Z
-6464
+2017-07-03T20:19:27.000000Z
+d7a1e1f499da5e8eab887da925406d24
+2012-03-16T14:56:40.514686Z
+7347
 rany
 
 
@@ -160,18 +160,18 @@ rany
 
 
 
-2752
+3359
 
-dialog.js
+captionPlugin.js
 file
 
 
 
 
-2017-07-03T19:59:45.000000Z
-74910601d3423643e1e80add8b175ad8
-2011-09-18T06:55:13.485360Z
-6464
+2017-07-03T20:19:27.000000Z
+5070586b3aa70cd13b234b5852ebbae1
+2012-03-16T14:56:40.514686Z
+7347
 rany
 
 
@@ -194,18 +194,18 @@ rany
 
 
 
-4324
+1165
 
-translationwidget.js
+watermarkPlugin.js
 file
 
 
 
 
-2017-07-03T19:59:45.000000Z
-35efdd9098c48dd85bb332f1dd62afca
-2011-09-18T06:55:13.485360Z
-6464
+2017-07-03T20:19:27.000000Z
+874c385bc351a38a32a523e128cbf2a7
+2012-03-16T14:56:40.514686Z
+7347
 rany
 
 
@@ -228,5 +228,379 @@ rany
 
 
 
-2710
+4549
+
+titleLayout.js
+file
+
+
+
+
+2017-07-03T20:19:27.000000Z
+f393f778452cdd2ee9b4f27c0e9142db
+2012-03-16T14:56:40.514686Z
+7347
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3397
+
+playlistPlugin.js
+file
+
+
+
+
+2017-07-03T20:19:27.000000Z
+4329f5594d2af1fb659e4b48ab6153ad
+2012-03-16T14:56:40.514686Z
+7347
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1701
+
+moderationPlugin.js
+file
+
+
+
+
+2017-07-03T20:19:27.000000Z
+dc06d9d08850fab852d0d0ba1fa4200d
+2012-03-16T14:56:40.514686Z
+7347
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6986
+
+jcarousellite_1.0.1.js
+file
+
+
+
+
+2017-07-03T20:19:27.000000Z
+f20ca4cb954b37fdc706e53e7a040d7b
+2012-03-16T14:56:40.514686Z
+7347
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+14389
+
+downloadPlugin.js
+file
+
+
+
+
+2017-07-03T20:19:27.000000Z
+c20752087ff9b47e1532d82f3d782fb8
+2012-03-16T14:56:40.514686Z
+7347
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3719
+
+captureThumbnailPlugin.js
+file
+
+
+
+
+2017-07-03T20:19:27.000000Z
+932c6cc668932704e456e20511adcab1
+2012-03-16T14:56:40.514686Z
+7347
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5585
+
+volumeBarLayout.js
+file
+
+
+
+
+2017-07-03T20:19:27.000000Z
+de083924101b121795eff82323b53610
+2012-03-16T14:56:40.514686Z
+7347
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+633
+
+carouselPlugin.js
+file
+
+
+
+
+2017-07-03T20:19:27.000000Z
+23ceac2bdeac10d526414f354858fe6b
+2012-03-16T14:56:40.514686Z
+7347
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+12555
+
+faderPlugin.js
+file
+
+
+
+
+2017-07-03T20:19:27.000000Z
+2d2f94a3d030491ead5df5285893af58
+2012-03-16T14:56:40.514686Z
+7347
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1015
+
+controlbarLayout.js
+file
+
+
+
+
+2017-07-03T20:19:27.000000Z
+c50fac5b98bcc92992f5752c1dae9782
+2012-03-16T14:56:40.514686Z
+7347
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5091
+
+adPlugin.js
+file
+
+
+
+
+2017-07-03T20:19:27.000000Z
+212e5d1ff0bb203417b71b2f412fed5b
+2012-03-16T14:56:40.514686Z
+7347
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1025
 

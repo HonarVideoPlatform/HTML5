@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4b30/modules/MiroSubs/mirosubs/media/js/widget/play
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.4/modules/KalturaSupport/kdpPageJs
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-09-18T06:55:13.485360Z
-6464
+2012-03-16T14:56:40.514686Z
+7347
 rany
 
 
@@ -26,16 +26,16 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-manager.js
+README
 file
 
 
 
 
-2017-07-03T19:59:45.000000Z
-244faa3be544c7affc9939325f13f567
-2011-09-18T06:55:13.485360Z
-6464
+2017-07-03T20:19:32.000000Z
+5852e8743ba36c62d768470b57b7cfe6
+2012-03-16T14:56:40.514686Z
+7347
 rany
 
 
@@ -58,5 +58,39 @@ rany
 
 
 
-2425
+24
+
+checkUserAgentPlayerRules.js
+file
+
+
+
+
+2017-07-03T20:19:32.000000Z
+8fedf20255c697099fa957b1c93efd95
+2012-03-16T14:56:40.514686Z
+7347
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1351
 
