@@ -182,8 +182,8 @@ mw.KWidgetSupport.prototype = {
 				embedPlayer.showErrorMsg( acStatus );
 				return ;
 			}
-			// Check for preview access control and add special onEnd binding: 
-			if( playerData.accessControl.previewLength != -1 ){
+			// Check for preview access control and add special onEnd binding:
+			if( playerData.accessControl.previewLength && playerData.accessControl.previewLength != -1 ){
 				$( embedPlayer ).bind('postEnded.acpreview', function(){
 					mw.log( 'KWidgetSupport:: postEnded.acpreview>' );
 					$( embedPlayer ).trigger( 'KalturaSupport_FreePreviewEnd' );
@@ -301,7 +301,12 @@ mw.KWidgetSupport.prototype = {
 		// Add isPluginEnabled to embed player:
 		embedPlayer.isPluginEnabled = function( pluginName ) {
 			// Always check with lower case first letter of plugin name: 
-			if( _this.getPluginConfig( embedPlayer, pluginName[0].toLowerCase() + pluginName.substr(1), 'plugin' ) ){
+			var pluginName = pluginName[0].toLowerCase() + pluginName.substr(1);
+			if( _this.getPluginConfig( embedPlayer, pluginName , 'plugin' ) ){
+				// check for the disableHTML5 attribute
+				if( _this.getPluginConfig( embedPlayer, pluginName , 'disableHTML5' ) ){
+					return false;
+				}
 				return true;
 			}
 			return false;
@@ -310,7 +315,12 @@ mw.KWidgetSupport.prototype = {
 		// Add getFlashvars to embed player:
 		embedPlayer.getFlashvars = function() {
 			var fv = $( embedPlayer ).data( 'flashvars' );
-			if( !fv ){
+			if( !fv
+					&& 
+				mw.getConfig( 'KalturaSupport.PlayerConfig' )
+					&& 
+				mw.getConfig( 'KalturaSupport.PlayerConfig' )['vars']
+			){
 				fv = mw.getConfig( 'KalturaSupport.PlayerConfig' )['vars'] || {};
 			}
 			return fv;
@@ -334,7 +344,7 @@ mw.KWidgetSupport.prototype = {
 			mw.log("KWidgetSupport:: trigger KalturaSupport_DoneWithUiConf");
 			
 			// Don't stack
-			setTimeout(function(){
+			setTimeout( function(){
 				$( embedPlayer ).trigger( 'KalturaSupport_DoneWithUiConf' );
 				callback();
 			}, 0 );
@@ -349,10 +359,9 @@ mw.KWidgetSupport.prototype = {
 			mw.log( "KWidgetSupport:: trigger KalturaSupport_CheckUiConf" );
 			$( embedPlayer ).triggerQueueCallback( 'KalturaSupport_CheckUiConf', embedPlayer.$uiConf, function(){	
 				mw.log("KWidgetSupport::KalturaSupport_CheckUiConf done with all uiConf checks");
-				
 				// Trigger the api method for 1.6.7 and above ( eventually we will deprecate KalturaSupport_CheckUiConf );
 				$( mw ).triggerQueueCallback( 'Kaltura_CheckConfig', embedPlayer, function(){
-					// Ui-conf file checks done
+					// ui-conf file checks done
 					doneWithUiConf();
 				});
 			});
@@ -379,7 +388,7 @@ mw.KWidgetSupport.prototype = {
 		}
 		
 		// Check for mediaPlayFrom
-		var mediaPlayFrom = this.getPluginConfig( embedPlayer, '', 'mediaProxy.mediaPlayFrom');
+		var mediaPlayFrom = this.getPluginConfig( embedPlayer, '', 'mediaProxy.mediaPlayFrom');		
 		if( mediaPlayFrom ) {
 			embedPlayer.startTime = parseFloat( mediaPlayFrom );
 		}
@@ -387,6 +396,15 @@ mw.KWidgetSupport.prototype = {
 		var mediaPlayTo = this.getPluginConfig( embedPlayer, '', 'mediaProxy.mediaPlayTo');
 		if( mediaPlayTo ) {
 			embedPlayer.pauseTime = parseFloat( mediaPlayTo );
+		}
+		
+		// Check for end screen play or "replay" button:
+		// TODO more complete endscreen support by doing basic layout of end screen!!!
+		if( embedPlayer.$uiConf.find( '#endScreen' ).find('button[command="play"],button[kclick="sendNotification(\'doPlay\')"]' ).length == 0 ){
+			// no end play button
+			$( embedPlayer ).data('hideEndPlayButton', true );
+		} else{
+			$( embedPlayer ).data('hideEndPlayButton', false );
 		}
 	},
 	/**
@@ -425,7 +443,7 @@ mw.KWidgetSupport.prototype = {
 		var plugins =  embedPlayer.playerConfig['plugins'];
 		var returnConfig = {};
 		
-		// confPrefix is the plugin Name and the first letter should always be lower case. 
+		// ConfPrefix is the plugin Name and the first letter should always be lower case. 
 		if( confPrefix ){
 			confPrefix = confPrefix[0].toLowerCase() + confPrefix.substr(1);
 		}
@@ -654,7 +672,7 @@ mw.KWidgetSupport.prototype = {
 		var bootstrapData = mw.getConfig("KalturaSupport.IFramePresetPlayerData");
 		// Insure the bootStrap data has all the required info: 
 		if( bootstrapData 
-			&& bootstrapData.partner_id == embedPlayer.kwidgetid.replace('_', '')
+			&& bootstrapData.partner_id == embedPlayer.kwidgetid.replace( '_', '' )
 			&& bootstrapData.ks
 		){
 			mw.log( 'KWidgetSupport::loaded player data from KalturaSupport.IFramePresetPlayerData config' );
@@ -833,7 +851,7 @@ mw.KWidgetSupport.prototype = {
 			
 			// Setup a source object:
 			var source = {
-				'data-bitrate' : asset.bitrate * 8,
+				'data-bandwidth' : asset.bitrate * 1024,
 				'data-width' : asset.width,
 				'data-height' : asset.height
 			};
@@ -988,3 +1006,4 @@ mw.getEntryIdSourcesFromApi = function( widgetId, entryId, size, callback ){
 };
 
 })( window.mw, jQuery );
+

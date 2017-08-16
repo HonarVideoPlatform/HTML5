@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.7/modules/DoubleClick
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.8/modules/DoubleClick
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-02-07T13:16:53.250642Z
-7217
+2012-02-08T21:59:19.048153Z
+7234
 mdale
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T22:45:51.000000Z
-dd1820590c579b5fd7b6f12b9807e87d
-2012-02-07T13:16:53.250642Z
-7217
+2017-07-03T22:46:45.000000Z
+f116d657efd736081da67d8fe743dacf
+2012-02-08T21:59:19.048153Z
+7234
 mdale
 
 
@@ -58,7 +58,7 @@ mdale
 
 
 
-576
+564
 
 tests
 dir
@@ -69,10 +69,10 @@ file
 
 
 
-2017-07-03T22:45:51.000000Z
-fd2d8201628367f95a62cdc9f6375c66
-2012-02-07T13:16:53.250642Z
-7217
+2017-07-03T22:46:45.000000Z
+55cf48a9c0e47fc3e43ec80624e21539
+2012-02-08T21:59:19.048153Z
+7234
 mdale
 
 
@@ -95,5 +95,5 @@ mdale
 
 
 
-16600
+16559
 

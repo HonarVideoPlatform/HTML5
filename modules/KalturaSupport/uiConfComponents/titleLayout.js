@@ -2,7 +2,7 @@
 	// 	Check for the Title 
 	$( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
 		$( embedPlayer ).bind( 'KalturaSupport_CheckUiConf', function( event, $uiConf, callback ){
-			
+
 			// If native controls don't show the title
 			if( embedPlayer.useNativePlayerControls() ) {
 				callback();
@@ -61,11 +61,14 @@
 		}
 		function updatePlayerLayout(){
 			var $vid = $( embedPlayer.getPlayerElement() );
+			var vidHeight;
 			// Check if we are using flash ( don't move the player element )
-			if( embedPlayer.instanceOf != 'Native' ){
-				$vid = [];
+			if( embedPlayer.instanceOf != 'Native' || $vid.length == 0 ){
+				$vid = $();
+				vidHeight = embedPlayer.getHeight();
+			} else {
+				vidHeight = ( $vid.height() - titleScreenHeight );
 			}
-			var vidHeight = ( $vid.height() - titleScreenHeight );
 			// add space for the title: 
 			$vid
 			.css({

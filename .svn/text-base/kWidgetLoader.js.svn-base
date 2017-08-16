@@ -69,8 +69,12 @@ window.kWidget = {
 				'allowScriptAccess': 'always',
 				'bgcolor': '#000000'
 			}
-			var o = '<object id="' + pId + '" ' +
-				'name="' + pId + '" '+
+			var o = '<object id="' + pId + '" ';
+			// output classid if in IE
+			if(  window.ActiveXObject ){
+				o += 'classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" ';
+			}
+			o += 'name="' + pId + '" '+
 				'width="' + width +'" ' +
 				'height="' + height + '" ' +
 				'style="width:' + width + 'px;height:' + height + 'px;" ' +

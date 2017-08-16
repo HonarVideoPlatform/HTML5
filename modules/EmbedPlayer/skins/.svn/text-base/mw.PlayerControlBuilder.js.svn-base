@@ -130,10 +130,13 @@ mw.PlayerControlBuilder.prototype = {
 		if( _this.isOverlayControls() ){
 			$controlBar.hide();
 		} else {
-			embedPlayer.height =  embedPlayer.$interface.height() - this.getHeight();
-			$( embedPlayer ).css('height', embedPlayer.height +'px' );
-			// update native element height:
-			$('#' + embedPlayer.pid ).css('height', embedPlayer.height);
+			// only update player height if its not already set.
+			if( !embedPlayer.height ){
+				embedPlayer.height =  embedPlayer.$interface.height() - this.getHeight();
+				$( embedPlayer ).css('height', embedPlayer.height +'px' );
+				// update native element height:
+				$('#' + embedPlayer.pid ).css('height', embedPlayer.height);
+			}
 		}
 
 		$controlBar.css( {
@@ -142,7 +145,6 @@ mw.PlayerControlBuilder.prototype = {
 			'left' : '0px',
 			'right' : '0px'
 		} );
-
 
 		// Make room for audio controls in the interface: 
 		if( embedPlayer.isAudio() && embedPlayer.$interface.height() == 0 ){
@@ -395,16 +397,17 @@ mw.PlayerControlBuilder.prototype = {
 			// Make the iframe fullscreen:
 			parentWindow.fullScreenApi.requestFullScreen( parentTarget );
 			
-			// there is a bug with mozfullscreenchange event in firefox 10: 
+			// There is a bug with mozfullscreenchange event in firefox 10: 
 			// https://bugzilla.mozilla.org/show_bug.cgi?id=724816
 			// so we have to have an extra binding to check for size change and then restore. 
-			if( $.browser.mozilla && $.browser.version == 10 ){
+			if( $.browser.mozilla ){
+				// put in a timeout to give the browser time to ~enter~ fullscreen initially. 
 				setTimeout( function(){
 					$( window ).bind('resize.postFullScreenResize', function(){
 						$(window).unbind( '.postFullScreenResize' );
 						_this.restoreWindowPlayer();
 					})
-				},100);
+				}, 250 );
 			}
 		}
 		
@@ -427,7 +430,7 @@ mw.PlayerControlBuilder.prototype = {
 		if( triggerOnOpenFullScreen ) {
 			$( embedPlayer ).trigger( 'onOpenFullScreen' );
 		}
-
+		
 		// Add a secondary fallback resize ( sometimes iOS loses the $( window ).resize ) binding )
 		function getWindowSize(){
 			return {
@@ -443,6 +446,7 @@ mw.PlayerControlBuilder.prototype = {
 		setTimeout( syncPlayerSize, 50);
 		setTimeout( syncPlayerSize, 200);
 	},
+	
 	doFullScreenPlayerDom: function(){
 		var _this = this;
 		var embedPlayer = this.embedPlayer;

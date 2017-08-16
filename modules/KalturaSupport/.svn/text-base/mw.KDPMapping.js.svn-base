@@ -427,7 +427,13 @@
 				case 'playerStatusProxy':
 					switch( objectPath[1] ){
 						case 'kdpStatus':
-							//TODO
+							if( embedPlayer.kdpEmptyFlag ){
+								return "empty";
+							}
+							if( embedPlayer.playerReady ){
+								return 'ready';
+							}
+							return null;
 						break;
 					}
 				break;
@@ -478,7 +484,7 @@
 		 */
 		addJsListener: function( embedPlayer, eventName, callbackName ){
 			var _this = this;
-			mw.log("KDPMapping::addJsListener: " + eventName + ' cb:' + callbackName );
+			//mw.log("KDPMapping::addJsListener: " + eventName + ' cb:' + callbackName );
 
 			// We can pass [eventName.namespace] as event name, we need it in order to remove listeners with their namespace
 			if( typeof eventName == 'string' ) {
@@ -530,7 +536,8 @@
 					b( 'playerReady', function(){
 						// only trigger kdpEmpty when the player is empty
 						// TODO support 'real' player empty state, ie not via "error handler" 
-						if( embedPlayer['data-playerError'] && ! embedPlayer.kentryid ){
+						if( embedPlayer[ 'data-playerError' ] && ! embedPlayer.kentryid ){
+							embedPlayer.kdpEmptyFlag = true;
 							callback( embedPlayer.id );
 						}
 					});
@@ -538,12 +545,16 @@
 				case 'kdpReady':
 					// TODO: When player is ready with entry, only happens once
 					b( 'playerReady', function() {
+						if( ! embedPlayer[ 'data-playerError' ] ){
+							embedPlayer.kdpEmptyFlag = false;
+						}
 						callback( {}, embedPlayer.id );
 					});
 					break;
 				case 'playerReady':
 					b( 'playerReady' );
 					break;
+				case 'changeVolume':
 				case 'volumeChanged':
 					b( 'volumeChanged', function(event, percent){
 						callback( {'newVolume' : percent}, embedPlayer.id );

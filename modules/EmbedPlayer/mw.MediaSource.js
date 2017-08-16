@@ -444,9 +444,14 @@ mw.MediaSource.prototype = {
 		}
 		mw.log( "Error: could not detect type of media src: " + uri );
 	},
-
+	/**
+	 * bitrate is mesured in kbs rather than bandwith bytes per second
+	 */
 	getBitrate: function() {
-		return this.bandwidth;
+		if( this.bandwidth ){
+			return this.bandwidth / 1024;
+		}
+		return 0;
 	}
 };
 

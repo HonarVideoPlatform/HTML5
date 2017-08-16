@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.7/libraries/fullScreenApi
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.8/libraries/fullScreenApi
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-02-07T13:16:53.250642Z
-7217
+2012-02-08T21:59:19.048153Z
+7234
 mdale
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T22:46:15.000000Z
-048d7c38dc10dde0e5fbfe6822d7937b
-2012-02-07T13:16:53.250642Z
-7217
+2017-07-03T22:47:26.000000Z
+64b38406d4460233577fbe89519992a5
+2012-02-08T21:59:19.048153Z
+7234
 mdale
 
 
@@ -58,5 +58,5 @@ mdale
 
 
 
-2097
+2101
 

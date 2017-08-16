@@ -64,13 +64,15 @@ class KalturaResultObject {
 	}
 	function getServiceConfig( $name ){
 		global $wgKalturaAllowIframeRemoteService;
+		
 		// Check if we allow URL override: 
-		if( $wgKalturaAllowIframeRemoteService ){
+		if( $wgKalturaAllowIframeRemoteService == true ){
 			// Check for urlParameters
 			if( isset( $this->urlParameters[ $name ] ) ){
 				return $this->urlParameters[ $name ];
 			}
 		}
+		
 		// Else use the global config: 
 		switch( $name ){
 			case 'ServiceUrl' : 
@@ -334,6 +336,8 @@ class KalturaResultObject {
 			$pluginsXml = $this->getUiConfXML()->xpath("*//*[@id]");
 			for( $i=0; $i < count($pluginsXml); $i++ ) {
 				$pluginId = (string) $pluginsXml[ $i ]->attributes()->id;
+				// Enforce the lower case first letter of plugin convention: 
+				$pluginId = strtolower( $pluginId[0] ) . substr($pluginId, 1 );
 				$plugins[ $pluginId ] = array(
 					'plugin' => true
 				);
@@ -382,6 +386,9 @@ class KalturaResultObject {
 
 			$pluginKeys = explode(".", $key);
 			$pluginId = $pluginKeys[0];
+			// Enforce the lower case first letter of plugin convention: 
+			$pluginId = strtolower( $pluginId[0] ) . substr($pluginId, 1 );
+			
 			$pluginAttribute = $pluginKeys[1];
 
 			// If plugin exists, just add/override attribute
@@ -576,8 +583,14 @@ class KalturaResultObject {
 		if( isset( $playlistObject[0] ) && $playlistObject[0]->id ){
 			// Set the isPlaylist flag now that we are for sure dealing with a playlist
 			$this->isPlaylist = true;
-			$this->urlParameters['entry_id'] = $playlistObject[0]->id;
-			// Now that we have all the entry data, return that:
+			// check if we have playlistAPI.initItemEntryId
+			if( $this->getPlayerConfig('playlistAPI', 'initItemEntryId' ) ){
+				$this->urlParameters['entry_id'] = 	htmlspecialchars( $this->getPlayerConfig('playlistAPI', 'initItemEntryId' ) );
+			} else {
+				$this->urlParameters['entry_id'] = $playlistObject[0]->id;
+			}
+			
+			// Now that we have an entry_id get entry data:
 			$resultObj = $this->getEntryResult();
 			
 			// Include the playlist in the response:
@@ -798,10 +811,26 @@ class KalturaResultObject {
 		if( $wgKalturaRemoteAddressSalt === false ){
 			return '';
 		}
-		$ip = $_SERVER['REMOTE_ADDR'];
+		$ip = null;
+		// Check for x-forward-for and x-real-ip headers 
+		$requestHeaders = getallheaders(); 
+		if( isset( $requestHeaders['X-Forwarded-For'] ) ){
+			// only care about the fist ip ( most likely source ip address ) 
+			list( $ip ) = explode( ',', $requestHeaders['X-Forwarded-For'] );
+		}
+		// Check for x-real-ip
+		if( !$ip && isset( $requestHeaders['X-Real-IP'] ) ){
+			// also trim any white space
+			list( $ip ) = explode( ',', $requestHeaders['X-Real-IP'] );
+		}
+		if( !$ip ){
+			$ip = $_SERVER['REMOTE_ADDR'];
+		}
 		if( $wgKalturaForceIP ){
 			$ip = $wgKalturaForceIP;
 		}
+		// make sure there is no white space
+		$ip = trim( $ip );
 		$s = $ip . "," . time() . "," . microtime( true );
 		return "X_KALTURA_REMOTE_ADDR: " . $s . ',' . md5( $s . "," . $wgKalturaRemoteAddressSalt );
 	}

@@ -90,8 +90,8 @@ class kalturaIframe {
 			'partnerId' =>	$this->getResultObject()->getPartnerId(),
 			'sessionId' =>	$this->getResultObject()->getKS(),
 			'uiconfId' => 0,
-			'seek'	 =>  'false',
-			'entryId'   =>   $this->getResultObject()->getEntryId(),
+			'seek' =>  'false',
+			'entryId' =>   $this->getResultObject()->getEntryId(),
 		);
 		foreach( $eventSet as $key=> $val){
 			$param[ 'event:' . $key ] = $val;
@@ -624,12 +624,11 @@ class kalturaIframe {
 					// IE < 8  does not handle class="persistentNativePlayer" very well:
 					if( ua.indexOf("MSIE ")!== -1 
 							&&  
-						parseFloat( ua.substring( ua.indexOf("MSIE ") + 5, ua.indexOf(";", ua.indexOf("MSIE ") ) )) 
-							<= 
-						8
+						parseFloat( ua.substring( ua.indexOf("MSIE ") + 5, ua.indexOf(";", ua.indexOf("MSIE ") ) )) <= 8
 					) {
 						videoTagHTML = videoTagHTML.replace( /class=\"persistentNativePlayer\"/gi, '' );
 					}
+					
 					var size = getViewPortSize();
 					styleValue = 'display: block;width:' + size.w + 'px;height:' + size.h + 'px;';
 					
@@ -684,29 +683,26 @@ class kalturaIframe {
 					}
 				?>
 				
-				var hashString = document.location.hash;
 				// Parse any configuration options passed in via hash url more reliable than window['parent']
-				if( hashString ){
+				try{
+					if( window['parent'] && window['parent']['preMwEmbedConfig'] ){ 
+						// Grab config from parent frame:
+						mw.setConfig( window['parent']['preMwEmbedConfig'] );
+						// Set the "iframeServer" to the current domain: 
+						mw.setConfig( 'EmbedPlayer.IframeParentUrl', document.URL ); 
+					}
+				} catch( e ) {
+					// could not get config from parent javascript scope try hash string:
+					var hashString = document.location.hash;
 					try{
 						var hashObj = JSON.parse(
 							unescape( hashString.replace( /^#/, '' ) )
 						);
-						if( hashObj.mwConfig ){
+						if( hashObj && hashObj.mwConfig ){
 							mw.setConfig( hashObj.mwConfig );
 						}
 					} catch( e ) {
-						//error could not parse hash tag
-					}
-				} else 	{
-					try{
-						if( window['parent'] && window['parent']['preMwEmbedConfig'] ){ 
-							// Grab config from parent frame:
-							mw.setConfig( window['parent']['preMwEmbedConfig'] );
-							// Set the "iframeServer" to the current domain: 
-							mw.setConfig( 'EmbedPlayer.IframeParentUrl', document.URL ); 
-						}
-					} catch( e ) {
-						// could not get config from parent javascript scope
+						// error could not parse hash tag ( run with default config )
 					}
 				}
 
@@ -803,6 +799,7 @@ class kalturaIframe {
 						embedPlayer.play();
 					}
 					
+					
 					function getWindowSize(){
 						return {
 							'width' : $(window).width(),
@@ -811,13 +808,7 @@ class kalturaIframe {
 					};
 					function doResizePlayer(){
 						var embedPlayer = $( '#<?php echo htmlspecialchars( $this->getIframeId() )?>' )[0];						
-						setTimeout(function(){
-							if( console && console.log ){
-								// Do not remove this log statment ( there is something strange going on on iPad / iOS 5 that nessetates this ) 
-								console.log( 'Resize player: ' + $( embedPlayer ).width() + ' to:' + $(window).width() );
-							}
-							embedPlayer.resizePlayer( getWindowSize() );
-						},0);
+						embedPlayer.resizePlayer( getWindowSize() );
 					};
 
 					// Bind window resize to reize the player:
