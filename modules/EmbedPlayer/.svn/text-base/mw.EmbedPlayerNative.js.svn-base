@@ -289,10 +289,6 @@ mw.EmbedPlayerNative = {
 		var _this = this;
 		var vid = _this.getPlayerElement();
 		
-		// Update duration
-		if( vid && vid.duration && isFinite( vid.duration ) ){
-			this.duration = vid.duration; 
-		}
 		// Update the bufferedPercent
 		if( vid && vid.buffered && vid.buffered.end && vid.duration ) {
 			try{
@@ -547,7 +543,6 @@ mw.EmbedPlayerNative = {
 		mw.log( 'EmbedPlayerNative:: playerSwichSource: ' + src + ' native time: ' + vid.currentTime );
 		
 		// Update some parent embedPlayer vars: 
-		this.duration = 0;
 		this.currentTime = 0;
 		this.previousTime = 0;
 	

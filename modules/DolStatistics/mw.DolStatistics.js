@@ -247,7 +247,7 @@ mw.DolStatistics.prototype = {
 			return ;
 		}
 		// if paused event and on the last or first second skip. 
-		if( eventName == 'playerPaused' && 
+		if( ( eventName == 'playerPaused' || eventName == 'doPause' ) && 
 				( Math.round( embedPlayer.currentTime ) == 0 ||
 				 embedPlayer.getDuration() - embedPlayer.currentTime < 1 )
 		){
