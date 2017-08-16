@@ -146,7 +146,7 @@ mw.IA =
         mw.IA.log('this is /details/ video!');
         mw.IA.video = true;
 
-        player.unbind('play').bind('play', mw.IA.resize);
+        player.unbind('onplay').bind('onplay', mw.IA.resize);
         
         // player.bind('pause', mw.IA.pause); //xxx hash not quite ready yet 
         if (!mw.isMobileDevice())
@@ -202,12 +202,15 @@ mw.IA =
         av.resizePlayer({'width': wd, 'height':ht}, true);
     }
 
-    $('#mwplayer_videolist').css('top', ht);
+    $('         #mwplayer_videolist').css('top', ht);
+    $('#plholder_mwplayer_videolist').css('top', ht);
       
     $('#avplaydiv').css('width', wd);
       
-    $('#mwplayer').css('width',  wd);
-    $('#mwplayer').css('height', ht + mw.IA.VIDEO_PLAYLIST_HEIGHT);
+    $(         '#mwplayer').css('width',  wd);
+    $('#plholder_mwplayer').css('width',  wd);
+    $(         '#mwplayer').css('height', ht + mw.IA.VIDEO_PLAYLIST_HEIGHT);
+    $('#plholder_mwplayer').css('height', ht + mw.IA.VIDEO_PLAYLIST_HEIGHT);
   },
 
 
@@ -224,6 +227,111 @@ mw.IA =
     mw.log('      ---IA------------------------------>   '+str);
   },
 
+  
+  // This gets called once our MRSS playlist has been parsed and mw is ready/setup
+  // ( see petabox/www/common/Details.inc )
+  start:function(playlist)
+  {
+    mw.IA.log('start');
+    if (mw.IA.startcalled)
+      return;
+    mw.IA.startcalled = true;
+    
+    var star = (mw.IA.arg('start') ? parseFloat(mw.IA.arg('start')) : 0);
+    if (!star)
+    {
+      // look for: /details/drake_saga1_shots/MVI_3986.AVI/start=13
+      var a = location.pathname.split('/');
+      star=(mw.IA.argin('start',a) ? parseFloat(mw.IA.argin('start',a)) : 0);
+    }
+    if (!star)
+    {
+      // look for: /details/drake_saga1_shots/MVI_3986.AVI#start=13
+      var a = location.hash.slice(1).split('/');
+      star=(mw.IA.argin('start',a) ? parseFloat(mw.IA.argin('start',a)) : 0);
+    }
+    
+    if (star)
+    {
+      mw.ready(function(){
+
+        var player = $('#'+mw.playerManager.getPlayerList()[0]).get(0);
+        if (!player)
+          return;
+                 
+      //debugger;
+      playlist.loadPlaylistHandler(function() { 
+        mw.IA.log('playlist loaded, seek to '+star); });
+
+      player.showPlayer();
+      player.stop();
+      //debugger;
+      player.setupSourcePlayer();
+                 
+      {
+    	setTimeout(function(){
+          player.stop();
+          player.currentTime = star;
+          try {
+    	    player.play();
+          } catch (e) { mw.IA.log('play threw cept'); mw.IA.log(e); }
+
+          setTimeout(function(){
+    	    player.play();
+    	  },300);
+
+    	},200);
+      }
+      });
+    }
+  },
+
+  
+  isURLTimeEncoding:function(src)// called in mw.MediaSource.js
+  {
+    var suffix = src.substr(src.length-4).toLowerCase();
+    return (suffix=='.mp4'  ||  suffix=='.ogv');
+  },
+  
+  
+  oldswapper:function()
+  {
+    mw.ready(function(){
+
+      var player = $('#'+mw.playerManager.getPlayerList()[0]).get(0);
+      var IAD = {'identifier':'night_of_the_living_dead'};
+      var group = {'SRC':['night_of_the_living_dead.ogv',
+                          'night_of_the_living_dead_512kb.mp4']};
+                 
+      player.stop();
+      player.emptySources();
+      var prefix = '/download/'+IAD.identifier+'/';
+      player.updatePosterSrc( group['POSTER'] ? prefix + group['POSTER'] :
+                           '/images/glogo.png' );
+      for (var i=0, source; source=group['SRC'][i]; i++)
+      {
+    	if( source )
+        {
+          var attrs = {'src' : prefix + source};
+          var ending = source.substr(0, source.length-4).toLowerCase();
+          if (ending=='.mp4'  ||  ending=='.ogv')
+            attrs['URLTimeEncoding'] = true;
+	  player.mediaElement.tryAddSource(
+	    $('<source />')
+	      .attr( attrs )
+	      .get( 0 )
+	  );
+    	}
+      }
+      player.stop();
+      player.setupSourcePlayer( function(){
+    	setTimeout(function(){
+    	  player.play();
+          player.currentTime = star;           
+    	},100);
+      });
+    });
+  },
 
 
   setup: function() {
@@ -233,11 +341,11 @@ audio { z-index:666 !important; position:absolute !important; bottom:0px !import
 \n\
 \n\
 \n\
-div#mwplayer_videolist { bottom:0px !important; right:0px !important; }\n\
 div.playlistItem {\n\
   font-family:Lucida Grande;\n\
   margin:0px 5px 0px 5px !important;\n\
 }\n\
+div.maudio div.playlistItem { padding:0px !important; }\n\
 div.playlist-title { display:none; }\n\
 div.playlistItem img { display:none; }\n\
 div.playlistItem span.clipTitle     { padding-left:15px; }\n\
@@ -305,7 +413,7 @@ div.overlay-content        {\n\
                     
         'imagesPath' : 'http://www/archive.org/images/', //xxxxxxx not working yet
                     
-        'Playlist.TitleLength': 38
+        'Playlist.TitleLength': 30
       });
 
     if (!mw.isMobileDevice())
@@ -319,31 +427,6 @@ div.overlay-content        {\n\
     mw.ready(function(){
         var hash = unescape(location.hash);
         mw.IA.log("IA Player says mw.ready()" + hash);
-
-
-        var star = (mw.IA.arg('start') ? parseFloat(mw.IA.arg('start')) : 0);
-        if (!star)
-        {
-          // look for: /details/drake_saga1_shots/MVI_3986.AVI/start=13
-          var a = location.pathname.split('/');
-          star=(mw.IA.argin('start',a) ? parseFloat(mw.IA.argin('start',a)) : 0);
-        }
-        if (!star)
-        {
-          // look for: /details/drake_saga1_shots/MVI_3986.AVI#start=13
-          var a = location.hash.slice(1).split('/');
-          star=(mw.IA.argin('start',a) ? parseFloat(mw.IA.argin('start',a)) : 0);
-        }
-        if (star)
-        {
-          mw.IA.resize();
-          var jplay = $('#mwplayer').get(0);
-          var dura = jplay.duration;
-          mw.IA.log(star+'s of '+dura+'s');
-
-          jplay.currentTime = star;
-          jplay.play();
-        }
       });
   }
 };

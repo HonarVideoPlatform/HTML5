@@ -27,6 +27,9 @@
 		// Width of item thubmnails
 		'Playlist.ItemThumbWidth' : '60',
 		
+		// Max number of playlist items: 
+		'Playlist.MaxClips' : '20',
+		
 		'Playlist.ShowScrollButtons' : true,
 
 		// Height of the mediaRss title
@@ -37,7 +40,7 @@
 			
 		'Playlist.TitleLength' : 28,
 		
-		'Playlist.DescriptionLength' : 40
+		'Playlist.DescriptionLength' : 60
 	} );
 
 	// Module loader

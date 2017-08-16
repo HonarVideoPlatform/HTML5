@@ -12,130 +12,213 @@ mw.KWidgetSupport.prototype = {
 		if( options ){
 			$j.extend( this, options);
 		}
+		this.addPlayerHooks();
 	},
 	
 	/**
-	* Add Player hooks for supporting Kaltura api stuff
+	* Add Player hooks for supporting Kaltura api
 	*/ 
 	addPlayerHooks: function( ){
-		var _this = this;		
+		var _this = this;	
 		// Add the hooks to the player manager
 		$j( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ) {
 			// Add hook for check player sources to use local kEntry ID source check:
 			$j( embedPlayer ).bind( 'checkPlayerSourcesEvent', function( event, callback ) {
-				// Load all the player configuration from kaltura: 
-				_this.loadPlayerData( embedPlayer, function( playerData ){
-					if( !playerData ){
-						mw.log("KWidgetSupport::addPlayerHooks> error no player data!");
-						callback();
-						return ;
-					}
-					// Check for uiConf	and attach it to the embedPlayer object:
-					if( playerData.uiConf ){
-						// Store the parsed uiConf in the embedPlayer object:
-						embedPlayer.$uiConf = $j( playerData.uiConf );
-						
-						// Set any global configuration present in custom variables of the playerData
-						embedPlayer.$uiConf.find( 'uiVars var' ).each( function( inx, customVar ){
-							if( $j( customVar ).attr('key') &&  $j( customVar ).attr('value') ){
-								var cVar = $j( customVar ).attr('value');
-								// String to boolean: 
-								cVar = ( cVar === "false" ) ? false : cVar;
-								cVar = ( cVar === "true" ) ? true : cVar;
-								
-								mw.log("KWidgetSupport::addPlayerHooks> Set Global Config:  " + $j( customVar ).attr('key') + ' ' + cVar );
-								mw.setConfig(  $j( customVar ).attr('key'), cVar);
-							}
-						});
-					}
-					
-					// Check access controls ( this is kind of silly and needs to be done on the server ) 
-					if( playerData.accessControl ){
-						var acStatus = _this.getAccessControlStatus( playerData.accessControl );
-						if( acStatus !== true ){
-							$j('.loadingSpinner').remove();
-							embedPlayer.showErrorMsg( acStatus );
-							return ;
-						}
-						// Check for preview access control and add special onEnd binding: 
-						if( playerData.accessControl.previewLength != -1 ){
-							$j( embedPlayer ).bind('ended.acpreview', function(){
-								mw.log( 'KWidgetSupport:: ended.acpreview>' );
-								// Don't run normal onend action: 
-								embedPlayer.onDoneInterfaceFlag = false;
-								var closeAcMessage = function(){
-									$j( embedPlayer ).unbind('ended.acpreview');
-									embedPlayer.stop();
-									embedPlayer.onClipDone();
-								};
-								// Display player dialog 
-								// TODO i8ln!!
-								embedPlayer.controlBuilder.displayMenuOverlay(
-									$j('<div />').append( 
-										$j('<h3 />').append( 'Free preview completed, need to purchase'),
-										$j('<span />').text( 'Access to the rest of the content is restricted' ),
-										$j('<br />'),$j('<br />'),
-										$j('<button />').attr({'type' : "button" })
-										.addClass( "ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" )
-										.append( 
-											$j('<span />').addClass( "ui-button-text" )
-											.text( 'Ok' )
-											.css('margin', '10')
-										).click( closeAcMessage )
-									), closeAcMessage
-								);
-							});
-						}
-					}					
-					
-					// Apply player Sources
-					if( playerData.flavors ){
-						_this.addFlavorSources( embedPlayer, playerData.flavors );
-					}
-					
-					// Add kaltura analytics if we have a session if we have a client ( set in loadPlayerData )
-					if( mw.getConfig( 'Kaltura.EnableAnalytics' ) === true && _this.kClient ) {
-						mw.addKAnalytics( embedPlayer, _this.kClient );
-					}
-
-					mw.log("KWidgetSupport:: check for meta:");
-					// Add any custom metadata:
-					if( playerData.entryMeta ){
-						embedPlayer.kalturaEntryMetaData = playerData.entryMeta;
-					}
-					
-					// Apply player metadata
-					if( playerData.meta ) {
-						embedPlayer.duration = playerData.meta.duration;
-						// We have to assign embedPlayer metadata as an attribute to bridge the iframe
-						embedPlayer.kalturaPlayerMetaData = playerData.meta;
-						$j( embedPlayer ).trigger( 'KalturaSupport_MetaDataReady', embedPlayer.kalturaPlayerMetaData );
-					}										
-					
-					if( embedPlayer.$uiConf ){
-						// Trigger the check kaltura uiConf event					
-						$j( embedPlayer ).triggerQueueCallback( 'KalturaSupport_CheckUiConf', embedPlayer.$uiConf, function(){	
-							mw.log("KWidgetSupport::KalturaSupport_CheckUiConf callback");
-							// Ui-conf file checks done
-							callback();
-						});
-					} else {
-						callback();
-					}
-				});
+				_this.loadAndUpdatePlayerData( embedPlayer, callback );
 			});
-
-			// Add kaltura iframe path support:
+			// Add kaltura iframe share support:
 			$j( embedPlayer ).bind( 'GetShareIframeSrc', function(event, callback){
 				callback( mw.getConfig('Kaltura.ServiceUrl') + '/p/' + _this.kClient.getPartnerId() +
-							'/embedIframe/entry_id/' + embedPlayer.kentryid +
-							'/uiconf_id/' + embedPlayer.kuiconfid );
+						'/embedIframe/entry_id/' + embedPlayer.kentryid +
+						'/uiconf_id/' + embedPlayer.kuiconfid );
 			});
 		});
-		
-	
 	},
 	
+	/**
+	 * Load and bind embedPlayer from kaltura api entry request
+	 * @param embedPlayer
+	 * @param callback
+	 */
+	loadAndUpdatePlayerData: function( embedPlayer, callback ){
+		var _this = this;
+		// Load all the player configuration from kaltura: 
+		_this.loadPlayerData( embedPlayer, function( playerData ){
+			if( !playerData ){
+				mw.log("KWidgetSupport::addPlayerHooks> error no player data!");
+				callback();
+				return ;
+			}
+			_this.updatePlayerData( embedPlayer, playerData, callback );
+		});
+	},
+	
+	updatePlayerData:function( embedPlayer,  playerData, callback ){
+		var _this = this;
+		// Check for uiConf	and attach it to the embedPlayer object:
+		if( playerData.uiConf ){
+			// Store the parsed uiConf in the embedPlayer object:
+			embedPlayer.$uiConf = $j( playerData.uiConf );
+			
+			// Set any global configuration present in custom variables of the playerData
+			embedPlayer.$uiConf.find( 'uiVars var' ).each( function( inx, customVar ){
+				if( $j( customVar ).attr('key') &&  $j( customVar ).attr('value') ){
+					var cVar = $j( customVar ).attr('value');
+					// String to boolean: 
+					cVar = ( cVar === "false" ) ? false : cVar;
+					cVar = ( cVar === "true" ) ? true : cVar;
+					
+					mw.log("KWidgetSupport::addPlayerHooks> Set Global Config:  " + $j( customVar ).attr('key') + ' ' + cVar );
+					mw.setConfig(  $j( customVar ).attr('key'), cVar);
+				}
+			});
+		}
+		
+		// Check access controls ( this is kind of silly and needs to be done on the server ) 
+		if( playerData.accessControl ){
+			var acStatus = _this.getAccessControlStatus( playerData.accessControl );
+			if( acStatus !== true ){
+				$j('.loadingSpinner').remove();
+				embedPlayer.showErrorMsg( acStatus );
+				return ;
+			}
+			// Check for preview access control and add special onEnd binding: 
+			if( playerData.accessControl.preview && playerData.accessControl.previewLength != -1 ){
+				$j( embedPlayer ).bind('ended.acpreview', function(){
+					mw.log( 'KWidgetSupport:: ended.acpreview>' );
+					// Don't run normal onend action: 
+					embedPlayer.onDoneInterfaceFlag = false;
+					var closeAcMessage = function(){
+						$j( embedPlayer ).unbind('ended.acpreview');
+						embedPlayer.stop();
+						embedPlayer.onClipDone();
+					};
+					// Display player dialog 
+					// TODO i8ln!!
+					embedPlayer.controlBuilder.displayMenuOverlay(
+						$j('<div />').append( 
+							$j('<h3 />').append( 'Free preview completed, need to purchase'),
+							$j('<span />').text( 'Access to the rest of the content is restricted' ),
+							$j('<br />'),$j('<br />'),
+							$j('<button />').attr({'type' : "button" })
+							.addClass( "ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" )
+							.append( 
+								$j('<span />').addClass( "ui-button-text" )
+								.text( 'Ok' )
+								.css('margin', '10')
+							).click( closeAcMessage )
+						), closeAcMessage
+					);
+				});
+			}
+		}
+
+		// Add kaltura analytics if we have a session if we have a client ( set in loadPlayerData )
+		if( mw.getConfig( 'Kaltura.EnableAnalytics' ) === true && _this.kClient ) {
+			mw.addKAnalytics( embedPlayer, _this.kClient );
+		}
+		
+		// Apply player Sources
+		if( playerData.flavors ){
+			_this.addFlavorSources( embedPlayer, playerData.flavors );
+		}
+		mw.log("KWidgetSupport:: check for meta:");
+		
+		// Add any custom metadata:
+		if( playerData.entryMeta ){
+			embedPlayer.kalturaEntryMetaData = playerData.entryMeta;
+		}
+
+		// Apply player metadata
+		if( playerData.meta ) {
+			embedPlayer.duration = playerData.meta.duration;
+			// We have to assign embedPlayer metadata as an attribute to bridge the iframe
+			embedPlayer.kalturaPlayerMetaData = playerData.meta;
+			$j( embedPlayer ).trigger( 'KalturaSupport_MetaDataReady', embedPlayer.kalturaPlayerMetaData );
+		}
+
+		// TODO: Remove this when Eagle is out
+		if( mw.getConfig( 'Kaltura.TempCuePoints' ) ) {
+			playerData.entryCuePoints = mw.getConfig( 'Kaltura.TempCuePoints' );
+		}
+		// End Remove
+		if( playerData.entryCuePoints ) {
+			mw.log( "KCuePoints:: Add CuePoints to embedPlayer");
+			embedPlayer.entryCuePoints = playerData.entryCuePoints;
+			new mw.KCuePoints( embedPlayer );
+
+			// Allow other plugins to subscribe to cuePoint ready event:
+			$( embedPlayer ).trigger( 'KalturaSupport_CuePointsReady', embedPlayer.entryCuePoints );
+		}
+
+		if( embedPlayer.$uiConf ){
+			// Trigger the check kaltura uiConf event					
+			$j( embedPlayer ).triggerQueueCallback( 'KalturaSupport_CheckUiConf', embedPlayer.$uiConf, function(){	
+				mw.log("KWidgetSupport::KalturaSupport_CheckUiConf callback");
+				// Ui-conf file checks done
+				callback();
+			});
+		} else {
+			callback();
+		}
+	},
+	/**
+	 * Check for xml config, let flashvars override  
+	 * @param {Object} $uiConf jQuery object xml to look for plugin attributes
+	 * @param {Object} $uiConf jQuery object xml to look for plugin attributes
+	 */
+	getPluginConfig: function( embedPlayer, $uiConf, pluginName, attr ){
+		var singleAttrName = false;
+		if( typeof attr == 'string' ){
+			singleAttrName = attr;
+			attr = $j.makeArray( attr );
+		}
+
+		var config = {};
+		var $plugin = $uiConf.find( 'plugin#' + pluginName );
+		var $uiPluginVars = $uiConf.find( 'var[key^="' + pluginName + '"]' );
+		// @@TODO the iframe really should apply the "data" instead of this hacky merge here:
+		var fv = mw.getConfig( 'KalturaSupport.IFramePresetFlashvars' );
+		// Check for embedPlayer flashvars ( will overwrite iframe values if present )
+		if( $j( embedPlayer ).data('flashvars' ) ){
+			fv = $j( embedPlayer ).data('flashvars' );
+		}
+		$j.each( attr, function(inx, attrName ){
+			if( $plugin.attr( attrName ) ){
+				config[attrName] = $plugin.attr( attrName );
+			}
+			// XML sometimes comes in all lower case
+			if( $plugin.attr( attrName.toLowerCase() ) ){
+				config[attrName] = $plugin.attr( attrName.toLowerCase() );
+			}
+			
+			// Check flashvars overrides
+			if( fv[ pluginName + '.' + attrName ] ){
+				config[ attrName ] = fv[ pluginName + '.' + attrName ];
+			}
+			// Check for "flat plugin vars" stored at the end of the uiConf ( instead of as attributes )"
+			$uiPluginVars.each( function(inx, node){
+				if( $j( node ).attr('key') == pluginName + '.' + attrName ){
+					if( $j(node).attr('overrideflashvar') != "false" || ! config[attrName] ){
+						config[attrName] = $j(node).get(0).getAttribute('value');
+					}
+					// found break out of loop
+					return false;
+				}
+			});
+		
+			// Convert string to boolean 
+			if( config[ attrName ] === "true" )
+				config[ attrName ] = true;
+			if( config[ attrName ] === "false" )
+				config[ attrName ] = false; 
+		});
+		if( singleAttrName != false ){
+			return config[ singleAttrName ];
+		} else {
+			return config;
+		}
+	},
 	/**
 	 * Alternate source grabbing script ( for cases where we need to hot-swap the source ) 
 	 * playlists on iPhone for example we can't re-load the player we have to just switch the src. 
@@ -145,11 +228,11 @@ mw.KWidgetSupport.prototype = {
 	 */
 	getEntryIdSourcesFromApi:  function( widgetId, entryId, callback ){
 		var _this = this;
+		mw.log( "KWidgetSupport:: getEntryIdSourcesFromApi: w:" + widgetId + ' entry:' + entryId );
 		this.kClient = mw.KApiPlayerLoader( {
 			'widget_id' : widgetId, 
 			'entry_id' : entryId
 		}, function( playerData ){
-			
 			// Check access control 
 			if( playerData.accessControl ){
 				var acStatus = _this.getAccessControlStatus( playerData.accessControl );
@@ -171,7 +254,6 @@ mw.KWidgetSupport.prototype = {
 	loadPlayerData: function( embedPlayer, callback ){
 		var _this = this;
 		var playerRequest = {};
-
 		// Check for widget id	 
 		if( ! embedPlayer.kwidgetid ){
 			mw.log( "Error: missing required widget paramater");
@@ -194,16 +276,16 @@ mw.KWidgetSupport.prototype = {
 		playerRequest.flashvars = $j( embedPlayer ).data( 'flashvars' ); 
 		
 		// Check if we have the player data bootstrap from the iframe
-		var bootstrapData = mw.getConfig("KalturaSupport.BootstrapPlayerData");
+		var bootstrapData = mw.getConfig("KalturaSupport.IFramePresetPlayerData");
 
 		// Insure the bootStrap data has all the required info: 
 		if( bootstrapData 
 			&& bootstrapData.partner_id == embedPlayer.kwidgetid.replace('_', '')
 			&&  bootstrapData.ks
 		){
-			mw.log( 'KWidgetSupport::loaded player data from KalturaSupport.BootstrapPlayerData config' );
+			mw.log( 'KWidgetSupport::loaded player data from KalturaSupport.IFramePresetPlayerData config' );
 			// Clear bootstrap data from configuration: 
-			mw.setConfig("KalturaSupport.BootstrapPlayerData" , null);
+			mw.setConfig("KalturaSupport.IFramePresetPlayerData" , null);
 			this.kClient = mw.kApiGetPartnerClient( playerRequest.widget_id );
 			this.kClient.setKS( bootstrapData.ks );
 			callback( bootstrapData );
@@ -299,15 +381,15 @@ mw.KWidgetSupport.prototype = {
 				'height' :  embedPlayer.getHeight()
 			});			
 		}
-				
-		// Check existing sources have kaltura specific data-flavorid attribute ) 
+		
+		var deviceSources = {};
+		// Check existing sources have kaltura specific flavorid attribute ) 
 		// NOTE we may refactor how we package in the kaltura pay-load from the iframe 
 		var sources = embedPlayer.mediaElement.getSources();
-		if( sources[0] && sources[0]['data-flavorid'] ){
+		if( sources[0] && sources[0]['flavorid'] ){
 			// Not so clean ... will refactor once we add another source
-			var deviceSources = {};
 			for(var i=0; i< sources.length;i++){
-				deviceSources[ sources[i]['data-flavorid'] ] = sources[i].src;
+				deviceSources[ sources[i]['flavorid'] ] = sources[i].src;
 			}
 			// Unset existing DOM source children ( so that html5 video hacks work better ) 
 			$j('#' + embedPlayer.pid).find('source').remove();
@@ -316,7 +398,7 @@ mw.KWidgetSupport.prototype = {
 			// Update the set of sources in the embedPlayer ( might cause issues with other plugins ) 
 		} else {		
 			// Get device flavors ( if not already set )
-			var deviceSources = _this.getEntryIdSourcesFromFlavorData( this.kClient.getPartnerId(), flavorData );	
+			deviceSources = _this.getEntryIdSourcesFromFlavorData( this.kClient.getPartnerId(), flavorData );	
 		}
 		// Update the source list per the current user-agent device: 
 		var sources = _this.getSourcesForDevice( deviceSources );
@@ -339,109 +421,117 @@ mw.KWidgetSupport.prototype = {
 	 */
 	getEntryIdSourcesFromFlavorData: function( partner_id, flavorData ){
 		var _this = this;
-		
+
 		if( !flavorData ){
 			mw.log("Error: KWidgetSupport: flavorData is not defined ");
 			return ;
 		}
 
 		var deviceSources = {};
-
-		// Get KS for playManifest URL
-		this.kClient.getKS( function( ks ) {
 		
-			// Setup the src defines
-			var ipadFlavors = '';
-			var iphoneFlavors = '';
+		// Setup the src defines
+		var ipadFlavors = '';
+		var iphoneFlavors = '';
 
-			// Setup flavorUrl
+		// Setup flavorUrl
+		if( mw.getConfig( 'Kaltura.UseManifestUrls' ) ){
+			var flavorUrl = mw.getConfig('Kaltura.ServiceUrl') + '/p/' + partner_id +
+					'/sp/' +  partner_id + '00/playManifest';
+		} else {
+			var flavorUrl = mw.getConfig('Kaltura.CdnUrl') + '/p/' + partner_id +
+				   '/sp/' +  partner_id + '00/flvclipper';
+		}
+
+		// Find a compatible stream
+		for( var i = 0 ; i < flavorData.length; i ++ ) {
+			var asset = flavorData[i];
+			var entryId = asset.entryId;
+
+			// if flavor status is not ready - continue to the next flavor
+			if( asset.status != 2 ) {
+				continue;
+			}
+
+			// Check playManifest conditional
 			if( mw.getConfig( 'Kaltura.UseManifestUrls' ) ){
-				var flavorUrl = mw.getConfig('Kaltura.ServiceUrl') + '/p/' + partner_id +
-						'/sp/' +  partner_id + '00/playManifest';
-			} else {
-				var flavorUrl = mw.getConfig('Kaltura.CdnUrl') + '/p/' + partner_id +
-					   '/sp/' +  partner_id + '00/flvclipper';
-			}
 
-			// Find a compatible stream
-			for( var i = 0 ; i < flavorData.length; i ++ ) {
-				var asset = flavorData[i];
-				var entryId = asset.entryId;
+				var src  = flavorUrl + '/entryId/' + asset.entryId;
 
-				// if flavor status is not ready - continue to the next flavor
-				if( asset.status != 2 ) {
-					continue;
-				}
-
-				// Check playManifest conditional
-				if( mw.getConfig( 'Kaltura.UseManifestUrls' ) ){
-
-					var src  = flavorUrl + '/entryId/' + asset.entryId + '/ks/' + ks;
-
-					// Check for Apple http streaming
-					if( asset.tags.indexOf('applembr') != -1 ) {
-						src += '/format/applehttp/protocol/http';
-						deviceSources['AppleMBR'] = src + '/a.m3u8';
-					} else {
-						src += '/flavorId/' + asset.id + '/format/url/protocol/http';
-					}
-
+				// Check for Apple http streaming
+				if( asset.tags.indexOf('applembr') != -1 ) {
+					src += '/format/applehttp/protocol/http';
+					deviceSources['AppleMBR'] = src + '/a.m3u8';
 				} else {
-					var src  = flavorUrl + '/entry_id/' + asset.entryId + '/flavor/' + asset.id ;
+					src += '/flavorId/' + asset.id + '/format/url/protocol/http';
 				}
 
-				// Add iPad Akamai flavor to iPad flavor Ids list
-				if( asset.fileExt == 'mp4' && asset.tags.indexOf('ipadnew') != -1 ){
-					ipadFlavors += asset.id + ',';
-				}
-
-				// Add iPhone Akamai flavor to iPad&iPhone flavor Ids list
-				if( asset.fileExt == 'mp4' && asset.tags.indexOf('iphonenew') != -1 ){
-					ipadFlavors += asset.id + ',';
-					iphoneFlavors += asset.id + ',';
-				}
-
-				// Check the tags to read what type of mp4 source
-				if( asset.fileExt == 'mp4' && asset.tags.indexOf('ipad') != -1 ){
-					deviceSources['iPad'] = src + '/a.mp4';
-				}
-
-				// Check for iPhone src
-				if( asset.fileExt == 'mp4' && asset.tags.indexOf('iphone') != -1 ){
-					deviceSources['iPhone'] = src + '/a.mp4';
-				}
-
-				// Check for ogg source
-				if( asset.fileExt == 'ogg' || asset.fileExt == 'ogv'){
-					deviceSources['ogg'] = src + '/a.ogg';
-				}
-
-				// Check for webm source
-				if( asset.fileExt == 'webm' ){
-					deviceSources['webm'] = src + '/a.webm';
-				}
-
-				// Check for 3gp source
-				if( asset.fileExt == '3gp' ){
-					deviceSources['3gp'] = src + '/a.3gp';
-				}
+			} else {
+				var src  = flavorUrl + '/entry_id/' + asset.entryId + '/flavor/' + asset.id ;
 			}
 
-			ipadFlavors = ipadFlavors.substr(0, (ipadFlavors.length-1) );
-			iphoneFlavors = iphoneFlavors.substr(0, (iphoneFlavors.length-1) );
-
-			// Create iPad flavor for Akamai HTTP
-			if(ipadFlavors.length != 0) {
-				deviceSources['iPadNew'] = flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + ipadFlavors + '/format/applehttp/protocol/http/a.m3u8';
+			// Add iPad Akamai flavor to iPad flavor Ids list
+			if( asset.fileExt == 'mp4' && asset.tags.indexOf('ipadnew') != -1 ){
+				ipadFlavors += asset.id + ',';
 			}
 
-			// Create iPhone flavor for Akamai HTTP
-			if(iphoneFlavors.length != 0) {
-				deviceSources['iPhoneNew'] = flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + iphoneFlavors + '/format/applehttp/protocol/http/a.m3u8';
+			// Add iPhone Akamai flavor to iPad&iPhone flavor Ids list
+			if( asset.fileExt == 'mp4' && asset.tags.indexOf('iphonenew') != -1 ){
+				ipadFlavors += asset.id + ',';
+				iphoneFlavors += asset.id + ',';
 			}
 
+			// Check the tags to read what type of mp4 source
+			if( asset.fileExt == 'mp4' && asset.tags.indexOf('ipad') != -1 ){
+				deviceSources['iPad'] = src + '/a.mp4';
+			}
+
+			// Check for iPhone src
+			if( asset.fileExt == 'mp4' && asset.tags.indexOf('iphone') != -1 ){
+				deviceSources['iPhone'] = src + '/a.mp4';
+			}
+
+			// Check for ogg source
+			if( asset.fileExt == 'ogg' || asset.fileExt == 'ogv'){
+				deviceSources['ogg'] = src + '/a.ogg';
+			}
+
+			// Check for webm source
+			if( asset.fileExt == 'webm' ){
+				deviceSources['webm'] = src + '/a.webm';
+			}
+
+			// Check for 3gp source
+			if( asset.fileExt == '3gp' ){
+				deviceSources['3gp'] = src + '/a.3gp';
+			}
+		}
+
+		ipadFlavors = ipadFlavors.substr(0, (ipadFlavors.length-1) );
+		iphoneFlavors = iphoneFlavors.substr(0, (iphoneFlavors.length-1) );
+
+		// Create iPad flavor for Akamai HTTP
+		if(ipadFlavors.length != 0) {
+			deviceSources['iPadNew'] = flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + ipadFlavors + '/format/applehttp/protocol/http/a.m3u8';
+		}
+
+		// Create iPhone flavor for Akamai HTTP
+		if(iphoneFlavors.length != 0) {
+			deviceSources['iPhoneNew'] = flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + iphoneFlavors + '/format/applehttp/protocol/http/a.m3u8';
+		}
+		
+		// Append KS to all source if available 
+		// Get KS for playManifest URL ( this should run synchronously since ks should already be available )
+		var ksCheck = false;
+		this.kClient.getKS( function( ks ) {
+			ksCheck = true;
+			$j.each( deviceSources, function(inx, source){
+				deviceSources[inx] = deviceSources[inx] + '?ks=' + ks;
+			});
 		});
-	
+		if( !ksCheck ){
+			mw.log("Error:: KWidgetSupport: KS not defined in time, streams are missing ks paramter");
+		}
+
 		return deviceSources;
 	},
 	
@@ -519,6 +609,7 @@ mw.KWidgetSupport.prototype = {
 		if( deviceSources['ogg'] ) {
 			addSource( deviceSources['ogg'], 'video/ogg' );
 		}
+		
 		return sources;
 	}
 };
@@ -528,24 +619,10 @@ if( !window.kWidgetSupport ){
 	window.kWidgetSupport = new mw.KWidgetSupport();
 };
 
-
-// Add player Manager binding ( if playerManager not ready bind to when its ready )
-// NOTE we may want to move this into the loader since its more "action/loader" code
-if( mw.playerManager ){
-	kWidgetSupport.addPlayerHooks();
-} else {
-	mw.log( 'KWidgetSupport::bind:EmbedPlayerManagerReady');
-	$j( mw ).bind( 'EmbedPlayerManagerReady', function(){
-		mw.log( "KWidgetSupport::EmbedPlayerManagerReady" );
-		kWidgetSupport.addPlayerHooks();
-	});
-};
-
 /**
- * Register a global shortcuts for the kaltura sources query
+ * Register a global shortcuts for the Kaltura sources query
  */
 mw.getEntryIdSourcesFromApi = function( widgetId, entryId, callback ){
 	kWidgetSupport.getEntryIdSourcesFromApi( widgetId, entryId, callback);
 };
-
 

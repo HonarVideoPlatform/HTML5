@@ -15,14 +15,10 @@ mw.PlaylistHandlerKalturaRss.prototype = {
 				this[i] = tmp[i];
 			}
 		}
-		//set all the options:
+		// Set all the options:
 		for( var i in options ){
 			this[i] = options[i];
 		}
-	},
-	getSrc: function(){	
-		// In kaltura mrss player embeds the playlistid url is the source: 
-		return this.playlist_id;
 	},
 	getClipSources: function( clipIndex, callback ){
 		this.parent_getClipSources( clipIndex, function( clipSources ){

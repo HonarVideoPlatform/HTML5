@@ -7,14 +7,14 @@ mw.VastAdParser = {
 	 * VAST support
 	 * Convert the vast ad display format into a display conf:
 	 */	
-	parse: function( xmlString ){
+	parse: function( xmlObject ){
 		var _this = this;
 		var adConf = {};
-		var $vast = $j( xmlString );
+		var $vast = $j( xmlObject );
 		// Get the basic set of sequences
 		adConf.ads = [];
-		$vast.find( 'ad' ).each( function( inx, node ){
-			mw.log('kAds:: getVastAdDisplayConf: ' + node );
+		$vast.find( 'Ad' ).each( function( inx, node ){
+			mw.log( 'VastAdParser:: getVastAdDisplayConf: ' + node );
 			var $ad = $j( node );
 			
 			// Set a local pointer to the current sequence: 
@@ -22,7 +22,7 @@ mw.VastAdParser = {
 			
 			// Set duration
 			if( $ad.find('duration') ){
-				currentAd.duration = mw.npt2seconds( $ad.find('duration').text() );
+				currentAd.duration = mw.npt2seconds( $ad.find( 'duration' ).text() );
 			}
 			
 			// Set impression urls
@@ -30,16 +30,16 @@ mw.VastAdParser = {
 			$ad.find( 'Impression' ).each( function(na, node){
 				// Check if there is lots of impressions or just one: 
 				if( $j(node).find('URL').length ){
-					$ad.find('URL').each( function(na, urlNode){
+					$ad.find('URL').each( function( na, urlNode ){
 						currentAd.impressions.push({
 							'beaconUrl' : _this.getURLFromNode( urlNode ),
 							'idtype' : $j( urlNode ).attr('id')
-						})
-					})
+						});
+					});
 				} else {
 					currentAd.impressions.push({
 						'beaconUrl' : _this.getURLFromNode( node )
-					})
+					});
 				}
 			});
 			
@@ -89,7 +89,7 @@ mw.VastAdParser = {
 			// Set videoFile to default if not set: 
 			if( currentAd.videoFiles.length == 0 ){
 				mw.log( 'VastAdParser::MISSING videoFile no video url: ');
-				//currentAd.videoFiles = mw.getConfig( 'Kaltura.MissingFlavorVideoUrls');
+				//currentAd.videoFiles = mw.getConfig( 'Kaltura.MissingFlavorSources');
 			}
 			
 			// Set the CompanionAds if present: 
@@ -98,12 +98,10 @@ mw.VastAdParser = {
 				var staticResource = _this.getResourceObject( companionNode );				
 				if( staticResource ){
 					// Add the staticResourceto the ad config: 
-					currentAd.companions.push( staticResource )
+					currentAd.companions.push( staticResource );
 				}
 			});
-			
 			adConf.ads.push( currentAd );
-			
 		});
 		return adConf;
 	},
@@ -133,20 +131,20 @@ mw.VastAdParser = {
 					'width' : resourceObj['width'],
 					'height' : resourceObj['height']					
 				})
-			)
+			);
 		};
 		
 		// Check for companion type: 
 		if( $j( resourceNode ).find( 'StaticResource' ).length ) {
 			if( $j( resourceNode ).find( 'StaticResource' ).attr('creativeType') ) {						
-				resourceObj.$html = _this.getStaticResourceHtml( resourceNode, resourceObj )
-				mw.log("kAds::getResourceObject: StaticResource \n" + $j('<div />').append( resourceObj.$html ).html() );
+				resourceObj.$html = _this.getStaticResourceHtml( resourceNode, resourceObj );
+				mw.log("VastAdParser::getResourceObject: StaticResource \n" + $j('<div />').append( resourceObj.$html ).html() );
 			}											
 		}
 		
 		// Check for iframe type
 		if( $j( resourceNode ).find('IFrameResource').length ){
-			mw.log("kAds::getResourceObject: IFrameResource \n" + _this.getURLFromNode ( $j( resourceNode ).find('IFrameResource') ) );
+			mw.log("VastAdParser::getResourceObject: IFrameResource \n" + _this.getURLFromNode ( $j( resourceNode ).find('IFrameResource') ) );
 			resourceObj.$html = 
 				$j('<iframe />').attr({
 					'src' : _this.getURLFromNode ( $j( resourceNode ).find('IFrameResource') ),
@@ -158,7 +156,7 @@ mw.VastAdParser = {
 		
 		// Check for html type
 		if( $j( resourceNode ).find('HTMLResource').length ){		
-			mw.log("kAds::getResourceObject:  HTMLResource \n" + _this.getURLFromNode ( $j( resourceNode ).find('HTMLResource') ) );
+			mw.log("VastAdParser::getResourceObject:  HTMLResource \n" + _this.getURLFromNode ( $j( resourceNode ).find('HTMLResource') ) );
 			// Wrap the HTMLResource in a jQuery call: 
 			resourceObj.$html = $j( _this.getURLFromNode ( $j( resourceNode ).find('HTMLResource') ) );
 		}
@@ -266,7 +264,7 @@ mw.VastAdParser = {
 			// use the first url we find: 
 			node = $j( node ).find( 'URL' ).get(0);
 		}	
-		return $j.trim( decodeURIComponent( $j( node ).html() )  )
+		return $j.trim( decodeURIComponent( $j( node ).text() )  )
 			.replace( /^\<\!\-?\-?\[CDATA\[/, '' )
 			.replace(/\]\]\-?\-?\>/, '');		
 	}

@@ -61,10 +61,10 @@ mw.IFramePlayerApiClient.prototype = {
 		var _this = this;
 		parentsAbsoluteList = [];
 		var fullscreenMode = false;
-		var orgSize  = {
+		var orgSize = {
 			'width' : $j( _this.iframe ).width(),
 			'height' : $j( _this.iframe ).height(),
-			'position' : null
+			'position' : $j( _this.iframe ).css( 'position' )
 		};
 		
 		// Add a local scope variable to register 
@@ -86,7 +86,7 @@ mw.IFramePlayerApiClient.prototype = {
 			// Make the iframe fullscreen
 			$j( _this.iframe )
 				.css({
-					'z-index': mw.getConfig( 'EmbedPlayer.fullScreenZIndex' ) + 1,
+					'z-index': mw.getConfig( 'EmbedPlayer.FullScreenZIndex' ) + 1,
 					'position': 'absolute',
 					'top' : 0,
 					'left' : 0,
@@ -99,13 +99,13 @@ mw.IFramePlayerApiClient.prototype = {
 			
 			// Remove absolute css of the interface parents
 			$j( _this.iframe ).parents().each( function() {
-				//mw.log(' parent : ' + $j( this ).attr('id' ) + ' class: ' + $j( this ).attr('class') + ' pos: ' + $j( this ).css( 'position' ) );
 				if( $j( this ).css( 'position' ) == 'absolute' ) {
 					parentsAbsoluteList.push( $j( this ) );
 					$j( this ).css( 'position', null );
 				}
-			} );
-		}
+			});
+		};
+		
 		var restoreWindowMode = function(){
 			localIframeInFullscreen = false;
 			$j( _this.iframe )
@@ -114,7 +114,7 @@ mw.IFramePlayerApiClient.prototype = {
 					'isFullscreen', false
 				)
 			// restore any parent absolute pos: 
-			$j(parentsAbsoluteList).each( function() {	
+			$j( parentsAbsoluteList ).each( function() {	
 				$j( this ).css( 'position', 'absolute' );
 			} );
 		};
@@ -141,8 +141,8 @@ mw.IFramePlayerApiClient.prototype = {
 		}
 		
 		// Before we update local attributes check that the object has not been updated by user js
-		for( var attrName in playerAttributes ){
-			if( attrName != 'id' ){
+		$j.each(playerAttributes, function( inx, attrName ) {
+ 			if( attrName != 'id' ){
 				if( _this._prevPlayerProxy[ attrName ] != _this.playerProxy[ attrName ] ){
 					//mw.log( "IFramePlayerApiClient:: User js update:" + attrName + ' set to: ' + this.playerProxy[ attrName ] + ' != old: ' + _this._prevPlayerProxy[ attrName ] );
 					// Send the updated attribute back to the iframe: 
@@ -152,26 +152,25 @@ mw.IFramePlayerApiClient.prototype = {
 	 				});
 				}
 			}
-		}
-		
+		});
 		// Update any attributes
 		if( msgObject.attributes ){
-			for( var i in msgObject.attributes ){
+			$j.each(msgObject.attributes, function( i, notUsed){
 				if( i != 'id' && i != 'class' && i != 'style' ){
 					try{
-						this.playerProxy[ i ] = msgObject.attributes[i];
-						this._prevPlayerProxy[i] = msgObject.attributes[i];
+						_this.playerProxy[ i ] = msgObject.attributes[i];
+						_this._prevPlayerProxy[i] = msgObject.attributes[i];
 					} catch( e ){
 						mw.log("Error could not set:" + i );
 					}
 				}
-			}
+			});
 		}
 		//mw.log("handle event method name: " + msgObject.triggerName );
 		
 		// Trigger any binding events 
 		if( typeof msgObject.triggerName != 'undefined' && msgObject.triggerArgs != 'undefined') {
-			// mw.log('IFramePlayerApiClient::hanldeReciveMsgt: trigger: ' + msgObject.triggerName );
+			//mw.log('IFramePlayerApiClient::hanldeReciveMsg: trigger: ' + msgObject.triggerName );
 			$j( _this.playerProxy ).trigger( msgObject.triggerName, msgObject.triggerArgs );
 		}
 	},
@@ -180,10 +179,33 @@ mw.IFramePlayerApiClient.prototype = {
 				' iframe: ' +  this.iframe + ' cw:' + this.iframe.contentWindow + 
 				' src: ' + mw.absoluteUrl( $j( this.iframe ).attr('src')  ) );*/
 		$j.postMessage(
-			JSON.stringify( msgObject ), 
+			this.stringify( msgObject ), 
 			mw.absoluteUrl( $j( this.iframe ).attr('src') ), 
 			this.iframe.contentWindow 
 		);
+	},
+	// local stringify function to prevent prototype override 
+	'stringify' : function stringify( obj ) {
+		var t = typeof (obj);
+		var _this = this;
+		if (t != "object" || obj === null) {
+		    // simple data type
+		    if (t == "string") obj = '"' + obj + '"';
+		    return String(obj);
+		} else {
+		    // recurse array or object
+		    var n, v, json = [], arr = (obj && obj.constructor == Array);
+		
+		    $j.each(obj, function(n, na) {
+		        v = obj[n];
+		        t = typeof(v);
+		        if (obj.hasOwnProperty(n)) {
+		            if (t == "string") v = '"' + v + '"'; else if (t == "object" && v !== null) v = _this.stringify(v);
+		            json.push((arr ? "" : '"' + n + '":') + String(v));
+		        }
+		    });
+		    return (arr ? "[" : "{") + String(json) + (arr ? "]" : "}");
+		}
 	}
 };
 
@@ -197,14 +219,20 @@ jQuery.fn.iFramePlayer = function( readyCallback ){
 		mw.log( "$.iFramePlayer::" + targetPlayer.id );
 		// Append '_ifp' ( iframe player ) to id of real iframe so that 'id', and 'src' attributes don't conflict
 		var playerProxyId = ( $j( targetPlayer ).attr( 'id' ) )? $j( targetPlayer ).attr( 'id' ) : Math.floor( 9999999 * Math.random() );
-		var iframePlayerId = playerProxyId + '_ifp' ; 
+		var iframePlayerId = playerProxyId + '_ifp';
 
 		// Update the id and wrap with the proxy 
 		$j( targetPlayer)
-			.attr('id', iframePlayerId)
+			.attr({
+				'id': iframePlayerId,
+				'name' : iframePlayerId
+			})
 			.wrap(
 				$j('<div />')
-				.attr( 'id', playerProxyId )
+				.attr( {
+					'id': playerProxyId,
+					'style' : $j( targetPlayer).attr('style')
+				})
 			);
 		
 		var playerProxy = $j( '#' + playerProxyId ).get(0);
@@ -217,6 +245,7 @@ jQuery.fn.iFramePlayer = function( readyCallback ){
 		$j( playerProxy ).bind('proxyReady', function(){
 			playerProxy.proxyAcknowledgment();
 		});
+		
 		// Bind the iFrame player ready callback
 		if( readyCallback ){
 			$j( playerProxy ).bind( 'playerReady', readyCallback );		

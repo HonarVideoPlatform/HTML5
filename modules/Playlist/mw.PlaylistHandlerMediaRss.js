@@ -1,6 +1,6 @@
 mw.PlaylistHandlerMediaRss = function( playlist ){
 	return this.init( playlist );
-}
+};
 
 mw.PlaylistHandlerMediaRss.prototype = {
 	// Set the media rss namespace
@@ -20,7 +20,7 @@ mw.PlaylistHandlerMediaRss.prototype = {
 	},
 
 	/**
-	 * load the playlist source file with a callback
+	 * Load the playlist source file with a callback
 	 */
 	loadPlaylist: function( callback ){
 		var _this = this;
@@ -98,7 +98,7 @@ mw.PlaylistHandlerMediaRss.prototype = {
 		var clipSources = [];
 		$j.each( $item.find( '*' ), function( inx, mediaContent){
 			if( $j( mediaContent ).get(0).nodeName == 'media:content' ){
-				clipSource = {}
+				clipSource = {};
 				if( $j( mediaContent ).attr('url' ) ){
 					clipSource.src = $j( mediaContent ).attr('url' );
 				}
@@ -114,9 +114,11 @@ mw.PlaylistHandlerMediaRss.prototype = {
 		callback( clipSources );
 	},
 
-	applyCustomClipData: function( embedPlayer, clipIndex ){
+	getCustomAttributes: function( clipIndex){
+		// no custom metadata present in mrss playlist handler:
 		return {};
 	},
+	
 	getClipList: function(){
 		return this.$rss.find('item');
 	},

@@ -19,7 +19,7 @@ $wgMwEmbedPathUrl = str_replace(
 );
 
 // The version of the library ( should match the mwEmbedLoader KALTURA_LOADER_VERSION
-$wgMwEmbedVersion = '1.3q';
+$wgMwEmbedVersion = '1.4b7';
 
 // Url to the resource loader php script: 
 $wgResourceLoaderUrl = $wgMwEmbedPathUrl . 'ResourceLoader.php';
@@ -40,6 +40,10 @@ while (false !== ($entry = $d->read())) {
  * TODO move kaltura configuration to KalturaSupport module ( part of ResourceLoader update ) 
  ********************************************************/
 
+// To include signed headers with user IPs for IP restriction lookups, input a salt string for 
+// $wgKalturaRemoteAddressSalt configuration option. 
+$wgKalturaRemoteAddressSalt = false;
+
 // Default debug mode
 $wgEnableScriptDebug = false;
 
@@ -47,13 +51,16 @@ $wgEnableScriptDebug = false;
 $wgKalturaServiceUrl = 'http://www.kaltura.com';
 
 // Default Kaltura CDN url: 
-$wgKalturaCDNUrl = 'http://cdn.kaltura.com';
+$wgKalturaCDNUrl = 'http://cdnbakmi.kaltura.com';
 
 // Default Kaltura service url:
 $wgKalturaServiceBase = '/api_v3/index.php?service=';
 
 // Default api request timeout in seconds 
 $wgKalturaServiceTimeout = 20;
+
+// If we should include the cue points request
+$wgKalturaEnableCuePointsRequest = false;
 
 // If the iframe will accept 3rd party domain remote service requests 
 // should be left "off" in production. 
@@ -68,7 +75,7 @@ $wgKalturaIframeRewrite = true;
 // If the iframe embed should include the kaltura javascript api: 
 $wgEnableIframeApi = true;
 
-$wgEnableIpadHTMLControls = false;
+$wgEnableIpadHTMLControls = true;
 
 $wgKalturaUseManifestUrls = true;
 

@@ -22,11 +22,13 @@ mw.KApi = function( partner_id ){
 mw.KApi.prototype = {
 	baseParam: {
 		'apiVersion' : '3.1',
-		'clientTag' : 'html5:v' + KALTURA_LOADER_VERSION,
+		'clientTag' : 'html5:v' + window['KALTURA_LOADER_VERSION'],
 		'expiry' : '86400',
 		'format' : 9, // 9 = JSONP format
 		'ignoreNull' : 1
 	},
+	playerLoaderCache: [],
+	
 	// The local kaltura session key ( so it does not have to be re-grabbed with every request
 	ks : null,
 	init: function( partner_id ){
@@ -37,7 +39,7 @@ mw.KApi.prototype = {
 	},
 	doRequest : function( requestObject, callback ){
 		var _this = this;
-		var param = {};		
+		var param = {};
 		// Convert into a multi-request if no session is set ( ks will be added bellow ) 
 		if( !requestObject.length && !this.ks ){
 			requestObject = [ requestObject ];
@@ -83,7 +85,6 @@ mw.KApi.prototype = {
 		// ideally this could be part of the multi-request but could not get it to work 
 		// see commented out code above. 
 		this.getKS( function( ks ){
-			
 			// remove service tag ( hard coded into the api url ) 
 			var serviceType = param['service'];
 			delete param['service'];				
@@ -113,7 +114,7 @@ mw.KApi.prototype = {
         	'action' : 'startwidgetsession',
         	'widgetId': '_' + this.partner_id, 
         	'partnerId' : + this.partner_id // don't ask me, I did not design the API!
-        }
+        };
 		// add in the base parameters:
 		var param = $j.extend( {}, this.baseParam, ksParam );
 		var requestURL = this.getApiUrl() + 'session&' + $j.param( param );
@@ -164,7 +165,16 @@ mw.KApi.prototype = {
 	playerLoader: function( kProperties, callback ){
 		var _this = this;
 		var requestObject = [];
-		if( kProperties.entry_id ){ 
+		mw.log( "KApi:: playerLoader, in cache: " + !!( this.playerLoaderCache[ this.getCacheKey( kProperties ) ] ) );
+		if( this.playerLoaderCache[ this.getCacheKey( kProperties ) ] ){
+			callback( this.playerLoaderCache[ this.getCacheKey( kProperties ) ] );
+			return ;
+		}
+		// Check if we have ks flashvar and use it for our request
+		if( kProperties.flashvars && kProperties.flashvars.ks ) {
+			this.setKS( kProperties.flashvars.ks );
+		};
+		if( kProperties.entry_id ){
 			// The referring  url ( can be from the iframe if in iframe mode ) 
 			var refer = ( mw.getConfig( 'EmbedPlayer.IframeParentUrl') ) ? 
 							mw.getConfig( 'EmbedPlayer.IframeParentUrl') : 
@@ -217,8 +227,27 @@ mw.KApi.prototype = {
 		        	'action' : 'get'
 		    });
 		}
+
+		// Get Cue Points if not disable
+		var loadCuePoints = true;
+		if( kProperties.flashvars && kProperties.flashvars.getCuePointsData && kProperties.flashvars.getCuePointsData == "false") {
+			loadCuePoints = false;
+		}
+
+		if( loadCuePoints ){
+			requestObject.push({
+	        	 'service' : 'cuepoint_cuepoint',
+	        	 'action' : 'list',
+	        	 'filter:objectType' : 'KalturaCuePointFilter',
+	        	 'filter:orderBy' : '+startTime',
+	        	 'filter:statusEqual' : 1,
+	        	 'filter:entryIdEqual' : kProperties.entry_id
+		    });
+		}
+
 		// Do the request and pass along the callback
 		this.doRequest( requestObject, function( data ){
+			mw.log( "KApi:: playerLoader got data response" );
 			var namedData = {};
 			// Name each result data type for easy access
 			if( kProperties.entry_id ){ 
@@ -226,27 +255,58 @@ mw.KApi.prototype = {
 				namedData['flavors'] = data[1];
 				namedData['meta'] = data[2];
 				namedData['entryMeta'] = _this.convertCustomDataXML( data[3] );
-				
-				if( data[4] ){
-					namedData['uiConf'] = data[4]['confFile'];
+
+				if( kProperties.uiconf_id ){
+					if( data[4] ){
+						namedData['uiConf'] = data[4]['confFile'];
+					}
+					if( data[5] && data[5].totalCount > 0 ) {
+						namedData['entryCuePoints'] = data[5].objects;
+					}
+				} else {
+					if( data[4] && data[4].totalCount > 0 ) {
+						namedData['entryCuePoints'] = data[4].objects;
+					}
 				}
+					
 			} else if( kProperties.uiconf_id ){
 				// If only loading the confFile set here: 
 				namedData['uiConf'] = data[0]['confFile'];
 			}	
+			_this.playerLoaderCache[ _this.getCacheKey( kProperties ) ] = namedData;
 			callback( namedData );
 		});
 	},
 	convertCustomDataXML: function( data ){
 		var result = {};
 		if( data && data.objects && data.objects[0] ){			
-			var xml = $.parseXML( data.objects[0].xml );		
-			var $xml = $( xml ).find('metadata').children();			
-			$.each( $xml, function(inx, node){
+			var xml = $j.parseXML( data.objects[0].xml );		
+			var $xml = $j( xml ).find('metadata').children();			
+			$j.each( $xml, function(inx, node){
 				result[ node.nodeName ] = node.textContent;
 			});		
 		}
 		return result;
+	},
+	/**
+	 * Get a string representation of the query string
+	 * @param kProperties
+	 * @return
+	 */
+	getCacheKey: function( kProperties ){
+		var rKey = '';
+		$j.each(kProperties, function(inx, value){
+			if( inx == 'flashvars' ){
+				// add in the flashvars that can vary the api response
+				if( typeof kProperties.flashvars == 'object'){
+					rKey += kProperties.flashvars.getCuePointsData;
+					rKey += kProperties.flashvars.ks
+				}
+			} else {
+				rKey+=inx + '_' + value;
+			}
+		});
+		return rKey;
 	}
 };
 
@@ -259,13 +319,13 @@ mw.KApi.prototype = {
 // ( so that multiple partner types don't conflict if used on a single page )
 mw.KApiPartnerCache = [];
 
-mw.kApiGetPartnerClient = function( partner_or_widget_id ){
+mw.kApiGetPartnerClient = function( partnerOrWidgetId ){
 	// strip leading _ turn widget to partner
-	var partner_id = partner_or_widget_id.replace(/_/g, '');
+	var partner_id = partnerOrWidgetId.replace(/_/g, '');
 	
 	if( !mw.KApiPartnerCache[ partner_id ] ){
 		mw.KApiPartnerCache[ partner_id ] = new mw.KApi( partner_id );
-	};
+	}
 	return mw.KApiPartnerCache[ partner_id ];
 };
 
@@ -282,4 +342,3 @@ mw.KApiPlayerLoader = function( kProperties, callback ){
 	// Return the kClient api object for future requests
 	return kClient;
 };
-

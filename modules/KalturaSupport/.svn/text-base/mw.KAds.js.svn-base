@@ -30,14 +30,104 @@ mw.KAds.prototype = {
 		this.$adConfig = $adConfig['config'];	
 		this.$notice = $adConfig['notice'];
 		this.$skipBtn = $adConfig['skipBtn'];
-		
-		// Load the Ads
+
+		// Load the Ads from uiConf
 		_this.loadAds( function(){
 			mw.log("KAds::All ads have been loaded");
 			callback();
 		});
+
+		// We can add this binding here, because we will always have vast in the uiConf when having cue points
+		// Catch Ads from adOpportunity event
+		$j( this.embedPlayer ).bind('KalturaSupport_adOpportunity', function( event, cuePoint ) {
+			_this.loadAd( cuePoint );
+		});
 	},
-	
+
+	// Load the ad from cue point
+	loadAd: function( cuePoint ) {
+		var _this = this;
+		if( cuePoint.cuePoint.sourceUrl ) {
+			mw.AdLoader.load( cuePoint.cuePoint.sourceUrl, function( adConf ){
+
+				var adCuePointConf = {
+					duration: ( (cuePoint.cuePoint.endTime - cuePoint.cuePoint.startTime) / 1000 ),
+					start: ( ( cuePoint.cuePoint.startTime / 1000 ) + 5 )
+				};
+
+				var adsCuePointConf = {
+					ads: [
+						$j.extend( adConf.ads[0], adCuePointConf )
+					],
+					skipBtn: {
+						'text' : "Skip ad",
+						'css' : {
+							'right': '5px',
+							'bottom' : '5px'
+						}
+					}
+				};
+
+				var adType = _this.getAdTypeFromCuePoint(cuePoint);
+
+				// Add the cue point to Ad Timeline
+				mw.addAdToPlayerTimeline( 
+					_this.embedPlayer,
+					adType,
+					adsCuePointConf
+				);
+
+				var originalSrc = _this.embedPlayer.getSrc();
+				var seekTime = ( parseFloat( cuePoint.cuePoint.startTime / 1000 ) / parseFloat( _this.embedPlayer.duration ) );
+				var oldDuration = _this.embedPlayer.duration;
+
+				// Set restore function
+				var restorePlayer = function() {
+					_this.embedPlayer.restoreEventPropagation();
+					_this.embedPlayer.enableSeekBar();
+				};
+
+				// Set switch back function
+				var doneCallback = function() {
+					var vid = _this.embedPlayer.getPlayerElement();
+					// Check if the src does not match original src if
+					// so switch back and restore original bindings
+					if ( originalSrc != vid.src ) {
+						_this.embedPlayer.switchPlaySrc(originalSrc, function() {
+							mw.log( "AdTimeline:: restored original src:" + vid.src);
+							// Restore embedPlayer native bindings
+							// async for iPhone issues
+							setTimeout(function(){
+								restorePlayer();
+							},100);
+
+							// Sometimes the duration of the video is zero after switching source
+							// So i'm re-setting it to it's old duration
+							_this.embedPlayer.duration = oldDuration;
+							// Seek to where we did the switch
+							_this.embedPlayer.doSeek( seekTime );
+						});
+					} else {
+						restorePlayer();
+					}
+				};
+
+				// If out ad is preroll/midroll/postroll, disable the player 
+				if( adType == 'preroll' || adType == 'midroll' || adType == 'postroll' ){
+					// Disable player
+					_this.embedPlayer.stopEventPropagation();
+					_this.embedPlayer.disableSeekBar();
+				} else {
+					// in case of overlay do nothing
+					doneCallback = function() {};
+				}
+
+				// Tell the player to show the Ad
+				_this.embedPlayer.adTimeline.display( adType, doneCallback, (cuePoint.cuePoint.duration / 1000) );
+			});
+		}
+	},
+
 	// Load all the ads per the $adConfig
 	loadAds: function( callback ){		
 		var _this = this;
@@ -53,11 +143,14 @@ mw.KAds.prototype = {
 			
 			// Merge in the companion targets and add to player timeline: 
 			for( var adType in adConfigSet ){
-				mw.addAdToPlayerTimeline(
-					_this.embedPlayer, 
-					adType,
-					$j.extend({}, baseDisplayConf, adConfigSet[ adType ] ) // merge in baseDisplayConf
-				);
+				// Add to timeline only if we have ads
+				if( adConfigSet[ adType ].ads ) {
+					mw.addAdToPlayerTimeline(
+						_this.embedPlayer,
+						adType,
+						$j.extend({}, baseDisplayConf, adConfigSet[ adType ] ) // merge in baseDisplayConf
+					);
+				}
 			};
 			// Run the callabck once all the ads have been loaded. 
 			callback();
@@ -98,7 +191,7 @@ mw.KAds.prototype = {
 	 */
 	getAdConfigSet: function( callback ){
 		var _this = this;
-		var namedAdTimelineTypes = [ 'preroll', 'postroll', 'postroll', 'overlay' ];
+		var namedAdTimelineTypes = [ 'preroll', 'postroll', 'midroll', 'overlay' ];
 		// Maps ui-conf ads to named types
 		var adAttributeMap = {
 				"Interval": 'frequency',
@@ -170,5 +263,29 @@ mw.KAds.prototype = {
 			'width' :  companionParts[1],
 			'height' :  companionParts[2]
 		};
+	},
+	// Get Ad Type from Cue Point
+	getAdTypeFromCuePoint: function( cuePoint ) {
+		//['preroll', 'bumper','overlay', 'midroll', 'postroll']
+		var type = null;
+		switch (cuePoint.context) {
+			case 'pre':
+				type = 'preroll';
+				break;
+			case 'post':
+				type = 'postroll';
+				break;
+			case 'mid':
+				// Midroll
+				if( cuePoint.cuePoint.adType == 1 ) {
+					type = 'midroll';
+				}
+				// Overlay
+				else if ( cuePoint.cuePoint.adType == 2 ) {
+					type = 'overlay';
+				}
+				break;
+		}
+		return type;
 	}
 };

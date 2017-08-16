@@ -19,7 +19,7 @@ mw.addKAnalytics = function( embedPlayer, kalturaClient ) {
 
 mw.KAnalytics.prototype = {
 
-	// The version of kAnalytics
+	// The version of html5 player
 	version : window['KALTURA_LOADER_VERSION'],
 	
 	// Local reference to embedPlayer
@@ -140,6 +140,7 @@ mw.KAnalytics.prototype = {
 			// if kentryid is not set, use the selected source url
 			eventSet[ 'entryId' ] = this.embedPlayer.getSrc();
 		}
+
 		// Set the 'event:uiconfId'
 		if( this.embedPlayer.kuiconfid ) {
 			eventSet[ 'uiconfId' ] = this.embedPlayer.kuiconfid;
@@ -151,8 +152,10 @@ mw.KAnalytics.prototype = {
 
 		// Send events for this player:
 		$j( this.embedPlayer ).trigger( 'Kaltura.SendAnalyticEvent', [ KalturaStatsEventKey ] );
-		
+
+		// Add in base service and action calls:
 		var eventRequest = {'service' : 'stats', 'action' : 'collect'};
+		// Add event parameters
 		for( var i in eventSet){
 			eventRequest[ 'event:' + i] = eventSet[i];
 		}
@@ -181,7 +184,7 @@ mw.KAnalytics.prototype = {
 		
 		// When the poster or video ( when autoplay ) media is loaded
 		b( 'KalturaSupport_MetaDataReady', 'MEDIA_LOADED' );
-
+		
 		// When the play button is pressed or called from javascript
 		b( 'firstPlay', 'PLAY' );
 	

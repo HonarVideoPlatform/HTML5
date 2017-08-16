@@ -1,0 +1,61 @@
+<html>
+<head>
+<title>Playlist Kaltura api</title>
+<script type="text/javascript" src="../../../tests/qunit/qunit-bootstrap.js"></script>
+<script type="text/javascript" src="../../../mwEmbedLoader.php"></script>    
+<script type="text/javascript">	
+//function jsCallbackReady ( videoId ){
+//}
+</script>
+<script type="text/javascript">
+function jsKalturaPlayerTest( videoId ){
+	// Name this module
+	module( "Playlist KalturaApi" );
+
+	var $iframe = $('#' + videoId + '_ifp').contents();
+	var kdp = $('#' + videoId ).get(0);
+	
+	asyncTest("Playlist layout elements present", function(){
+		kalturaQunitWaitForPlayer(function(){	
+			ok( $iframe.find('.play-btn-large').length, ".play-btn-large found" );
+			ok( $iframe.find('.play-btn').length, ".play-btn found" );
+			equal( $iframe.find('.playlistSetList').find('a').length, 2, 'found two playlists');
+			start();
+		});
+	});
+	asyncTest("Playlist switchEntry", function(){
+		window['kTestEntrySwitchReady'] = function(){
+			equal( kdp.evaluate( '{mediaProxy.entry.id}' ), "0_5diu7kzg", 'Switched entry to 0_5diu7kzg');			
+			start();
+		};
+		kdp.addJsListener( "entryReady", "kTestEntrySwitchReady" );
+		kdp.sendNotification( "changeMedia", { entryId : "0_5diu7kzg" } );				
+	});
+	
+}
+</script>
+<script type="text/javascript" src="resources/qunit-kaltura-bootstrap.js"></script>
+
+</head>
+<body>
+<h2> Playlist Kaltura api </h2>
+<a href="?forceMobileHTML5"> Force HTML5</a> for testing with desktop chrome and safari.
+<br />
+
+<p>Multiple Playlists</p>
+<object id="kaltura_player_1306453574" name="kaltura_player_1306453574" type="application/x-shockwave-flash" 
+allowFullScreen="true" allowNetworking="all" allowScriptAccess="always" height="330" width="740" 
+bgcolor="#000000" xmlns:dc="http://purl.org/dc/terms/" xmlns:media="http://search.yahoo.com/searchmonkey/media/" 
+rel="media:video" resource="http://www.kaltura.com/index.php/kwidget/cache_st/1306453574/wid/_243342/uiconf_id/4690912" 
+data="http://www.kaltura.com/index.php/kwidget/cache_st/130645357/wid/_243342/uiconf_id/4690912">
+<param name="allowFullScreen" value="true" /><param name="allowNetworking" value="all" />
+<param name="allowScriptAccess" value="always" /><param name="bgcolor" value="#000000" />
+<param name="flashVars" value="&" />
+<param name="movie" value="http://www.kaltura.com/index.php/kwidget/cache_st/1306453574/wid/_243342/uiconf_id/4690912" />
+<a href="http://corp.kaltura.com">video platform</a> <a href="http://corp.kaltura.com/video_platform/video_management">video management</a> 
+<a href="http://corp.kaltura.com/solutions/video_solution">video solutions</a>
+ <a href="http://corp.kaltura.com/video_platform/video_publishing">video player</a> 
+ </object>
+</body>
+
+</html>

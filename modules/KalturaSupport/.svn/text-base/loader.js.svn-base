@@ -6,8 +6,8 @@
  * TODO this loader is a little too large portions should be refactored into separate files
  *  this refactor can happen post resource loader
  */
-// Scope everything in "mw" ( keeps the global namespace clean ) 
 
+// Scope everything in "mw" ( keeps the global namespace clean ) 
 ( function( mw ) {
 
 	mw.setDefaultConfig( {
@@ -16,7 +16,7 @@
 		'Kaltura.ServiceBase' : '/api_v3/index.php?service=',
 		'Kaltura.CdnUrl' : 'http://cdn.kaltura.com',
 		// A video file for when no suitable flavor can be found
-		'Kaltura.MissingFlavorVideoUrls' : [
+		'Kaltura.MissingFlavorSources' : [
 		    { 
 		    	'src' : 'http://www.kaltura.com/p/243342/sp/24334200/playManifest/entryId/1_g18we0u3/flavorId/1_ktavj42z/format/url/protocol/http/a.mp4',
 		    	'type' : 'video/h264'
@@ -29,7 +29,22 @@
 		    	'src' : 'http://www.kaltura.com/p/243342/sp/24334200/playManifest/entryId/1_g18we0u3/flavorId/1_bqsosjph/format/url/protocol/http/a.webm',
 		    	'type' : 'video/webm'
 		    }
-		 ]
+		 ],
+		 
+		 'Kaltura.BlackVideoSources' : [
+		    {
+		        'src' : 'http://www.kaltura.com/p/243342/sp/24334200/playManifest/entryId/1_vp5cng42/flavorId/1_oiyfyphl/format/url/protocol/http/a.webm',
+		        'type' : 'video/webm'
+			},
+			{
+				'src' : 'http://www.kaltura.com/p/243342/sp/24334200/playManifest/entryId/1_vp5cng42/flavorId/1_6yqa4nmd/format/url/protocol/http/a.ogg',
+				'type' : 'video/ogg'
+			},
+			{
+				'src' : 'http://www.kaltura.com/p/243342/sp/24334200/playManifest/entryId/1_vp5cng42/flavorId/1_6wf0o9n7/format/url/protocol/http/a.mp4',
+				'type' : 'video/h264'
+			}
+		]
 	} );
 	
 	// Add the kentryid and kpartnerid and kuiconfid attribute to the embed player
@@ -47,6 +62,8 @@
 	
 	mw.addResourcePaths( {
 		"mw.KWidgetSupport" : "mw.KWidgetSupport.js",
+		"mw.KCuePoints" : "mw.KCuePoints.js",
+		"mw.KTimedText" : "mw.KTimedText.js",
 		"mw.KAnalytics" : "mw.KAnalytics.js",
 		"mw.PlaylistHandlerKaltura"	: "mw.PlaylistHandlerKaltura.js", 
 		"mw.PlaylistHandlerKalturaRss" : "mw.PlaylistHandlerKalturaRss.js",
@@ -56,8 +73,11 @@
 		"faderPlugin" : "uiConfComponents/faderPlugin.js",
 		"watermarkPlugin" :  "uiConfComponents/watermarkPlugin.js",
 		"adPlugin"	: 	"uiConfComponents/adPlugin.js",
+		"captionPlugin"	: 	"uiConfComponents/captionPlugin.js",
 		"controlbarLayout"	: 	"uiConfComponents/controlbarLayout.js",
-		"bumperPlugin"	: 	"uiConfComponents/bumperPlugin.js",		
+		"bumperPlugin"	: 	"uiConfComponents/bumperPlugin.js",
+		"omniturePlugin" : "uiConfComponents/omniturePlugin.js",
+		
 		"kdpClientIframe" : "kdpIframeApi/kdpClientIframe.js",
 		"kdpServerIFrame" : "kdpIframeApi/kdpServerIFrame.js"
 	} );
@@ -67,14 +87,18 @@
 		'MD5',
 		"mw.KApi",
 		'mw.KWidgetSupport',
+		'mw.KCuePoints',
 		'mw.KAnalytics',
 		'mw.KDPMapping',
-		'mw.KAds',	
+		'mw.KAds',
+		'mw.KTimedText',
 		'controlbarLayout',
 		'faderPlugin',
 		'watermarkPlugin',
 		'adPlugin',
-		'bumperPlugin'
+		'captionPlugin',
+		'bumperPlugin',
+		'omniturePlugin'
 	];
 	
 	mw.addModuleLoader( 'KalturaPlaylist', function() {
@@ -86,6 +110,7 @@
 	});
 	// Check if the document has kaltura objects ( for fall forward support ) 
 	$j( mw ).bind( 'LoadeRewritePlayerTags', function( event, rewriteDoneCallback ){
+
 		var kalturaObjectPlayerList = mw.getKalturaPlayerList();
 		mw.log( 'KalturaSupport found:: ' + kalturaObjectPlayerList.length + ' is mobile::' +  mw.isHTML5FallForwardNative() );
 		if( ! kalturaObjectPlayerList.length ) {
@@ -110,7 +135,7 @@
 				
 				$j.each( kalturaObjectPlayerList, function( inx, element ){
 					// don't rewrite special id
-					if( $j(element).attr('id') == 'kaltura_player_iframe_no_rewrite' ){
+					if( $j(element).attr('name') == 'kaltura_player_iframe_no_rewrite' ){
 						return true;;
 					}
 					// Clear the kalturaSwapObjectClass
@@ -141,14 +166,14 @@
 					mw.log( "Got kEmbedSettings.entryId: " + kEmbedSettings.entry_id + " uiConf: " + kEmbedSettings.uiconf_id);
 					var height = $j( element ).attr('height');
 					var width = $j( element ).attr('width');
-
+					
 					// Check that the id is unique per player embed instance ( else give it a vid_{inx} id: 
 					var videoId = $j( element ).attr('id');
 					$j('.mwEmbedKalturaVideoSwap,.mwEmbedKalturaPlaylistSwap').each(function( inx, swapElement){
 						if( $j( swapElement ).attr('id') ==  videoId ){
 							videoId = 'vid_' + inx;
 						}
-					});						
+					});
 					
 					var $imgThumb = '';
 					var elementCss = {};
@@ -156,8 +181,10 @@
 					var videoEmbedAttributes = {
 						'id' : videoId,
 						'kwidgetid' : kEmbedSettings.wid,
-						'kuiconfid' : kEmbedSettings.uiconf_id
+						'kuiconfid' : kEmbedSettings.uiconf_id,
+						'style' : $j( element ).attr('style')
 					};
+					
 					if( kEmbedSettings.entry_id ) {
 						loadEmbedPlayerFlag = true;
 						kalturaSwapObjectClass = 'mwEmbedKalturaVideoSwap';
@@ -187,30 +214,20 @@
 						// Assume playlist 
 						loadPlaylistFlag = true;
 						kalturaSwapObjectClass = 'mwEmbedKalturaPlaylistSwap';
-						
-						// Check if we can get the playlist id from a url in the embed code 
-						// ( some version of kaltura embed code work this way)
-						if( flashvars['playlistAPI.kpl0Url'] ){
-							videoEmbedAttributes['kplaylistid'] = mw.parseUri( flashvars['playlistAPI.kpl0Url'] ).queryKey['playlist_id'];
-							if( ! videoEmbedAttributes['kplaylistid'] ){
-								videoEmbedAttributes['kplaylistid'] = flashvars['playlistAPI.kpl0Url'];
-							}
-						}
 					}
+					
 					var widthType = ( width.indexOf('%') == -1 )? 'px' : '';
 					var heightType = ( height.indexOf('%') == -1 )? 'px' : '';
+					
 					// Replace with a mwEmbedKalturaVideoSwap
 					$j( element ).replaceWith( 
 						$j('<div />')
 						.attr( videoEmbedAttributes )
-						.css( {
+						.css({
 							'width' : width + widthType,
 							'height' : height + heightType,
-							'position': 'relative',
-							'display' : 'block',
-							'float' : 'left',
-							'padding' : '3px'
-						} )
+							'display' : 'inline-block' // more or less the <object> tag default display
+						})
 						.data( 'flashvars', flashvars )
 						.addClass( kalturaSwapObjectClass )
 						.append(
@@ -257,10 +274,10 @@
 								kParams[ iframeRequestMap[tagKey] ] = $j(playerTarget).attr( tagKey );
 							}
 						}
-						if( $j( playerTarget).data('flashvars') ){
+						if( $j( playerTarget).data( 'flashvars' ) ){
 							kParams['flashvars'] = $j( playerTarget).data('flashvars');
 						}
-						
+
 						// XXX UGLY TEMPORARY HACK ( don't use iframe for playlist ) 
 						iframeRewriteCount++;
 						$j( playerTarget )
@@ -329,7 +346,7 @@
 	} );
 	
 	$j( mw ).bind("Playlist_GetSourceHandler", function( event, playlist){
-		var $playlistTarget = $j( playlist.target );
+		var $playlistTarget = $j( '#' + playlist.id );
 		// Check if we are dealing with a kaltura player: 
 		// XXX should move these properties over to data- or .data attributes 
 		if( !$playlistTarget.attr('kwidgetid') ){
@@ -339,14 +356,29 @@
 		var playlistConfig = {
 			'uiconf_id' : $playlistTarget.attr('kuiconfid'),
 			'widget_id' : $playlistTarget.attr('kwidgetid'),
-			'playlist_id': $playlistTarget.attr('kplaylistid')							
+			'flashvars' : $playlistTarget.data('flashvars')
 		};		
-		// Check if we have a mediaRss url as the playlistId
-		if( mw.isUrl( playlistConfig.playlist_id ) ) {
-			playlist.sourceHandler = new mw.PlaylistHandlerKalturaRss( playlist, playlistConfig );
-		} else {
+		var kplUrl0 = playlistConfig.flashvars['playlistAPI.kpl0Url'];
+
+		// if loading from ui-conf ( no kplUrl ) or kplUrl is from kaltura.com and a playlist_id
+		if( !kplUrl0 ){
 			playlist.sourceHandler = new mw.PlaylistHandlerKaltura( playlist, playlistConfig );
+			return ;
+		} 
+		var plId =  mw.parseUri( kplUrl0 ).queryKey['playlist_id'];
+		if( plId && mw.parseUri( kplUrl0 ).host.replace('www.', '') == 'kaltura.com'  ){
+			playlistConfig.playlist_id = plId;
+			playlist.sourceHandler = new mw.PlaylistHandlerKaltura( playlist, playlistConfig );
+			return ;
 		}
+		// must be a media rss url:
+		if( mw.isUrl( kplUrl0 ) ){
+			playlist.src = kplUrl0;
+			//playlist.sourceHandler = new mw.PlaylistHandlerKalturaRss( playlist, playlistConfig );
+			playlist.sourceHandler = new mw.PlaylistHandlerKaltura( playlist, playlistConfig );
+			return ;
+		}
+		mw.log("Error playlist source not found");
 	});
 	
 	/**
@@ -357,8 +389,8 @@
 	 * 	optional function called once iframe player has been loaded
 	 */
 	jQuery.fn.kalturaIframePlayer = function( iframeParams, callback ) {
-		mw.log( '$j.kalturaIframePlayer::' + $j(this).attr('id') );
 		$j( this ).each( function( inx, playerTarget ){
+			mw.log( '$j.kalturaIframePlayer::' + $j( playerTarget ).attr('id') );
 			// Establish the "server" domain via mwEmbed path: 
 			var mwPathUri = mw.parseUri( mw.getMwEmbedPath() );
 			
@@ -374,23 +406,26 @@
 					iframeRequest+= '/' + key + 
 						'/' + encodeURIComponent( iframeParams [ key ] );
 				}
-				var argSeperator ='/?';
-				
-				// @@todo should move these url flags into config options
+				// Add the player id: 
+				iframeRequest+= '/?playerId=' + $j( playerTarget ).attr('id');
 				
 				// Add debug flag if set: 
 				if( mw.getConfig( 'debug' ) ){
-					iframeRequest+= argSeperator + 'debug=true';
-					argSeperator ='&';
+					iframeRequest+= '&debug=true';
 				}
 				// Add the flashvars to the request:
 				if( iframeParams['flashvars'] ){
-					iframeRequest += argSeperator + $j.param( {'flashvars': iframeParams['flashvars'] } );
+					$j.each( iframeParams['flashvars'], function( key, value){
+						iframeRequest += '&' + encodeURIComponent( 'flashvars[' + key + ']' ) + 
+								'=' + encodeURIComponent( value );
+					});
 				}
+				// Also append the script version to purge the cdn cache for iframe: 
+				iframeRequest += '&urid=' + KALTURA_LOADER_VERSION;
 
 				var iframeId = $j( playerTarget ).attr('id');				
 				iframeRequest+= mw.getIframeHash( iframeId);
-
+				
 				var $iframe = $j('<iframe />')
 				.attr({
 					'id' : iframeId,
@@ -399,12 +434,10 @@
 					'height' : $j( playerTarget ).height(),
 					'width' : $j( playerTarget ).width()
 				})
+				.attr( 'style', $j( playerTarget ).attr('style') ) 
 				.css({
-					'border': '0px',
-					'width' : $j( playerTarget ).width() + 'px',
-					'height' : $j( playerTarget ).height() + 'px'
+					'border': '0px'
 				});
-				
 				// Replace the player with the iframe: 
 				$j( playerTarget ).replaceWith( $iframe );
 				
@@ -446,8 +479,6 @@
 			return false;
 		};
 		
-		
-		// alert('object list: ' + objectList.length );
 		for( var i =0; i < objectList.length; i++){
 			var swfUrl = '';
 			var flashvars = '';
@@ -486,10 +517,12 @@
 			entry.width = 400;
 		if( entry.height == '100%')
 			entry.height = 300;
+
+		var ks = ( entry.ks ) ? '?ks=' + entry.ks : '';
 		
 		return kCdn + '/p/' + entry.partner_id + '/sp/' +
 			entry.partner_id + '00/thumbnail/entry_id/' + entry.entry_id + '/width/' +
-			parseInt(entry.width) + '/height/' + parseInt(entry.height);
+			parseInt(entry.width) + '/height/' + parseInt(entry.height) + ks;
 	};
 	
 	/**

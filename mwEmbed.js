@@ -19,6 +19,9 @@
 if ( typeof window.mw == 'undefined' ) {
 	window.mw = { };
 }
+// set up mediaWiki pointer ( to help transition to new resource loader ) 
+window.mediaWiki =  window.mw;
+
 /**
  * Set the mwEmbedVersion
  */
@@ -164,7 +167,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 			nonDefaultConfig[ configKey ] = mw.getConfig( configKey );
 		}
 		return nonDefaultConfig;
-	}
+	};
 
 	/**
 	 * Loads the mwUserConfig from a cookie.
@@ -1186,7 +1189,10 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		return $j( '#mwTempLoaderDialog' );
 	};
 	mw.isMobileDevice = function(){
-		return ( mw.isIphone() || mw.isIpod() || mw.isIpad() || mw.isAndroid2() );
+		return ( mw.isIOS()|| mw.isAndroid2() );
+	},
+	mw.isIOS = function(){
+		return ( mw.isIphone() || mw.isIpod() || mw.isIpad() );
 	},
 	mw.isIphone = function(){
 		return ( navigator.userAgent.indexOf('iPhone') != -1 && ! mw.isIpad() );
@@ -1220,7 +1226,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 			return true;
 		}
 		// Check for url flag to force html5:
-		if( document.URL.indexOf('forceMobileHTML5') != -1 ){
+		if( mw.getConfig( 'forceMobileHTML5' ) ){
 			return true;
 		}
 		// Fall forward native:
@@ -1235,7 +1241,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		}
 		
 		return false;
-	}
+	};
 	
 	mw.isMobileHTML5 = function(){
 		// Check for a mobile html5 user agent:
@@ -1247,7 +1253,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 			return true;
 		}
 		return false;
-	}
+	};
 	mw.supportsHTML5 = function(){
 		// Blackberry is evil in its response to canPlayType calls.
 		if( navigator.userAgent.indexOf('BlackBerry') != -1 ){
@@ -1258,7 +1264,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 			return true;
 		}
 		return false;	
-	}
+	};
 	
 	mw.supportsFlash = function(){
 		// Check if the client does not have flash and has the video tag
@@ -1355,31 +1361,61 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	};
 
 	/**
-	 * Check if an object is empty or if its an empty string.
-	 * 
-	 * @param {Object}
-	 *            object Object to be checked
-	 */
-	mw.isEmpty = function( object ) {
-		if( typeof object == 'string' ) {
-			if( object == '' ) return true;
-			// Non empty string:
+	* Check if an object is empty or if its an empty string. 
+	*
+	* @param {Object} object Object to be checked
+	* @return {Boolean}
+	*/
+	mw.isEmpty = function( obj ) {
+		if( typeof obj === 'string' ) {
+			if( obj === '' ) return true;
+			// Non empty string: 
 			return false;
 		}
 
 		// If an array check length:
-		if( Object.prototype.toString.call( object ) === "[object Array]"
-			&& object.length == 0 ) {
+		if( Object.prototype.toString.call( obj ) === "[object Array]"
+			&& obj.length === 0 ) {
 			return true;
 		}
 
-		// Else check as an object:
-		for( var i in object ) { return false; }
+		// Else check as an obj: 
+		for( var i in obj ) { return false; }
 
-		// Else object is empty:
+		// Else obj is empty:
 		return true;
 	};
 
+	/**
+	* Opposite of mw.isEmpty
+	*
+	* @param {Object} object Object to be checked
+	* @return {Boolean}
+	*/
+	mw.isFull = function( obj ) {
+		return ! mw.isEmpty( obj );
+	};
+
+	/**
+	 * Check if something is defined
+	 * (inlineable?)
+	 * @param {Object}
+	 * @return boolean
+	 */
+	mw.isDefined = function( obj ) {
+		return typeof obj !== 'undefined'; 
+	};
+
+
+	/**
+	 * Upper-case the first letter of a string.
+	 * @param string
+	 * @return string with first letter uppercased.
+	 */
+	mw.ucfirst = function( s ) {
+		return s.substring(0,1).toUpperCase() + s.substr(1);
+	};
+	
 	/**
 	 * Log a string msg to the console
 	 * 
@@ -1453,11 +1489,11 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	            curr = curr.caller;
 	        }
 	        return stack;
-		}
+		};
 		// Add stack size ( iPad has 100 stack size limit )
 		var stack = getStack( arguments.callee );
 		return stack;
-	}
+	};
 	
 	// Setup the local mwOnLoadFunctions array:
 	var mwOnLoadFunctions = [];
@@ -1925,7 +1961,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 * @param {String}
 	 *            url Source url to be updated
 	 * @param {Object}
-	 *            newParams key, value paris to swap in
+	 *            newParams key, value pairs to swap in
 	 * @return {String} the updated url
 	 */
 	mw.replaceUrlParams = function( url, newParams ) {
@@ -2101,7 +2137,7 @@ mw.absoluteUrl = function( src, contextUrl ) {
 	 */
 	// Flag to ensure setup is only run once:
 	var mwSetupFlag = false;
-	mw.setupMwEmbed = function ( ) {		
+	mw.setupMwEmbed = function ( ) {	
 		// Only run the setup once:
 		if( mwSetupFlag ) {
 			return ;
@@ -2114,7 +2150,7 @@ mw.absoluteUrl = function( src, contextUrl ) {
 		mw.checkCoreLoaderFile( function(){
 			// Make sure we have jQuery
 			mw.load( 'window.jQuery', function() {
-				
+			
 				// Add jQuery to $j var.
 				if ( ! window[ '$j' ] ) {
 					window[ '$j' ] = jQuery.noConflict();
@@ -2157,7 +2193,6 @@ mw.absoluteUrl = function( src, contextUrl ) {
 						if( mw.hasJQueryUiCss() ){
 							mw.style[ 'ui_' + mw.getConfig( 'jQueryUISkin' ) ] = true;
 						}
-						
 						// load any  Mw.CustomResourceIncludes
 						mw.loadCustomResourceIncludes( mw.getConfig('Mw.CustomResourceIncludes'), function(){
 							// Make sure style sheets are loaded:
@@ -2186,7 +2221,7 @@ mw.absoluteUrl = function( src, contextUrl ) {
 	};
 	mw.loadCustomResourceIncludes = function( loadSet, callback ){
 		// XXX this needs to be cleaned up ( for now dont include custom resources if not an iframe player )
-		if( !mw.getConfig('EmbedPlayer.IsIframePlayer' ) ){
+		if( !mw.getConfig('EmbedPlayer.IsIframeServer' ) ){
 			callback();
 			return ;
 		}
@@ -2194,6 +2229,7 @@ mw.absoluteUrl = function( src, contextUrl ) {
 			callback();
 			return ;
 		}
+
 		// pop up a loadSet item and re call loadCustomResourceIncludes
 		var resource = loadSet.shift();
 		mw.getScript( resource['src'], function(){
@@ -2442,7 +2478,25 @@ mw.absoluteUrl = function( src, contextUrl ) {
 			mw.setupMwEmbed();
 		}
 	};
-
+	/**
+	* Check if the url is a request for the local domain
+	*  relative paths are "local" domain
+	* @param {String} url Url for local domain
+	* @return {Boolean}
+	*	true if url domain is local or relative
+	* 	false if the domain is
+	*/
+	mw.isLocalDomain = function( url ) {
+		if( ! url )
+			return false;
+		if( mw.parseUri( document.URL ).host == mw.parseUri( url ).host
+			|| url.indexOf( '://' ) == -1 )
+		{
+			return true;
+		}
+		return false;
+	};
+	
 	/**
 	 * A version comparison utility function Handles version of types
 	 * {Major}.{MinorN}.{Patch}
@@ -2657,6 +2711,7 @@ if( window.jQuery ){
 		var triggerEventSet = $( targetObject ).data( 'events' ) ?
 					$( targetObject ).data( 'events' )[ triggerBaseName ] :
 					$( targetObject).get(0)['__events__'][ 'events' ][ triggerBaseName ];
+					
 		if( ! triggerNamespace ){
 			callbackSet = triggerEventSet;
 		} else{		

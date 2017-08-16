@@ -1,4 +1,4 @@
-<?php 
+<?php
 // Special mwEmbedLoader.js entry point with php based configuration
 // ( will be deprecated  once we move to new resource loader ) 
 
@@ -24,7 +24,8 @@ $exportedJsConfig= array(
 	'EmbedPlayer.EnableIframeApi'  => $wgEnableIframeApi,
 	'EmbedPlayer.EnableIpadHTMLControls' => $wgEnableIpadHTMLControls,
 	'EmbedPlayer.UseFlashOnAndroid' => true,
-	'Kaltura.LoadScriptForVideoTags' => true
+	'Kaltura.LoadScriptForVideoTags' => true,
+	'Kaltura.AllowRemoteService' => $wgAllowRemoteKalturaService
 );
 // Append Custom config: 
 foreach( $exportedJsConfig as $key => $val ){

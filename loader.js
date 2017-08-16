@@ -42,8 +42,11 @@ mw.setDefaultConfig ( {
 		'protect', 'block', 'unblock', 'move', 'edit', 'upload', 'emailuser',
 		'import', 'userrights' ],
 
-	//If we are in debug mode ( results in fresh debug javascript includes )
+	// If we are in debug mode ( results in fresh debug javascript includes )
 	'debug' : false,
+	
+	// If mobile html5 should be forced
+	'forceMobileHTML5' : false,
 
 	// Default request timeout ( for cases where we include js and normal browser timeout can't be used )
 	// stored in seconds
@@ -120,6 +123,8 @@ mw.addResourcePaths( {
 	"mw.style.ui_kdark" : "skins/jquery.ui.themes/kaltura-dark/jquery-ui-1.7.2.css",
 
 	"mw.style.mwCommon"		: "skins/common/mw.style.mwCommon.css",
+	
+	"mw.Uri" 				: "libraries/mediawiki/mediawiki.Uri.js",
 
 	"$j.cookie"				: "libraries/jquery/plugins/jquery.cookie.js",
 

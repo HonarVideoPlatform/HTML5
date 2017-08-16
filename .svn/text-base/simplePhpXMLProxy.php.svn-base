@@ -149,8 +149,8 @@ $enable_native   = false;
 $valid_url_regex = '/.*/';
 
 $enable_fullHeaders = true;
-$contentType_regex = '/(text|application)\/xml/';
-$validateXML = true;
+$contentType_regex = '/(text|application)\/(xml|x-srt|plain)/';
+$validateXML = false;
 $encodeCDATASections = true;
 $proxyCookies = true;
 $proxySession = true;
@@ -158,7 +158,6 @@ $proxySession = true;
 // ############################################################################
 
 $url = urldecode( $_GET['url'] );
-
 if ( !$url ) {
   
   // Passed url not specified.
@@ -208,6 +207,7 @@ if ( !$url ) {
   $parts = preg_split( '/([\r\n][\r\n])\\1/', curl_exec( $ch ), 2 );
   if( count($parts) != 2 ){
 	$status = array( 'http_code' => 'ERROR' );
+	$header ='';
   } else {
   	list( $header, $contents ) = $parts;
   }
@@ -259,7 +259,7 @@ if ( isset( $_GET['mode'] ) == 'native' ) {
   	  	if( strtolower( $headKey) == 'content-type' ){
   	  		$contentType =  $headValue;
   	  	}
-  	  }  	 	
+  	  } 
 	  if( 0 == preg_match( $contentType_regex, $contentType ) ){
 	  	$status = array( 'http_code' => 'ERROR');
 	  	$contents = "Error invalid content type did not match: " . str_replace( '/', '' , $contentType_regex);  	
@@ -309,10 +309,13 @@ if ( isset( $_GET['mode'] ) == 'native' ) {
   
   // Get JSONP callback.
   $jsonp_callback = $enable_jsonp && isset($_GET['callback']) ? $_GET['callback'] : null;
-  
+
+  // Be sure to utf8_encode contents so no remote content break JSON encoding 
+  $data["contents"] = utf8_encode( $data["contents"] );
+
   // Generate JSON/JSONP string
   $json = json_encode( $data );
-  
+
   print $jsonp_callback ? "$jsonp_callback($json)" : $json;
   
 }

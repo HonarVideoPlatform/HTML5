@@ -10,6 +10,24 @@ mw.AdLoader = {
 	 */
 	load: function( adUrl, callback ){
 		var _this = this;
+		// First try to directly load the ad url:
+		try{
+		$.ajax({
+			url: adUrl,
+			success: function( data ) {
+				_this.handleResult( data, callback );
+			},
+			error: function( jqXHR, textStatus, errorThrown ){
+				// try to load the file with the proxy:
+				_this.loadFromProxy( adUrl, callback );
+			}
+		});
+		} catch ( e ){
+			mw.log( "AdLodaer:: first cross domain request failed, trying with proxy");
+		}
+	},
+	loadFromProxy: function( adUrl, callback ){
+		var _this = this;
 		// We use a xml proxy ( passing on the clients ip for geo lookup ) 
 		// since the ad server is almost never on the same domain as the api.
 		// @@todo also we should explore html5 based cross domain request to avoid the proxy
@@ -25,22 +43,33 @@ mw.AdLoader = {
 				callback(false);
 				return ;
 			}
-			
-			switch( _this.getAdFormat( result['contents'] ) ){
-				case 'vast':
-					// If we have lots of ad formats we could conditionally load them here: 
-					// ( normally we load VastAdParser before we get here but just in-case ) 
-					mw.load( 'mw.VastAdParser', function(){
-						callback(
-							mw.VastAdParser.parse( result['contents'] )
-						);
-					});
-					return ;
-				break;
-			}					
-			mw.log("Error: could not parse adFormat from add content: \n" + result['contents']);
-			callback( {} );
+			try{
+				var resultXML = $j.parseXML( result['contents'] );
+			} catch (e){
+				mw.log("Error: AdLoader could not parse:" + resultXML);
+				callback({});
+				return ;
+			}
+			// get the xml document:
+			_this.handleResult( resultXML, callback );
 		});
+	},
+	handleResult: function(data, callback ){
+		var _this = this;
+		switch( _this.getAdFormat( data) ){
+			case 'vast':
+				// If we have lots of ad formats we could conditionally load them here: 
+				// ( normally we load VastAdParser before we get here but just in-case ) 
+				mw.load( 'mw.VastAdParser', function(){
+					callback(
+						mw.VastAdParser.parse( data )
+					);
+				});
+				return ;
+			break;
+		}					
+		mw.log("Error: could not parse adFormat from add content: \n" + data);
+		callback( {} );
 	},
 	/**
 	 * Get ad Format
@@ -50,21 +79,16 @@ mw.AdLoader = {
 	 * @type {string}
 	 * 		The type of string
 	 */
-	getAdFormat: function( xmlString ){
-		var lowerCaseXml = xmlString.toLowerCase();
-		
-		// Check xml  for "<vast> </vast> tag
-		if( lowerCaseXml.indexOf('<vast') != -1 &&
-			lowerCaseXml.indexOf('</vast>')	)
-		{
+	getAdFormat: function( xmlObject ){
+		if( xmlObject.childNodes ){
+			var rootNodeName = xmlObject.childNodes[0].nodeName;
+		}
+		if( rootNodeName && ( 
+				rootNodeName.toLowerCase() == 'vast' || 
+				rootNodeName.toLowerCase() == 'videoadservingtemplate' ) 
+		){
 			return 'vast';
 		}
-		// OpenX vast ads have a root element of videoAdServingTemplate
-		if( lowerCaseXml.indexOf('<videoadservingtemplate') != -1 &&
-			lowerCaseXml.indexOf('</videoadservingtemplate>')	)
-		{
-			return 'vast';
-		}	
 		return 'unknown';
 	}
 };

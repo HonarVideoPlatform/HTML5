@@ -72,11 +72,11 @@ mw.IFramePlayerApiServer.prototype = {
 					proxyHandShakeComplete = true;
 					callback();
 				};
-				// only wait 250ms for the handshake to come through otherwise continue: 
+				// Only wait 250ms for the handshake to come through otherwise continue: 
 				setTimeout(function(){
 					if( !proxyHandShakeComplete)
 						callback();
-				},250);
+				}, 250);
 				// Trigger the proxyReady event ( will add all the prePlayerProxy listeners 
 				$j( embedPlayer ).trigger( 'proxyReady' );
 			});
@@ -120,7 +120,7 @@ mw.IFramePlayerApiServer.prototype = {
 		$j.each( this.exportedBindings, function( inx, bindName ){
 			$j( _this.embedPlayer ).bind( bindName, function( event ){				
 				var argSet = $j.makeArray( arguments );
-				// remove the event from the arg set
+				// Remove the event from the arg set
 				argSet.shift();
 				// protect against a jQuery event getting past as an arguments:
 				if( argSet[0] && argSet[0].originalEvent ){
@@ -128,20 +128,17 @@ mw.IFramePlayerApiServer.prototype = {
 				}
 				//mw.log("IFramePlayerApiServer::postMessage:: " + bindName + ' arg count:' + argSet.length );
 				_this.postMessage({
+					// always send the player attributes with any trigger to sync up player state for events. 
+					'attributes' : _this.getPlayerAttributes(),
 					'triggerName' : bindName,
 					'triggerArgs' : argSet
 				});
 			});
 		});
 	},
-	
-	/**
-	 * Send all the player attributes to the host
-	 */
-	'sendPlayerAttributes': function(){
-		var _this = this;
-		
+	'getPlayerAttributes' : function(){
 		var playerAttributes = mw.getConfig( 'EmbedPlayer.Attributes' );
+
 		var attrSet = { };
 		for( var i in playerAttributes ){
 			if( i != 'id' ){
@@ -150,9 +147,15 @@ mw.IFramePlayerApiServer.prototype = {
 				}
 			}
 		}
+		return attrSet;
+	},
+	/**
+	 * Send all the player attributes to the host
+	 */
+	'sendPlayerAttributes': function(){
 		//mw.log( "IframePlayerApiServer:: sendPlayerAttributes: " + JSON.stringify( attrSet ) );
-		_this.postMessage( {			
-			'attributes' : attrSet 
+		this.postMessage( {			
+			'attributes' : this.getPlayerAttributes() 
 		} );
 	},
 	
@@ -181,6 +184,7 @@ mw.IFramePlayerApiServer.prototype = {
 	 * @param {string} event
 	 */
 	'hanldeMsg': function( event ){
+		
 		//mw.log( 'IFramePlayerApiServer:: hanldeMsg: ' +  event.data );
 		// Check if the server should even be enabled 
 		if( !mw.getConfig( 'EmbedPlayer.EnableIframeApi' )){
@@ -194,7 +198,6 @@ mw.IFramePlayerApiServer.prototype = {
 		}		
 		// Decode the message 
 		var msgObject = JSON.parse( event.data );
-
 		// Call a method:
 		if( msgObject.method && this.embedPlayer[ msgObject.method ] ){
 			this.embedPlayer[ msgObject.method ].apply( this.embedPlayer, $j.makeArray( msgObject.args ) );			

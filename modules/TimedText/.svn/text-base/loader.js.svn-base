@@ -2,10 +2,12 @@
 * TimedText loader.
 */
 // Scope everything in "mw" ( keeps the global namespace clean )
-( function( mw ) {
+( function( mw, $ ) {
 
 	mw.addResourcePaths( {
 		"mw.TimedText" : "mw.TimedText.js",
+		"mw.TextSource" : "mw.TextSource.js",
+		
 		"mw.style.TimedText" : "css/mw.style.TimedText.css",
 
 		"mw.TimedTextEdit" : "mw.TimedTextEdit.js",
@@ -15,32 +17,31 @@
 	} );
 	
 	// Merge in timed text related attributes: TODO add merge config support with some way to 
-	// clasify configuration as "default" vs custom. 
+	// classify configuration as "default" vs custom. 
 	var sourceAttr = mw.getConfig( 'EmbedPlayer.SourceAttributes');
-	mw.setConfig( 'EmbedPlayer.SourceAttributes', $j.extend( sourceAttr, [
+	mw.mergeConfig( 'EmbedPlayer.SourceAttributes', [
 	   'srclang',
 	   'category'
-	]) );
+	] );
 	
 	mw.setDefaultConfig( {
 		// If the Timed Text interface should be displayed:
 		// 'always' Displays link and call to contribute always
 		// 'auto' Looks for child timed text elements or "apiTitleKey" & load interface
 		// 'off' Does not display the timed text interface
-		"TimedText.showInterface" : "auto",
+		"TimedText.ShowInterface" : "auto",
 
-		/**
-		* If the "add timed text" link / interface should be exposed
-		*/
-		'TimedText.showAddTextLink' : true,
+		// If the "add timed text" link / interface should be exposed
+		'TimedText.ShowAddTextLink' : true,
 
 		// The category for listing videos that need transcription:
 		'TimedText.NeedsTranscriptCategory' : 'Videos needing subtitles'
-	});
+	} );
 
 	var mwTimedTextRequestSet = [
 		'$j.fn.menu',
 		'mw.TimedText',
+		'mw.TextSource',
 		'mw.style.TimedText',
 		'mw.style.jquerymenu'
 	];
@@ -58,18 +59,16 @@
 
 	// Update the player loader request with timedText library if the embedPlayer
 	// includes timedText tracks.
-	$j( mw ).bind( 'LoaderEmbedPlayerUpdateRequest', function( event, playerElement, classRequest ) {
-		if( mw.isTimedTextSupported( playerElement ) ) {
+	$( mw ).bind( 'LoaderEmbedPlayerUpdateRequest', function( event, playerElement, classRequest ) {
+		if( mw.checkForTimedText( playerElement ) ) {
 			classRequest = $j.merge( classRequest, mwTimedTextRequestSet );
 		}
 	} );
 	
 	// On new embed player check if we need to add timedText
-	$j( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
-		if( mw.isTimedTextSupported( embedPlayer) ){
-			if( ! embedPlayer.timedText && mw.TimedText ) {
-				embedPlayer.timedText = new mw.TimedText( embedPlayer );
-			}
+	$( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
+		if( mw.checkForTimedText( embedPlayer ) ){
+			embedPlayer.timedText = new mw.TimedText( embedPlayer );
 		}
 	});
 	
@@ -78,26 +77,22 @@
 	 *
 	 * Note we check for text sources outside of
 	 */
-	mw.isTimedTextSupported = function( embedPlayer ) {
-		if( mw.getConfig( 'TimedText.showInterface' ) == 'always' ) {
+	mw.checkForTimedText = function( playerElement ) {
+		if( mw.getConfig( 'TimedText.ShowInterface' ) == 'always' ) {
 			return true;
 		}
-		// Check for timed text sources or api/ roe url
-		if ( 
-			(
-				$j( embedPlayer ).attr('apititlekey')
-				||  
-				$j( embedPlayer ).attr('apiTitleKey' )
-			)
-			|| 
-			( embedPlayer.mediaElement && embedPlayer.mediaElement.textSourceExists() )	
-			||
-			$j( embedPlayer ).find( 'track' ).length != 0
-		) {
-			return true;
-		} else {
+		if ( !playerElement ){
 			return false;
 		}
+		if( $( playerElement ).find('track').length ){
+			return true;
+		}
+		// check if we are handling an embedPlayer with hasTextTracks method
+		if( playerElement.hasTextTracks ){
+			return playerElement.hasTextTracks();
+		}
+		
+		return false;
 	};
 	
 	// TimedText editor:
@@ -122,4 +117,4 @@
 		]
 	]);
 
-} )( window.mw );
+} )( window.mw, window.jQuery );
