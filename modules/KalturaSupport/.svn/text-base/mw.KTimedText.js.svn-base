@@ -73,7 +73,9 @@
 			
 			// Support SetKDP attribute style caption updates
 			$( embedPlayer ).bind( 'Kaltura_SetKDPAttribute' + this.bindPostfix, function( event, componentName, property, value ){
-				if( componentName == 'closedCaptions' ){
+				if( componentName == 'closedCaptions' || 
+					componentName == 'closedCaptionsOverPlayer' ||
+					componentName == 'closedCaptionsFlexible' ){
 					_this.kVars[ property ] = value;
 					if( property == 'ccUrl' ){
 						// empty the text sources:
@@ -106,6 +108,7 @@
 		
 			// Check for kaltura ccUrl style text tracks ( not eagle api )
 			if( this.kVars.ccUrl ){
+				mw.log( 'KTimedText:: loadTextSources> add textSources from ccUrl:' + this.kVars.ccUrl );
 				// Set up a single source from the custom vars:
 				$.each( _this.getTextSourceFromVars( _this.kVars ), function(inx, textSource ){
 					_this.textSources.push( textSource);
@@ -117,6 +120,7 @@
 				_this.ksCache = ks;
 				_this.getTextSourcesFromApi( function( dbTextSources ){
 					$.each( dbTextSources, function( inx, dbTextSource ){
+						mw.log( 'KTimedText:: loadTextSources> add textSources from db:' + inx, _this.getTextSourceFromDB( dbTextSource ) );
 						_this.textSources.push(
 							_this.getTextSourceFromDB( dbTextSource )
 						);
@@ -124,6 +128,7 @@
 					});
 					$( _this.embedPlayer ).trigger('KalturaSupport_CCDataLoaded');
 					// Done adding source issue callback
+					mw.log( 'KTimedText:: loadTextSources> total source count: ' + _this.textSources.length );
 					callback();
 				});
 			});
@@ -140,7 +145,7 @@
 				'filter:entryIdEqual' : _this.embedPlayer.kentryid,
 				'filter:statusEqual' : 2
 			}, function( data ) {
-				mw.log( "KTimedText:: sources loaded: " + data.totalCount, data.objects);
+				mw.log( "KTimedText:: getTextSourcesFromApi: " + data.totalCount, data.objects);
 				// TODO is this needed does the api not return an empty set?
 				if( data.totalCount > 0 ) {
 					callback( data.objects );

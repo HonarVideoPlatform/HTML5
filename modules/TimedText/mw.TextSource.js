@@ -53,6 +53,8 @@
 		 */
 		load: function( callback ) {
 			var _this = this;
+			mw.log("TextSource:: load src "+ _this.getSrc() );
+			
 			// Setup up a callback ( in case it was not defined )
 			if( !callback ){
 				callback = function(){ return ; };
@@ -161,6 +163,8 @@
 					return this.getCaptionsFromTMML( data );
 					break;
 			}
+			// caption mime not found return empty set: 
+			return [];
 		},
 		
 		getStyleCssById: function( styleId ){
@@ -227,7 +231,7 @@
 				$( p.childNodes ).each(function(inx,node){
 				   if( node.nodeName != '#text' && node.nodeName != 'metadata' ){
 					   // Add any html tags:
-					   content +='<' + node.nodeName + '/>';
+					   content +='<' + node.nodeName + '>' + node.textContent + '</' + node.nodeName + '>' ;
 				    } else {
 				    	content += node.textContent;
 				    }

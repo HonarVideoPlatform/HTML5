@@ -174,8 +174,9 @@ mw.AdTimeline.prototype = {
 									// Restore the player if we played an ad: 
 									_this.restorePlayer();
 									
-									embedPlayer.triggerHelper( 'onplay' );
 								}
+								// Trigger onplay ( even if there were no ads )
+								embedPlayer.triggerHelper( 'onplay' );
 								// Continue playback
 								embedPlayer.play();
 							},0);
@@ -217,7 +218,15 @@ mw.AdTimeline.prototype = {
 					/** TODO support postroll bumper and leave behind */
 					if( playedAnAdFlag ){
 						embedPlayer.switchPlaySrc( _this.originalSrc, function( video ){
-								video.pause(); // make sure we pause the video
+								// make sure we pause the video
+								video.pause();
+								/* iPad iOS v4.3.1 ignore video pause (probably timing issue) */
+								$( video ).bind('play.postSequenceComplete', function(){
+									video.pause();
+									$( video ).unbind( '.postSequenceComplete' );
+								});
+
+								// Restore interface
 								_this.restorePlayer();
 								// Restore ondone interface: 
 								embedPlayer.onDoneInterfaceFlag = true;

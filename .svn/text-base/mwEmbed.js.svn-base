@@ -23,9 +23,9 @@ if ( typeof window.mw == 'undefined' ) {
 window.mediaWiki =  window.mw;
 
 /**
- * Set the mwEmbedVersion
+ * Set the mwEmbedVersion ( set by default settings can be removed once we use the new RL ) 
  */
-var MW_EMBED_VERSION = '1.5';
+var MW_EMBED_VERSION = '1.6';
 
 // Globals to pre-set ready functions in dynamic loading of mwEmbed
 if( typeof window.preMwEmbedReady == 'undefined'){
@@ -167,7 +167,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	mw.getConfig = function ( name ) {
 		if( ! name )
 			return mwConfig;
-		if( mwConfig[ name ] ){
+		if( typeof mwConfig[ name ] != 'undefined' ){
 			return mwConfig[ name ];
 		}
 		return null;
@@ -2536,7 +2536,10 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 */
 	mw.domReady = function ( forceSetup ) {
 		mw.log('mw.domReady:' );
-		mw.setupMwEmbed();
+		// Don't run the setup inline to avoid domready event before the rest of the script has run
+		setTimeout(function(){
+			mw.setupMwEmbed();
+		}, 0 );
 	};
 	/**
 	* Check if the url is a request for the local domain
