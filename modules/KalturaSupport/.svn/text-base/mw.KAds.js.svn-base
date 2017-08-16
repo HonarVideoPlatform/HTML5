@@ -30,15 +30,16 @@ mw.KAds.prototype = {
 		"Interval": 'frequency',
 		"StartAt": 'start'
 	},
+	// Displayed ads
+	displayedCuePoints: [],
 	
 	init: function( embedPlayer, $uiConf, callback ){
 		var _this = this; 
 		this.embedPlayer = embedPlayer;
 		this.$notice = $uiConf.find( 'label#noticeMessage' );
 		this.$skipBtn = $uiConf.find( 'button#skipBtn' );
-
-		
 		var configSet = ['htmlCompanions' , 'flashCompanions' ];
+		
 		$.each(this.namedAdTimelineTypes, function( inx, adType ){
 			$j.each( _this.adAttributeMap, function( adAttributeName,  displayConfName ){
 				// Add all the ad types to the config set: 
@@ -54,6 +55,11 @@ mw.KAds.prototype = {
 			'vast',
 			configSet
 		);
+
+		// Load adTimeline
+		if (!embedPlayer.adTimeline) {
+			embedPlayer.adTimeline = new mw.AdTimeline( embedPlayer );
+		}
 		
 		// Load the Ads from uiConf
 		_this.loadAds( function(){
@@ -71,7 +77,27 @@ mw.KAds.prototype = {
 	// Load the ad from cue point
 	loadAd: function( cuePoint ) {
 		var _this = this;
+		var adType = _this.getAdTypeFromCuePoint( cuePoint );
+
+		// Check if cue point already displayed
+		if( $j.inArray(cuePoint.cuePoint.id, _this.displayedCuePoints) >= 0 ) {
+			return ;
+		}
+
 		if( cuePoint.cuePoint.sourceUrl ) {
+
+			// If ad type is midroll pause the video
+			if( adType == 'midroll' ) {
+				// Pause the video
+				_this.embedPlayer.stopEventPropagation();
+				_this.embedPlayer.pause();
+
+				// Add a loader to the embed player:
+				$( _this.embedPlayer )
+				.getAbsoluteOverlaySpinner()
+				.attr('id', _this.embedPlayer.id + '_mappingSpinner' );
+			}
+			
 			mw.AdLoader.load( cuePoint.cuePoint.sourceUrl, function( adConf ){
 
 				var adCuePointConf = {
@@ -89,10 +115,9 @@ mw.KAds.prototype = {
 							'right': '5px',
 							'bottom' : '5px'
 						}
-					}
+					},
+					type: adType
 				};
-
-				var adType = _this.getAdTypeFromCuePoint( cuePoint );
 
 				// Add the cue point to Ad Timeline
 				mw.addAdToPlayerTimeline( 
@@ -113,6 +138,9 @@ mw.KAds.prototype = {
 
 				// Set switch back function
 				var doneCallback = function() {
+					// Add cuePoint Id to displayed cuePoints array
+					_this.displayedCuePoints.push(cuePoint.cuePoint.id);
+
 					var vid = _this.embedPlayer.getPlayerElement();
 					// Check if the src does not match original src if
 					// so switch back and restore original bindings
@@ -129,12 +157,13 @@ mw.KAds.prototype = {
 							// So i'm re-setting it to it's old duration
 							_this.embedPlayer.duration = oldDuration;
 							if( adType == 'postroll' ) {
+								mw.log('KAds:: Postroll ended, trigger stop');
 								// Run stop for now.
 								setTimeout( function() {
 									_this.embedPlayer.stop();
 								}, 100);
 
-								mw.log( "AdTimeline:: run video pause ");
+								mw.log( "KAds:: run video pause ");
 								if( vid && vid.pause ){
 									// Pause playback state
 									vid.pause();
@@ -144,6 +173,12 @@ mw.KAds.prototype = {
 							} else {
 								// Seek to where we did the switch
 								_this.embedPlayer.doSeek( seekTime );
+								$j( _this.embedPlayer ).bind('seeked.ad', function() {
+									setTimeout( function() {
+										_this.embedPlayer.play();
+									}, 150);
+									$j( _this.ebmedPlayer ).unbind('seeked.ad');
+								});
 							}
 						});
 					} else {
@@ -160,6 +195,10 @@ mw.KAds.prototype = {
 					if( _this.embedPlayer.$interface ){
 						_this.embedPlayer.$interface.find( '.play-btn-large' ).remove();
 					}
+
+					// Remove loading spinner
+					$j('#' + _this.embedPlayer.id + '_mappingSpinner' ).remove();
+
 				} else {
 					// in case of overlay do nothing
 					doneCallback = function() {};

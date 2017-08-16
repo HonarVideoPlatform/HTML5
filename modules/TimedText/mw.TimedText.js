@@ -504,7 +504,6 @@ mw.includeAllModuleMessages();
 		*/
 		selectMenuItem: function( item ) {
 			mw.log("selectMenuItem: " + $( item ).find('a').attr('class') );
-			console.log(item);
 			//this.currentLangKey = ''
 		},
 
@@ -985,8 +984,8 @@ mw.includeAllModuleMessages();
 					'z-index': 2
 				};
 			baseCss =$.extend( baseCss, this.getInterfaceSizeTextCss({
-				'width' :  this.embedPlayer.getWidth(),
-				'height' : this.embedPlayer.getHeight()
+				'width' :  this.embedPlayer.$interface.width(),
+				'height' : this.embedPlayer.$interface.height()
 			}));
 			return baseCss;
 		},

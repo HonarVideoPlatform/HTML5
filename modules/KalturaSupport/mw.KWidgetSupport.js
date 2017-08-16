@@ -193,12 +193,6 @@ mw.KWidgetSupport.prototype = {
 			$j( embedPlayer ).trigger( 'KalturaSupport_EntryDataReady', embedPlayer.kalturaPlayerMetaData );
 		}
 
-		// TODO: Remove this when Eagle is out
-		if( mw.getConfig( 'Kaltura.TempCuePoints' ) ) {
-			playerData.entryCuePoints = mw.getConfig( 'Kaltura.TempCuePoints' );
-		}
-		// End Remove
-		
 		if( playerData.entryCuePoints ) {
 			mw.log( "KCuePoints:: Added " + playerData.entryCuePoints.length + " CuePoints to embedPlayer");
 			embedPlayer.entryCuePoints = playerData.entryCuePoints;
@@ -384,7 +378,7 @@ mw.KWidgetSupport.prototype = {
 		
 		// Check if we have the player data bootstrap from the iframe
 		var bootstrapData = mw.getConfig("KalturaSupport.IFramePresetPlayerData");
-
+		
 		// Insure the bootStrap data has all the required info: 
 		if( bootstrapData 
 			&& bootstrapData.partner_id == embedPlayer.kwidgetid.replace('_', '')

@@ -497,6 +497,20 @@ class kalturaIframe {
 				// Set custom global vars for this player: 
 				echo $this->getCustomPlayerConfig();
 			?>
+			// Parse any configuration options passed in via hash url:
+			var hashString = document.location.hash;
+			if( hashString ){
+				var hashObj = JSON.parse(
+						decodeURIComponent( hashString.replace( /^#/, '' ) )
+					);
+				if( hashObj.mwConfig ){
+					mw.setConfig( hashObj.mwConfig );
+				}
+				if( hashObj.playerId ){
+					mw.setConfig('EmbedPlayer.IframeParentPlayerId', hashObj.playerId );
+				}
+			}
+			
 			// Don't do an iframe rewrite inside an iframe!
 			mw.setConfig( 'Kaltura.IframeRewrite', false );
 
@@ -526,19 +540,6 @@ class kalturaIframe {
 			}
 			mw.setConfig( 'KalturaSupport.IFramePresetFlashvars', flashvarsObject );
 
-			// Parse any configuration options passed in via hash url:
-			var hashString = document.location.hash;
-			if( hashString ){
-				var hashObj = JSON.parse(
-						decodeURIComponent( hashString.replace( /^#/, '' ) )
-					);
-				if( hashObj.mwConfig ){
-					mw.setConfig( hashObj.mwConfig );
-				}
-				if( hashObj.playerId ){
-					mw.setConfig('EmbedPlayer.IframeParentPlayerId', hashObj.playerId );
-				}
-			}
 			// Remove the fullscreen option if we are in an iframe: 
 			if( mw.getConfig('EmbedPlayer.IsFullscreenIframe') ){
 				mw.setConfig('EmbedPlayer.EnableFullscreen', false );
@@ -596,11 +597,11 @@ class kalturaIframe {
 					var embedPlayer = $j( '#<?php echo htmlspecialchars( $this->getIframeId() )?>' ).get(0);
 					// Try to seek to the IframeSeekOffset time:
 					if( mw.getConfig( 'EmbedPlayer.IframeCurrentTime' ) ){
-						embedPlayer.currentTime = mw.getConfig( 'EmbedPlayer.IframeCurrentTime' );					
+						//embedPlayer.currentTime = mw.getConfig( 'EmbedPlayer.IframeCurrentTime' );
 					}
 					// this unfortunatly won't work on iOS but will support play state for html5 browsers
 					if( mw.getConfig('EmbedPlayer.IframeIsPlaying') ){
-						embedPlayer.play();
+						//embedPlayer.play();
 					}
 					// Bind window resize to reize the player:
 					$j( window ).resize( function(){

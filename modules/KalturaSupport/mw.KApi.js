@@ -184,6 +184,10 @@ mw.KApi.prototype = {
 			var refer = ( mw.getConfig( 'EmbedPlayer.IframeParentUrl') ) ? 
 							mw.getConfig( 'EmbedPlayer.IframeParentUrl') : 
 							document.URL;
+
+			// Removes all hash information from referrer
+			// Sometimes the hash is too long and breaks the api request
+			refer = refer.substr(0,refer.indexOf('#'));
 			
 			// Add Context Data request 			
 			requestObject.push({
@@ -211,7 +215,7 @@ mw.KApi.prototype = {
 		        	 'entryId' : kProperties.entry_id
 		    });
 						
-		    // Get custom Metadata	
+		    // Get custom Metadata
 			requestObject.push({
 	        	 'service' : 'metadata_metadata',
 	        	 'action' : 'list',
@@ -264,16 +268,12 @@ mw.KApi.prototype = {
 				namedData['entryMeta'] = _this.convertCustomDataXML( data[3] );
 
 				if( kProperties.uiconf_id ){
-					if( data[4] ){
-						namedData['uiConf'] = data[4]['confFile'];
+					if( data[5] ){
+						namedData['uiConf'] = data[5]['confFile'];
 					}
-					if( data[5] && data[5].totalCount > 0 ) {
-						namedData['entryCuePoints'] = data[5].objects;
-					}
-				} else {
-					if( data[4] && data[4].totalCount > 0 ) {
-						namedData['entryCuePoints'] = data[4].objects;
-					}
+				}
+				if( data[4] && data[4].totalCount > 0 ) {
+					namedData['entryCuePoints'] = data[4].objects;
 				}
 					
 			} else if( kProperties.uiconf_id ){

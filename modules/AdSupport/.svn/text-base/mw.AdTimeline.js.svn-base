@@ -524,7 +524,8 @@ mw.AdTimeline.prototype = {
 			},
 			function(){					
 				// unbind any click ad bindings:
-				$j( _this.embedPlayer ).unbind( 'click.ad' );					
+				$j( _this.embedPlayer ).unbind( 'click.ad' );
+				mw.log('Ad playback is done. Ad type:' + displayTarget.type);
 				displayTarget.playbackDone();
 			}
 		);

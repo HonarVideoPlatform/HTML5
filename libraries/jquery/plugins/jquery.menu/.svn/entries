@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4b28/libraries/jquery/plugins/jquery.menu
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/modules/MiroSubs/mirosubs/media/js/widget/play
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-08-25T13:51:07.010734Z
-6285
-rany
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -26,17 +26,18 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-jquery.menu.css
+manager.js
 file
 
 
 
 
-2017-07-03T22:49:45.000000Z
-3fbc4c55d1be935f7ea345eb5f45530e
-2011-08-25T13:51:07.010734Z
-6285
-rany
+2017-07-03T19:19:07.000000Z
+244faa3be544c7affc9939325f13f567
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -57,40 +58,5 @@ rany
 
 
 
-
-4262
-
-jquery.menu.js
-file
-
-
-
-
-2017-07-03T22:49:45.000000Z
-e0e658b6c5d5db9119d78e6bdec0c2b6
-2011-08-25T13:51:07.010734Z
-6285
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-27764
+2425
 

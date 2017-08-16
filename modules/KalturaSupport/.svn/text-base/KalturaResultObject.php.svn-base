@@ -331,10 +331,14 @@ class KalturaResultObject {
 			$this->getPartnerId() . '00/flvclipper/entry_id/' .
 			$this->urlParameters['entry_id'];
 		}
-
+		
+		$videoIsTranscodingFlag = false;
 		foreach( $resultObject['flavors'] as $KalturaFlavorAsset ){
 			// if flavor status is not ready - continute to the next flavor
 			if( $KalturaFlavorAsset->status != 2 ) { 
+				if( $KalturaFlavorAsset->status == 4 ){
+					$videoIsTranscodingFlag = true;
+				}
 				continue; 
 			}
 			// If we have apple http steaming then use it for ipad & iphone instead of regular flavors
@@ -414,6 +418,11 @@ class KalturaResultObject {
 				);
 			};
 		}
+		// If there are no sources and we are waiting for a transcode throw an error
+		if( count( $sources ) == 0 && $videoIsTranscodingFlag ){
+			throw new Exception( "Video is transcoding, check back later" );
+		}
+		
 		$ipadFlavors = trim($ipadFlavors, ",");
 		$iphoneFlavors = trim($iphoneFlavors, ",");
 
@@ -614,23 +623,33 @@ class KalturaResultObject {
 			$client->addParam( $kparams, "entryId",  $this->urlParameters['entry_id'] );
 			$client->queueServiceActionCall( "baseEntry", "get", $kparams );						
 			$kparams = $default_params;
-			
-			// Entry Custom Metadata
-			$filter = new KalturaMetadataFilter();
-			$filter->orderBy = KalturaMetadataOrderBy::CREATED_AT_ASC;
-			$filter->objectIdEqual = $this->urlParameters['entry_id'];
-			$filter->metadataObjectTypeEqual = KalturaMetadataObjectType::ENTRY;
-			$metadataPager =  new KalturaFilterPager();
-			$metadataPager->pageSize = 1;
 
-			$client->addParam( $kparams, "filter",  $filter );
-			$client->addParam( $kparams, "metadataPager",  $metadataPager );
-			$client->queueServiceActionCall( "metadata_metadata", "list", $kparams );
-			$kparams = $default_params;
-			
+			// UiconfId
 			if( $this->urlParameters['uiconf_id']) {
 				$client->addParam( $kparams, "id",  $this->urlParameters['uiconf_id'] );
 				$client->queueServiceActionCall( "uiconf", "get", $kparams );
+				$kparams = $default_params;
+			}
+
+			// Entry Custom Metadata
+			// Load entry custom metadata only when this flashvar available (same as KDP).
+			$loadCustomMetadata = false;
+			if( isset( $this->urlParameters[ 'flashvars' ][ 'requiredMetadataFields' ] ) &&
+					$this->urlParameters[ 'flashvars' ][ 'requiredMetadataFields' ] == "true" ) {
+				$loadCustomMetadata = true;
+			}
+			
+			if( $loadCustomMetadata ) {
+				$filter = new KalturaMetadataFilter();
+				$filter->orderBy = KalturaMetadataOrderBy::CREATED_AT_ASC;
+				$filter->objectIdEqual = $this->urlParameters['entry_id'];
+				$filter->metadataObjectTypeEqual = KalturaMetadataObjectType::ENTRY;
+				$metadataPager =  new KalturaFilterPager();
+				$metadataPager->pageSize = 1;
+
+				$client->addParam( $kparams, "filter",  $filter );
+				$client->addParam( $kparams, "metadataPager",  $metadataPager );
+				$client->queueServiceActionCall( "metadata_metadata", "list", $kparams );
 				$kparams = $default_params;
 			}
 
@@ -653,6 +672,14 @@ class KalturaResultObject {
 			}
 			
 			$rawResultObject = $client->doQueue();
+
+			// Check if the server cached the result by search for "cached-dispatcher" in the request headers
+			// If not, do not cache the request (Used for Access control cache issue)
+			$requestCached = strpos($client->getHeaders(), "X-Kaltura: cached-dispatcher");
+			if( $requestCached === false ) {
+				$this->noCache = true;
+			}
+
 			$client->throwExceptionIfError( $this->resultObj );
 		} catch( Exception $e ){
 			// Update the Exception and pass it upward
@@ -672,25 +699,28 @@ class KalturaResultObject {
 			'meta'				=>	$rawResultObject[2]
 		) );
 
-		if( isset( $rawResultObject[3]->objects ) && 
-			isset( $rawResultObject[3]->objects[0] ) && 
-			isset( $rawResultObject[3]->objects[0]->xml )
+		if( isset( $rawResultObject[3] ) && $rawResultObject[3]->confFile ){
+			$resultObject[ 'uiconf_id' ] = $this->urlParameters['uiconf_id'];
+			$resultObject[ 'uiConf'] = $rawResultObject[3]->confFile;
+		}
+
+		if( isset( $rawResultObject[4]->objects ) &&
+			isset( $rawResultObject[4]->objects[0] ) &&
+			isset( $rawResultObject[4]->objects[0]->xml )
 		){
-			
 			$resultObject['entryMeta'] = $this->xmlToArray( new SimpleXMLElement( $rawResultObject[3]->objects[0]->xml ) );
 		}
 		
-		if( isset( $rawResultObject[4] ) && $rawResultObject[4]->confFile ){
-			$resultObject[ 'uiconf_id' ] = $this->urlParameters['uiconf_id'];
-			$resultObject[ 'uiConf'] = $rawResultObject[4]->confFile;
-		}
 		//echo '<pre>'; print_r( $rawResultObject[4] ); exit();
 		//echo htmlspecialchars($rawResultObject[4]->confFile); exit();
-		// Add Cue Point data. Also check for 'code' error
 
-		if( isset( $rawResultObject[5] ) && is_object( $rawResultObject[5] ) && $rawResultObject[5]->totalCount > 0 ){
-			$resultObject[ 'entryCuePoints' ] = $rawResultObject[5]->objects;
+		// Set cuePoints index if we load custom metadata or not
+		$cuePointsIndex = ($loadCustomMetadata) ? 5 : 4;
+		// Add Cue Point data. Also check for 'code' error
+		if( isset( $rawResultObject[$cuePointsIndex] ) && is_object( $rawResultObject[$cuePointsIndex] ) && $rawResultObject[$cuePointsIndex]->totalCount > 0 ){
+			$resultObject[ 'entryCuePoints' ] = $rawResultObject[$cuePointsIndex]->objects;
 		}
+
 		// Check access control and throw an exception if not allowed: 
 		$acStatus = $this->isAccessControlAllowed( $resultObject );
 		if( $acStatus !== true ){
