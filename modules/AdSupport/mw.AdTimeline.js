@@ -121,7 +121,7 @@ mw.AdTimeline.prototype = {
 	 * @param {string} 
 	 * 			propName The name of the property 
 	 * @param {object} 
-	 * 			value The value for the suplied property 
+	 * 			value The value for the supplied property 
 	 */
 	updateSequenceProxy: function( propName, value ){
 		this.embedPlayer.sequenceProxy[ propName ] = value;
@@ -136,16 +136,14 @@ mw.AdTimeline.prototype = {
 		// Create an empty sequence proxy object ( stores information about the current sequence ) 
 		embedPlayer.sequenceProxy = {};
 		
-		var playedAnAdFlag = false;
 		// On change media clear out any old adTimeline bindings
 		embedPlayer.bindHelper( 'onChangeMedia' + _this.bindPostfix, function(){
 			_this.destroy();
-			playedAnAdFlag = false;
 		});
 		
-		embedPlayer.bindHelper( 'AdSupport_StartAdPlayback' +  _this.bindPostfix, function(){
-			playedAnAdFlag = true;
-		});
+		// Rest displayed slot count
+		_this.displayedSlotCount = 0;
+		
 		// On play preSequence
 		embedPlayer.bindHelper( 'preSequence' + _this.bindPostfix, function() {
 			mw.log( "AdTimeline:: First Play Start / bind Ad timeline ( " );
@@ -168,10 +166,14 @@ mw.AdTimeline.prototype = {
 							
 							// Avoid function stack
 							setTimeout(function(){ 
-								_this.restorePlayer();
 								// trigger another onplay ( to match the kaltura kdp ) on play event
-								// after the ad is complete 
-								if( playedAnAdFlag ){
+								// after the ad plays are compelete
+								if( _this.displayedSlotCount > 0 ){
+									// reset displaySlotCount: 
+									 _this.displayedSlotCount=0;
+									// Restore the player if we played an ad: 
+									_this.restorePlayer();
+									
 									embedPlayer.triggerHelper( 'onplay' );
 								}
 								// Continue playback
@@ -192,39 +194,44 @@ mw.AdTimeline.prototype = {
 			if( displayedPostroll ){
 				return ;
 			}
-			playedAnAdFlag = false;
+			var playedAnAdFlag = false;
 			embedPlayer.bindHelper( 'AdSupport_StartAdPlayback' +  _this.bindPostfix, function(){
 				playedAnAdFlag = true;
 			});
 			displayedPostroll = true;
 			embedPlayer.onDoneInterfaceFlag = false;
-			// Trigger the postSequenceStart event
-			// start the postSequence: 
-			embedPlayer.triggerHelper( 'postSequence');
-			embedPlayer.sequenceProxy.isInSequence = true;
-			_this.displaySlots( 'postroll', function(){
-				// Turn off preSequence
-				embedPlayer.sequenceProxy.isInSequence = false;
-				// Trigger the postSequenceComplete event
-				embedPlayer.triggerHelper( 'postSequenceComplete' );
+			
+			// Display post roll in setTimeout ( hack to work around end sequence issues ) 
+			// should be refactored. 
+			setTimeout(function(){
+				// Trigger the postSequenceStart event
+				// start the postSequence: 
+				embedPlayer.triggerHelper( 'postSequence' );
+				embedPlayer.sequenceProxy.isInSequence = true;
+				_this.displaySlots( 'postroll', function(){
+					// Turn off preSequence
+					embedPlayer.sequenceProxy.isInSequence = false;
+					// Trigger the postSequenceComplete event
+					embedPlayer.triggerHelper( 'postSequenceComplete' );
 
-				/** TODO support postroll bumper and leave behind */
-				if( playedAnAdFlag ){
-					embedPlayer.switchPlaySrc( _this.originalSrc, function(){
-							_this.restorePlayer();
-							// Restore ondone interface: 
-							embedPlayer.onDoneInterfaceFlag = true;
-							// Run the clipdone event:
-							embedPlayer.onClipDone();
-					});
-				} else {
-					_this.restorePlayer();
-					// Restore ondone interface: 
-					embedPlayer.onDoneInterfaceFlag = true;
-					// run the clipdone event:
-					embedPlayer.onClipDone();
-				}
-			});
+					/** TODO support postroll bumper and leave behind */
+					if( playedAnAdFlag ){
+						embedPlayer.switchPlaySrc( _this.originalSrc, function(){
+								_this.restorePlayer();
+								// Restore ondone interface: 
+								embedPlayer.onDoneInterfaceFlag = true;
+								// Run the clipdone event:
+								embedPlayer.onClipDone();
+						});
+					} else {
+						_this.restorePlayer();
+						// Restore ondone interface: 
+						embedPlayer.onDoneInterfaceFlag = true;
+						// run the clipdone event:
+						embedPlayer.onClipDone();
+					}
+				});
+			}, 0)
 		});
 	},
 	destroy: function(){
@@ -249,7 +256,7 @@ mw.AdTimeline.prototype = {
 		var sequenceProxy = {};
 		
 		// Get the sequence ad set
-		_this.embedPlayer.triggerHelper( 'AdSupport_' + slotType,  [ sequenceProxy ]);
+		_this.embedPlayer.triggerHelper( 'AdSupport_' + slotType,  [ sequenceProxy ] );
 		
 		// Generate a sorted key list:
 		var keyList = [];
@@ -279,12 +286,16 @@ mw.AdTimeline.prototype = {
 			}
 			// Run the sequence proxy function: 
 			sequenceProxy[ key ]( function(){
+				
+				// Done with slot increment display slot count
+				_this.displayedSlotCount++;
+				
 				// done with the current proxy call next
 				seqInx++;
 				// Trigger the EndAdPlayback between each ad in the sequence proxy 
 				// ( if we have more ads to go )
 				if( sequenceProxy[ keyList[ seqInx ] ] ){
-					_this.embedPlayer.triggerHelper( 'AdSupport_EndAdPlayback');
+					_this.embedPlayer.triggerHelper( 'AdSupport_EndAdPlayback' );
 				}
 				// call with a timeout to avoid function stack
 				setTimeout(function(){
@@ -293,11 +304,12 @@ mw.AdTimeline.prototype = {
 			});
 			
 			// Update the interface for ads: 
-			_this.updateUiForAdPlayback();
+			_this.updateUiForAdPlayback( slotType );
 		};
 		runSequeceProxyInx( seqInx );
 	},
 	updateUiForAdPlayback: function( slotType ){
+		mw.log( "AdTimeline:: updateUiForAdPlayback " );
 		var embedPlayer = this.embedPlayer;
 		// Stop the native embedPlayer events so we can play the preroll and bumper
 		embedPlayer.stopEventPropagation();

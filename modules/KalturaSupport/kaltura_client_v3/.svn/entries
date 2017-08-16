@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.0/modules/KalturaSupport/kaltura_client_v3
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.3a/modules/MiroSubs/mirosubs/media/js/widget/api
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-12-06T09:56:41.360351Z
-6962
+2011-03-27T09:35:08.218980Z
+5036
 rany
 
 
@@ -26,16 +26,16 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-KalturaEnums.php
+servermodel.js
 file
 
 
 
 
-2017-07-03T22:42:28.000000Z
-7322851f1d228639b78f784874fee8dc
-2011-12-06T09:56:41.360351Z
-6962
+2017-07-03T22:41:36.000000Z
+db1afdcee682dbab855f3cbf05bb71f3
+2011-03-27T09:35:08.218980Z
+5036
 rany
 
 
@@ -58,18 +58,18 @@ rany
 
 
 
-43096
+2138
 
-KalturaClientBase.php
+api.js
 file
 
 
 
 
-2017-07-03T22:42:28.000000Z
-328629c58c11b1a69683bb575c8684b7
-2011-12-06T09:56:41.360351Z
-6962
+2017-07-03T22:41:36.000000Z
+ecab0a19e6585e4fb0ca0afa00cd47e3
+2011-03-27T09:35:08.218980Z
+5036
 rany
 
 
@@ -92,76 +92,5 @@ rany
 
 
 
-19739
-
-KalturaPlugins
-dir
-
-KalturaClient.php
-file
-
-
-
-
-2017-07-03T22:42:28.000000Z
-63456edacbd6337d1d97281ab29d0d1d
-2011-12-06T09:56:41.360351Z
-6962
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-240452
-
-KalturaTypes.php
-file
-
-
-
-
-2017-07-03T22:42:28.000000Z
-441b0ddb1dfaecdad061db3510e3e599
-2011-12-06T09:56:41.360351Z
-6962
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-136337
+3670
 

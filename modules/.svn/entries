@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.0/modules
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.1/modules
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-12-13T18:51:13.712155Z
-7035
+2011-12-21T17:16:03.287791Z
+7078
 rany
 
 
@@ -35,9 +35,6 @@ dir
 SmilPlayer
 dir
 
-NielsenVideoCensusPlugin
-dir
-
 InternetArchiveSupport
 dir
 
@@ -50,9 +47,6 @@ dir
 DolStatistics
 dir
 
-AjaxCategories
-dir
-
 Sequencer
 dir
 
@@ -60,6 +54,9 @@ EmbedWizard
 dir
 
 ClipEdit
+dir
+
+NielsenCombined
 dir
 
 MediaWikiSupport
@@ -71,9 +68,6 @@ dir
 Playlist
 dir
 
-PlayerThemer
-dir
-
 Omniture
 dir
 
@@ -81,6 +75,9 @@ MiroSubs
 dir
 
 Plymedia
+dir
+
+NielsenVideoCensus
 dir
 
 Conviva
@@ -99,11 +96,5 @@ TimedText
 dir
 
 Comscore
-dir
-
-ApiProxy
-dir
-
-NielsenPlugin
 dir
 

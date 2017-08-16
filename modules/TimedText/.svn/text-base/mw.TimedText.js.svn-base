@@ -136,7 +136,7 @@ mw.includeAllModuleMessages();
 				}
 			});
 			
-			$( embedPlayer ).bind( 'monitorEvent'+ this.bindPostFix, function() {
+			$( embedPlayer ).bind( 'monitorEvent' + this.bindPostFix, function() {
 				_this.monitor();
 			} );
 
@@ -239,6 +239,7 @@ mw.includeAllModuleMessages();
 			var _this = this;
 			$textButton.unbind('click.textMenu').bind('click.textMenu', function() {
 				_this.showTextMenu();
+				return true;
 			} );
 		},
 		
@@ -765,7 +766,9 @@ mw.includeAllModuleMessages();
 		*/
 		updateLayout: function() {
 			var $playerTarget = this.embedPlayer.$interface;
-			$playerTarget.find('.track').remove();
+            if( $playerTarget ) {
+                $playerTarget.find('.track').remove();
+            }            
 			this.refreshDisplay();
 		},
 
@@ -1018,7 +1021,6 @@ mw.includeAllModuleMessages();
 					'height' : this.embedPlayer.$interface.height()
 				})
 			);
-			
 			
 			// Update the style of the text object if set
 			if( caption.styleId ){

@@ -263,9 +263,15 @@ class kalturaIframe {
 			// TODO should move this to i8ln keys instead of raw msgs
 			$o.= ' data-playerError="' . htmlentities( $this->playerError ) . '" ';
 		}
+		// Check for hide gui errors ( missing entry ) Right this is hard coded, we need a better error handling system! 
+		if( $this->playerError == KalturaResultObject::NO_ENTRY_ID_FOUND ){
+			$o.= ' data-blockPlayerDisplay="true" ';
+		}
+		
 		// Close the open video tag attribute set
 		$o.='>';
 
+		
 		// Output each source as a child element ( for javascript off browsers to have a chance
 		// to playback the content
 		foreach( $sources as $source ){
@@ -709,7 +715,7 @@ class kalturaIframe {
 				?>
 				
 				var hashString = document.location.hash;
-				// Parse any configuration options passed in via hash url:
+				// Parse any configuration options passed in via hash url more reliable than window['parent']
 				if( hashString ){
 					try{
 						var hashObj = JSON.parse(
@@ -870,8 +876,6 @@ class kalturaIframe {
 				// Write out the embed object
 				document.write('<?php echo $this->getFlashEmbedHTML() ?>' );
 				
-				// Load server side bindings for kdpServer
-				kLoadJsRequestSet( ['window.jQuery', 'mwEmbed', 'mw.style.mwCommon', '$j.postMessage', 'kdpServerIFrame', 'JSON' ] );
 			} else {
 				
 				// Last resort just provide an image with a link to the file

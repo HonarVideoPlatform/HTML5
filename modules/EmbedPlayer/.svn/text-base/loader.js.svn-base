@@ -21,10 +21,14 @@
 		// If the iPad should use html controls 
 		// With html controls you can't access native fullscreen 
 		// With html controls you can support html themed controls, overlays, ads etc. )
-		'EmbedPlayer.EnableIpadHTMLControls': false,
+		'EmbedPlayer.EnableIpadHTMLControls': true,
+		
+		// If the webkit-playsinline attribute should be added to the video tag. Will cause the player
+		// to play inline on iPhone
+		'EmbedPlayer.WebKitPlaysInline': false,
 		
 		// If webkitSupportsFullscreen is true, this option will make the fullscreen button 
-		// use the native players fullscreen ( rather than pop-up a new window with the in-browser
+		// use the native players fullscreen ( rather  than pop-up a new window with the in-browser
 		// fullscreen. 
 		'EmbedPlayer.EnableIpadNativeFullscreen': true,
 		
@@ -395,9 +399,15 @@
 		// If the player should include an attribution button:
 		'attributionbutton' : true,
 		
-		// A player error state ( lets you propagate an error instead of a play button ) 
-		// ( while keeping the full player api available )
+		// A player error string
+		// * Used to display an error instead of a play button 
+		// * The full player api available
 		'data-playerError': null,
+		
+		// A flag to hide the player gui and disable autoplay
+		// * Used for empty players or a player where you want to dynamically set sources, then play.
+		// * The player API remains active. 
+		'data-blockPlayerDisplay': null,
 	
 		// If serving an ogg_chop segment use this to offset the presentation time
 		// ( for some plugins that use ogg page time rather than presentation time )

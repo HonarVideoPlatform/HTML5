@@ -82,12 +82,12 @@ mw.EmbedPlayer.prototype = {
 	// If the onDone interface should be displayed
 	'onDoneInterfaceFlag': true,
 	
-	// if we should check for a loading spinner in the moitor function: 
+	// if we should check for a loading spinner in the monitor function: 
 	'_checkHideSpinner' : false,
 	
 	// If pause play controls click controls should be active: 
 	'_playContorls' : true,
-
+	
 	// If player should be displayed (in some caused like audio, we don't need the player to be visible
 	'displayPlayer': true, 
 
@@ -128,7 +128,7 @@ mw.EmbedPlayer.prototype = {
 		
 		// Hide "controls" if using native player controls:
 		if( this.useNativePlayerControls() ){
-			_this.controls = false;
+			_this.controls = true;
 		}
 		// Set the skin name from the class
 		var	sn = $(element).attr( 'class' );
@@ -214,6 +214,7 @@ mw.EmbedPlayer.prototype = {
 	 * @return
 	 */
 	stopEventPropagation: function(){
+		mw.log("EmbedPlayer:: stopEventPropagation");
 		this.stopMonitor();
 		this._propagateEvents = false;
 	},
@@ -222,6 +223,7 @@ mw.EmbedPlayer.prototype = {
 	 * @return
 	 */
 	restoreEventPropagation: function(){
+		mw.log("EmbedPlayer:: restoreEventPropagation");
 		this._propagateEvents = true;
 		this.startMonitor();
 	},
@@ -735,6 +737,7 @@ mw.EmbedPlayer.prototype = {
 	 * On clip done action. Called once a clip is done playing
 	 * TODO clean up end sequence flow
 	 */
+	triggeredEndDone: false,
 	postSequence: false,
 	onClipDone: function() {
 		var _this = this;
@@ -755,12 +758,19 @@ mw.EmbedPlayer.prototype = {
 
 			// TOOD we should improve the end event flow
 			// First end event for ads or current clip ended bindings
-			this.stopEventPropagation();
+			if( ! this.onDoneInterfaceFlag ){
+				this.stopEventPropagation();
+			}
+			
 			mw.log("EmbedPlayer:: trigger: ended");
 			$( this ).trigger( 'ended' );
-			this.restoreEventPropagation();
-			
 			mw.log("EmbedPlayer::onClipDone:Trigged ended, continue? " + this.onDoneInterfaceFlag);
+
+			
+			if( !this.onDoneInterfaceFlag ){
+				// Restore events if we are not running the interface done actions
+				 this.restoreEventPropagation(); 
+			}
 			
 			// A secondary end event for playlist and clip sequence endings
 			if( this.onDoneInterfaceFlag ){
@@ -774,26 +784,24 @@ mw.EmbedPlayer.prototype = {
 				// Prevent the native "onPlay" event from propagating that happens when we rewind:
 				this.stopEventPropagation();
 				this.stop();
+				// Restore events after we rewind the player
+				this.restoreEventPropagation(); 
+				
+				this.serverSeekTime = 0;
+				this.updatePlayHead( 0 );
 				
 				// Check if we have the "loop" property set
 				if( this.loop ) {
-					this.restoreEventPropagation(); 
 					this.play();
 					return;
 				}
 				
-				// Stop the clip (load the thumbnail etc)
-				this.serverSeekTime = 0;
-				this.updatePlayHead( 0 );
-
 				// An event for once the all ended events are done.
 				mw.log("EmbedPlayer:: trigger: onEndedDone");
-				$( this ).trigger( 'onEndedDone' );
-				
-				setTimeout(function(){
-					_this.restoreEventPropagation(); 
-				}, mw.getConfig( 'EmbedPlayer.MonitorRate' ) );
-				
+				if ( !this.triggeredEndDone ){
+					this.triggeredEndDone = true;
+					$( this ).trigger( 'onEndedDone' );
+				}				
 			}
 		}
 	},
@@ -1186,9 +1194,9 @@ mw.EmbedPlayer.prototype = {
 		
 		// Setup flag for change media
 		var chnagePlayingMedia = this.isPlaying();
-		
 		// Reset first play to true, to count that play event
 		this.firstPlay = true;
+		this.triggeredEndDone = false;
 		this.preSequence = false;
 		this.postSequence = false;
 		
@@ -1662,6 +1670,8 @@ mw.EmbedPlayer.prototype = {
 		// If we previously finished playing this clip run the "replay hook"
 		if( this.donePlayingCount > 0 && !this.paused && this._propagateEvents ) {			
 			this.replayEventCount++;
+			// Trigger end done on replay
+			this.triggeredEndDone = false;
 			if( this.replayEventCount <= this.donePlayingCount){
 				$this.trigger( 'replayEvent' );
 			}
@@ -1674,7 +1684,13 @@ mw.EmbedPlayer.prototype = {
 		}
 		
 		this.playInterfaceUpdate();
-		return true;
+		// If play controls are enabled continue to video playback:
+		if( _this._playContorls ){
+			return true;
+		} else {
+			// return false ( Mock play event, or handled elsewhere )
+			return false;
+		}
 	},
 	playInterfaceUpdate: function(){
 		var _this = this;
@@ -1744,7 +1760,10 @@ mw.EmbedPlayer.prototype = {
 				$( this ).trigger( 'onpause' );
 			}
 		}
-
+		_this.pauseInterfaceUpdate();
+	},
+	pauseInterfaceUpdate: function(){
+		var _this =this;
 		// Update the ctrl "paused state"
 		if( this.$interface ){
 			this.$interface.find('.play-btn span' )
@@ -1761,7 +1780,6 @@ mw.EmbedPlayer.prototype = {
 			.attr( 'title', gM( 'mwe-embedplayer-play_clip' ) );
 		}
 	},
-
 	/**
 	 * Maps the html5 load request. There is no general way to "load" clips so
 	 * underling plugin-player libs should override.
@@ -1803,8 +1821,11 @@ mw.EmbedPlayer.prototype = {
 		if( !this.paused ){
 			this.pause();
 		}
-		// Restore the play button: 
-		this.addPlayBtnLarge();
+		// Restore the play button ( if not native controls or is android ) 
+		if( !this.useNativePlayerControls() || mw.isAndroid2() ){
+			this.addPlayBtnLarge();
+		}
+		
 		// Native player controls:
 		if( !this.isPersistentNativePlayer() ){			
 			// Rewrite the html to thumbnail disp
@@ -1985,6 +2006,8 @@ mw.EmbedPlayer.prototype = {
 		// Check for current time update outside of embed player
 		_this.syncCurrentTime();
 		
+//		mw.log( "monitor:: " + this.currentTime + ' propagateEvents: ' +  _this._propagateEvents );
+		
 		// Keep volume proprties set outside of the embed player in sync
 		_this.syncVolume();
 
@@ -2069,7 +2092,7 @@ mw.EmbedPlayer.prototype = {
 		}
 
 		// Check if a javascript currentTime change based seek has occurred
-		if( _this.previousTime != _this.currentTime && !this.userSlide && !this.seeking){
+		if( parseInt( _this.previousTime ) != parseInt( _this.currentTime ) && !this.userSlide && !this.seeking){
 			// If the time has been updated and is in range issue a seek
 			if( _this.getDuration() && _this.currentTime <= _this.getDuration() ){
 				var seekPercent = _this.currentTime / _this.getDuration();

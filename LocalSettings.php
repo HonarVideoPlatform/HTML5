@@ -14,10 +14,18 @@ $kConf = new kConf();
 $wgKalturaVersion = basename(getcwd()); // Gets the version by the folder name
 
 // The default Kaltura service url:
-$wgKalturaServiceUrl = $wgHTTPProtocol . '://' . $kConf->get('www_host');
-
+$wgKalturaServiceUrl = $wgHTTPProtocol . '://' . $kConf->get('cdn_api_host');
 // Default Kaltura CDN url:
-$wgKalturaCDNUrl = $wgHTTPProtocol. '://' . $kConf->get('cdn_host_https');
+$wgKalturaCDNUrl = $wgHTTPProtocol. '://' . $kConf->get('cdn_host');
+// Default Stats URL
+$wgKalturaStatsServiceUrl = $wgHTTPProtocol. '://' . $kConf->get('stats_host');
+
+// SSL host names
+if( $wgHTTPProtocol == 'https' ){
+	$wgKalturaServiceUrl = $wgHTTPProtocol . '://' . $kConf->get('cdn_api_host_https');
+	$wgKalturaCDNUrl = $wgHTTPProtocol. '://' . $kConf->get('cdn_host_https');
+	$wgKalturaStatsServiceUrl = $wgHTTPProtocol. '://' . $kConf->get('stats_host_https');
+}
 
 // Default Asset CDN Path (used in ResouceLoader.php):
 $wgCDNAssetPath = $wgKalturaCDNUrl;
@@ -36,7 +44,8 @@ $wgEnableScriptDebug = false;
 $wgKalturaAllowIframeRemoteService = true;
 
 // Define which modules to load
-$wgMwEmbedEnabledModules = array( 'EmbedPlayer', 'KalturaSupport', 'AdSupport', 'Playlist', 'TimedText', 'Omniture',
-									'Plymedia', 'FreeWheel', 'EmbedWizard',  'SyntaxHighlighter', 'DoubleClick', 'Comscore', 'DolStatistics' );
+$wgMwEmbedEnabledModules =  array( 'EmbedPlayer', 'KalturaSupport', 'AdSupport', 'Playlist', 'TimedText', 'Omniture',
+		'Plymedia', 'FreeWheel', 'EmbedWizard',  'SyntaxHighlighter', 'DoubleClick', 'Conviva',
+		'NielsenCombined', 'NielsenVideoCensus', 'Comscore', 'DolStatistics' );
 
 ?>

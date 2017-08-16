@@ -39,7 +39,7 @@ mw.DolStatistics.prototype = {
 			'USRAGNT',
 			'ASSETID'
 		];
-
+		
 		this.pluginConfig = this.embedPlayer.getKalturaConfig( 'dolStatistics', attributes );
 
 		this.playheadFrequency = this.pluginConfig.playheadFrequency || 5;
@@ -156,7 +156,7 @@ mw.DolStatistics.prototype = {
 		});
 
 		// Stop monitor
-		embedPlayer.bindHelper('doStop' + _this.bindPostFix + ' onpause' + _this.bindPostFix, function() {
+		embedPlayer.bindHelper('doStop' + _this.bindPostFix + ' onpause' + _this.bindPostFix + ' onChangeMedia' + _this.bindPostFix, function() {
 			clearInterval( _this.playheadInterval );
 			_this.playheadInterval = 0;
 		});
@@ -240,6 +240,8 @@ mw.DolStatistics.prototype = {
 	},
 
 	destroy: function() {
+		clearInterval( this.playheadInterval );
+		this.playheadInterval = 0;
 		this.embedPlayer.unbindHelper( this.bindPostFix );
 		this.percentCuePoints = {};
 		this.duration = 0;

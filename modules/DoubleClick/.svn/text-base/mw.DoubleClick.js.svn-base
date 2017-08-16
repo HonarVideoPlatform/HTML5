@@ -1,7 +1,7 @@
 ( function( mw, $){
 
-mw.DoubleClick = function( embedPlayer, callback ){
-	this.init( embedPlayer, callback );
+mw.DoubleClick = function( embedPlayer, callback, pluginName ){
+	this.init( embedPlayer, callback , pluginName);
 };
 mw.DoubleClick.prototype = {
 	// Local config object
@@ -19,9 +19,13 @@ mw.DoubleClick.prototype = {
 	// The bind bindPostfix for all doubleclick bindings
 	bindPostfix: '.doubleClick',
 	
-	init: function( embedPlayer, callback ){
+	init: function( embedPlayer, callback, pluginName ){
 		mw.log( 'DoubleClick:: init: ' + embedPlayer.id );
 		var _this = this;
+		
+		// Set the plugin name ( used to get config ) 
+		this.pluginName = pluginName;
+		
 		// Inherit BaseAdPlugin
 		mw.inherit( this, new mw.BaseAdPlugin( embedPlayer, callback ) );
 		this.embedPlayer = embedPlayer;
@@ -38,7 +42,10 @@ mw.DoubleClick.prototype = {
 	addPlayerBindings: function(){
 		var _this = this;
 		var slotSet = [];
-
+		// remove any old binding: 
+		_this.embedPlayer.unbindHelper( _this.bindPostfix );
+		
+		
 		// Check for pre-sequence: 
 		if( parseInt( this.getConfig( 'preSequence') ) ){
 			slotSet.push( 'preroll');
@@ -90,7 +97,7 @@ mw.DoubleClick.prototype = {
 				return true; // continue to next cue point
 			}
 			
-			// check if video type: 
+			// Ceck if video type: 
 			if( adType == 'midroll'  ||  adType == 'preroll' || adType == 'postroll'  ){
 				// All cuepoints act as "midrolls" 
 				_this.loadAndPlayVideoSlot( 'midroll', function(){
@@ -110,11 +117,13 @@ mw.DoubleClick.prototype = {
 		});
 		// On clip done hide any overlay banners that are still active
 		_this.embedPlayer.bindHelper( 'ended' + _this.bindPostfix, function(){
-			 if( _this.activeOverlayadManager )
+			 if( _this.activeOverlayadManager ){
 				 _this.activeOverlayadManager.unload();
+			 }
 		});
 		// On change media remove any existing ads: 
 		_this.embedPlayer.bindHelper( 'onChangeMedia' + _this.bindPostfix, function(){
+			_this.embedPlayer.unbindHelper(  _this.bindPostfix );
 			_this.destroy();
 		});
 	},
@@ -123,15 +132,12 @@ mw.DoubleClick.prototype = {
 	 *  Destroy the doubleClick binding instance:
 	 */ 
 	destroy: function(){
-		// Run the parent destroy:
-		this.parent_destroy();
-		
-		 if( this.activeOverlayadManager )
+		 if( this.activeOverlayadManager ){
 			 this.activeOverlayadManager.unload();
-		 
-		 if( this.onResumeRequestedCallback )
+		 }
+		 if( this.onResumeRequestedCallback ){
 			 this.onResumeRequestedCallback();
-		
+		 }
 	},
 	/**
 	 * Load and display an overaly 
@@ -154,10 +160,10 @@ mw.DoubleClick.prototype = {
 		    var bottom = 0;
 			// Check if we are overlaying controls ( move the banner up ) 
 			if( embedPlayer.controlBuilder.isOverlayControls() ){
-				$( embedPlayer ).bind( 'onShowControlBar' + _this.bindPostfix, function(){
+				embedPlayer.bindHelper( 'onShowControlBar' + _this.bindPostfix, function(){
 					$overlay.animate({ 'bottom': embedPlayer.controlBuilder.height + 'px'}, 'fast');
 				});
-				$( embedPlayer ).bind( 'onHideControlBar' + _this.bindPostfix, function(){
+				embedPlayer.bindHelper( 'onHideControlBar' + _this.bindPostfix, function(){
 					$overlay.animate({ 'bottom': 0 + 'px'}, 'fast');
 				});
 			} else {
@@ -166,7 +172,7 @@ mw.DoubleClick.prototype = {
 			var $overlay = _this.getOverlaySlot( bottom );
 
 			// add binding for resize player
-			$( embedPlayer ).bind( 'onCloseFullScreen'+ _this.bindPostfix +
+			embedPlayer.bindHelper( 'onCloseFullScreen'+ _this.bindPostfix +
 					' onOpenFullScreen' + _this.bindPostfix + 
 					' onResizePlayer'+ _this.bindPostfix, function(e) {
 				adsManager.setAdSlotWidth( embedPlayer.getPlayerWidth() );
@@ -185,9 +191,9 @@ mw.DoubleClick.prototype = {
 		    // Set the active overlay manager: 
 		    _this.activeOverlayadManager = adsManager;
 		    
-		    // Only display for cuePoint duration time 
+		    // Only display overlays for cuePoint duration time 
 		    var startTime = embedPlayer.currentTime;		    	
-		    $(embedPlayer).bind( 'monitorEvent' + _this.bindPostfix, function(){
+		    embedPlayer.bindHelper( 'monitorEvent' + _this.bindPostfix, function(){
 		    	if( embedPlayer.currentTime - startTime  > ( cuePoint.duration / 1000 ) ){
 		    		// remove the overly
 		    		if( _this.activeOverlayadManager ){
@@ -229,7 +235,7 @@ mw.DoubleClick.prototype = {
 	 */
 	loadAndPlayVideoSlot: function( slotType, callback, cuePoint){
 		var _this = this;
-		mw.log( "DoubleClick::loadAndPlayVideoSlot> pause while loading ads ");
+		mw.log( "DoubleClick::loadAndPlayVideoSlot> " + slotType + " pause while loading ads ");
 		
 		var adClickPostFix = '.dcAdClick';
 		
@@ -253,7 +259,7 @@ mw.DoubleClick.prototype = {
 			
 			// TODO integrate into timeline proper: 
 			if( _this.embedPlayer.adTimeline && slotType != 'overlay' ){
-				_this.embedPlayer.adTimeline.updateUiForAdPlayback();
+				_this.embedPlayer.adTimeline.updateUiForAdPlayback( slotType );
 			}
 
 			// Update the playhead to play state:
@@ -284,7 +290,7 @@ mw.DoubleClick.prototype = {
 			// unbind the click 
 			$( vid ).unbind( adClickPostFix );
 			
-			// TODO integrate into timeline proper: 
+			// Restore player
 			if( _this.embedPlayer.adTimeline ){
 				_this.embedPlayer.adTimeline.restorePlayer();
 			}
@@ -437,7 +443,7 @@ mw.DoubleClick.prototype = {
 	},
 	getConfig: function( configName ){
 		// always get the config from the embedPlayer so that is up-to-date
-		return this.embedPlayer.getKalturaConfig( 'DoubleClick', configName );
+		return this.embedPlayer.getKalturaConfig( this.pluginName, configName );
 	}
 };
 	

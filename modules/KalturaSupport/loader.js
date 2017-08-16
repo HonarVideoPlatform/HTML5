@@ -94,10 +94,8 @@
 		
 		"controlbarLayout"	: 	"uiConfComponents/controlbarLayout.js",
 		"titleLayout" : "uiConfComponents/titleLayout.js",
-		"volumeBarLayout"	:	"uiConfComponents/volumeBarLayout.js",
+		"volumeBarLayout"	:	"uiConfComponents/volumeBarLayout.js"
 		
-		"kdpClientIframe" : "kdpPageJs/kdpClientIframe.js",
-		"kdpServerIFrame" : "kdpPageJs/kdpServerIFrame.js"
 	} );
 	
 	// Set a local variable with the request set so we can append it to embedPlayer
@@ -212,7 +210,7 @@
 					var kEmbedSettings = kGetKalturaEmbedSettings( swfSource, flashvars );
 
 					// Check if its a playlist or a entryId
-					mw.log( "Got kEmbedSettings.entryId: " + kEmbedSettings.entry_id + " uiConf: " + kEmbedSettings.uiconf_id);
+					mw.log( "KalturaSupport:: Got object settings: entryId: " + kEmbedSettings.entry_id + " uiConf: " + kEmbedSettings.uiconf_id);
 					if(!kEmbedSettings.uiconf_id || !kEmbedSettings.wid ) {
 						mw.log( "Error: Missing uiConfId/widgetId!");
 					}
@@ -534,6 +532,10 @@
 			var baseClass = $( playerTarget ).attr('class' ) ? $( playerTarget ).attr('class' ) + ' ' : '';
 			var iframeId = $( playerTarget ).attr('id') + '_ifp';
 			var iframeStyle = ( $( playerTarget ).attr('style') ) ? $( playerTarget ).attr('style') : '';
+			var iframeCss = { 'border': '0px' };
+			var additionalIframeCss = kGetAdditionalTargetCss();
+			
+			$.extend(iframeCss, additionalIframeCss);
 
 			var $iframe = $('<iframe />')
 				.attr({
@@ -544,9 +546,7 @@
 					'width' : $( playerTarget ).width()
 				})
 				.attr('style', iframeStyle)
-				.css({
-					'border': '0px'
-				});
+				.css(iframeCss);
 			
 			// Create the iframe proxy that wraps the actual $iframe
 			// and will be converted into an "iframe" player via jQuery.fn.iFramePlayer call

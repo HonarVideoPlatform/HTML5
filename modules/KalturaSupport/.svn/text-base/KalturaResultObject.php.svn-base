@@ -28,6 +28,9 @@ class KalturaResultObject {
 	private $outputFromCache = false;
 	// local flag to store if the uiconf file was from cache.
 	private $outputUiConfFileFromCache = false;
+
+	// Setup static error messages
+	const NO_ENTRY_ID_FOUND = "No Entry ID was found";
 	
 	/**
 	 * Variables set by the Frame request:
@@ -564,7 +567,7 @@ class KalturaResultObject {
 
 		// Check for error in getting flavor
 		if( isset( $resultObject['flavors']['code'] ) ){
-			switch(  $resultObject['flavors']['code'] ){
+			switch( $resultObject['flavors']['code'] ){
 				case  'ENTRY_ID_NOT_FOUND':
 					$this->error = "Entry Id not found\n";
 				break;
@@ -852,7 +855,6 @@ class KalturaResultObject {
 
 	private function getResultObjectFromApi(){
 		if( $this->isEmptyPlayer() ){
-			$this->error = "No Entry ID was found";
 			return $this->getUiConfResult();
 		} else if( $this->isPlaylist() ){
 			return $this->getPlaylistResult();
@@ -1121,7 +1123,7 @@ class KalturaResultObject {
 	}
 	private function getClient(){
 		global $mwEmbedRoot, $wgKalturaUiConfCacheTime, $wgScriptCacheDirectory, 
-			$wgMwEmbedVersion, $wgKalturaServiceTimeout;
+			$wgMwEmbedVersion, $wgKalturaServiceTimeout, $wgLogApiRequests;
 
 		$cacheDir = $wgScriptCacheDirectory;
 
@@ -1135,6 +1137,11 @@ class KalturaResultObject {
 		$conf->clientTag = $this->clientTag;
 		$conf->curlTimeout = $wgKalturaServiceTimeout;
 		$conf->userAgent = $this->getUserAgent();
+
+		if( $wgLogApiRequests ) {
+			require_once 'KalturaLogger.php';
+			$conf->setLogger( new KalturaLogger() );
+		}
 		
 		$client = new KalturaClient( $conf );
 		if( isset($this->urlParameters['flashvars']['ks']) ) {
@@ -1251,6 +1258,11 @@ class KalturaResultObject {
 
 		// Load the uiConf first so we could setup our player configuration
 		$this->loadUiConf();
+		
+		// check if its an empty player and set the error: 
+		if( $this->isEmptyPlayer() ){
+			$this->error = self::NO_ENTRY_ID_FOUND;
+		}
 
 		// Check if we have a cached result object:
 		if( !$this->resultObj ){
