@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/modules/EmbedPlayer/skins
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.13/modules/EmbedPlayer/skins
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-06-05T08:16:57.286925Z
-7625
+2012-06-10T15:13:53.759960Z
+7636
 hagaio
 
 
@@ -35,10 +35,10 @@ file
 
 
 
-2017-07-03T19:16:16.000000Z
-53698b8cb5de0fc3bffcf81553443b6d
-2012-06-05T08:16:57.286925Z
-7625
+2017-07-03T19:54:59.000000Z
+bc5b80e50e908807e7bb01fc9ab48333
+2012-06-10T15:13:53.759960Z
+7636
 hagaio
 has-props
 
@@ -61,7 +61,7 @@ has-props
 
 
 
-78475
+78939
 
 mw.style.EmbedPlayer.css
 file
@@ -69,10 +69,10 @@ file
 
 
 
-2017-07-03T19:16:16.000000Z
+2017-07-03T19:54:59.000000Z
 1f1ac5f3ad3de6938cc9e9c91371d9e1
-2012-06-05T08:16:57.286925Z
-7625
+2012-06-10T15:13:53.759960Z
+7636
 hagaio
 has-props
 

@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/modules/Conviva
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.13/modules/Conviva
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-06-05T08:16:57.286925Z
-7625
+2012-06-10T15:13:53.759960Z
+7636
 hagaio
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T19:19:14.000000Z
+2017-07-03T19:57:00.000000Z
 4810691dba2a6ec9ac9f029f74b0b5a9
-2012-06-05T08:16:57.286925Z
-7625
+2012-06-10T15:13:53.759960Z
+7636
 hagaio
 has-props
 
@@ -69,10 +69,10 @@ file
 
 
 
-2017-07-03T19:19:14.000000Z
+2017-07-03T19:57:00.000000Z
 d0fad38a312ae94f1936ad0ad612b600
-2012-06-05T08:16:57.286925Z
-7625
+2012-06-10T15:13:53.759960Z
+7636
 hagaio
 
 

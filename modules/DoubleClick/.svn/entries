@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/modules/DoubleClick
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.13/modules/DoubleClick
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-06-05T08:16:57.286925Z
-7625
+2012-06-10T15:13:53.759960Z
+7636
 hagaio
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T19:16:02.000000Z
+2017-07-03T19:54:37.000000Z
 109fcbb6a1a120a8bcb3cc995770d63b
-2012-06-05T08:16:57.286925Z
-7625
+2012-06-10T15:13:53.759960Z
+7636
 hagaio
 has-props
 
@@ -69,10 +69,10 @@ file
 
 
 
-2017-07-03T19:16:02.000000Z
+2017-07-03T19:54:37.000000Z
 e7375d2278059f56462b42a181ca482d
-2012-06-05T08:16:57.286925Z
-7625
+2012-06-10T15:13:53.759960Z
+7636
 hagaio
 has-props
 

@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/libraries/iscroll/src
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.13/libraries/iscroll/src
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-06-05T08:16:57.286925Z
-7625
+2012-06-10T15:13:53.759960Z
+7636
 hagaio
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T19:19:36.000000Z
+2017-07-03T19:57:25.000000Z
 d14a67a62aa4823fcd356f6043ccb330
-2012-06-05T08:16:57.286925Z
-7625
+2012-06-10T15:13:53.759960Z
+7636
 hagaio
 has-props
 
@@ -66,10 +66,10 @@ file
 
 
 
-2017-07-03T19:19:36.000000Z
+2017-07-03T19:57:25.000000Z
 d00243f4372e64a22b1f7dc95ed3d0e5
-2012-06-05T08:16:57.286925Z
-7625
+2012-06-10T15:13:53.759960Z
+7636
 hagaio
 has-props
 
@@ -100,10 +100,10 @@ file
 
 
 
-2017-07-03T19:19:36.000000Z
+2017-07-03T19:57:25.000000Z
 3e8baacb37448a73689228b8d4f78b4a
-2012-06-05T08:16:57.286925Z
-7625
+2012-06-10T15:13:53.759960Z
+7636
 hagaio
 has-props
 
