@@ -38,7 +38,7 @@
 *	'EmbedPlayer.EnableIframeApi' : true
 */
 // The version of this script
-KALTURA_LOADER_VERSION = '1.5.9';
+KALTURA_LOADER_VERSION = '1.5.9a';
 
 if( typeof console != 'undefined' && console.log ) {
 	console.log( 'Kaltura HTML5 Version: ' + KALTURA_LOADER_VERSION );
@@ -183,10 +183,12 @@ function kalturaIframeEmbed( replaceTargetId, kEmbedSettings , options ){
 	if( isHTML5 ){
 		kAddScript( function(){
 			// Options include 'width' and 'height'
-			$j('#' + replaceTargetId ).css({
-				'width': options.width + 'px',
-				'height': options.height + 'px'
-			});
+			var sizeUnit = (typeof options.width == 'string' && options.width.indexOf("px") === -1) ? 'px' : '';
+			var targetSize = {
+				'width': options.width + sizeUnit,
+				'height': options.height + sizeUnit
+			};
+			$j('#' + replaceTargetId ).css(targetSize);
 			// Do kaltura iframe player
 			$j('#' + replaceTargetId ).kalturaIframePlayer( kEmbedSettings );
 		});	

@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.9/modules/Comscore/tests
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.7/modules/MiroSubs/mirosubs/media/js/widgetizer
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-10-24T17:01:42.285552Z
-6728
-rany
+2012-03-19T10:48:02.037253Z
+7353
+aviv
 
 
 
@@ -26,17 +26,17 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-comscore.xml
+extension.js
 file
 
 
 
 
-2017-07-03T22:46:43.000000Z
-1852e4b9b17b38a7e259bdda3ddfba40
-2011-10-24T17:01:42.285552Z
-6728
-rany
+2017-07-03T22:40:21.000000Z
+ac3b027726e22c8bc6a37f3a047aabc5
+2012-03-19T10:48:02.037253Z
+7353
+aviv
 
 
 
@@ -58,19 +58,19 @@ rany
 
 
 
-731
+4868
 
-Comscore.html
+widgetizer.js
 file
 
 
 
 
-2017-07-03T22:46:43.000000Z
-0b61bac0123f6a0cba0e1cba116f8e87
-2011-10-24T17:01:42.285552Z
-6728
-rany
+2017-07-03T22:40:21.000000Z
+a380e5fdb3be0e8bb51e12e2d713425e
+2012-03-19T10:48:02.037253Z
+7353
+aviv
 
 
 
@@ -92,5 +92,39 @@ rany
 
 
 
-1416
+6652
+
+dowidgetize.js
+file
+
+
+
+
+2017-07-03T22:40:21.000000Z
+ac28ce890da4b7654adf56991a83cec9
+2012-03-19T10:48:02.037253Z
+7353
+aviv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+841
 
