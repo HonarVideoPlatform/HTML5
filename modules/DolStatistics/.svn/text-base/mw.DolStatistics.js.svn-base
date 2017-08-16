@@ -14,7 +14,9 @@ mw.DolStatistics.prototype = {
 	// Number of seconds between playhead event dispatches
 	playheadFrequency: 5,
 	playheadInterval: 0,
-
+	
+	duringChangeMediaFlag: false,
+	
 	// Entry duration
 	duration: 0,
 
@@ -52,7 +54,7 @@ mw.DolStatistics.prototype = {
 		// Setup player counter, ( used global, because on change media we re-initialize the plugin and reset all vars )
 		if( typeof $( embedPlayer ).data('DolStatisticsCounter') == 'undefined' ) {
 			if( embedPlayer['data-playerError'] ){
-				$( embedPlayer ).data('DolStatisticsCounter', 0 ) 
+				$( embedPlayer ).data('DolStatisticsCounter', 0 );
 			} else {
 				$( embedPlayer ).data('DolStatisticsCounter', 1 );
 			}
@@ -85,9 +87,21 @@ mw.DolStatistics.prototype = {
 		// On change media remove any existing bindings:
 		embedPlayer.bindHelper( 'onChangeMedia' + _this.bindPostFix, function(){
 			if( ! embedPlayer['data-playerError'] ){
+				_this.duringChangeMediaFlag = true;
 				$embedPlayer.data('DolStatisticsCounter', $embedPlayer.data('DolStatisticsCounter') + 1 );
 			}
 		});
+		// make sure we always fire 100% at end time
+		embedPlayer.bindHelper( 'ended' + _this.bindPostFix, function(){
+			// check if the last cue point was fired: 
+			var dur = Math.round( _this.getDuration() );
+			if( !_this.percentCuePoints[ dur ] ){
+				mw.log("DolStatistics: Used backup 'ended' event");
+				_this.percentCuePoints[ dur ] = false;
+				_this.sendStatsData( 'percentReached', _this.percentCuePointsMap[ currentTime ] );
+			}
+		});
+		
 		// Set the local autoplay flag: 
 		embedPlayer.bindHelper( 'Playlist_PlayClip' + _this.bindPostFix, function(event, clipIndex, autoPlay){
 			$( embedPlayer ).data('playlistAutoPlayFlag',  autoPlay);
@@ -144,7 +158,7 @@ mw.DolStatistics.prototype = {
 		var _this = this;
 		var duration = this.getDuration();
 
-		for( var i=0; i<=100; i=i+10 ) {
+		for( var i=0; i<=100; i =i+10 ) {
 			var cuePoint = Math.round( duration / 100 * i );
 			// if on the last cuePoint subtract 1 second to ensure event, 
 			// ( because of monitor interval checks an end event can be triggered before the 
@@ -228,13 +242,19 @@ mw.DolStatistics.prototype = {
 		if( this.eventsList.indexOf( eventName ) === -1 ) {
 			return ;
 		}
+		// if flagged a change media call disregard everything until changeMedia
+		if( _this.duringChangeMediaFlag && eventName != 'changeMedia' ){
+			return ;
+		}
+		_this.duringChangeMediaFlag = false;
+		
 		
 		// Setup event params
 		var params = {};
 		// App name
 		params['app'] = _this.getConfig('APP') || this.appName;
 		// The asset id: 
-		params['ASSETNAME'] = _this.getConfig('ASSETNAME');
+		params['ASSETNAME'] = _this.getMediaType() + _this.getConfig('ASSETNAME');
 		// Kaltura Event name
 		params['KDPEVNT'] = eventName;
 		// KDP Event Data
@@ -319,6 +339,23 @@ mw.DolStatistics.prototype = {
 				'height' : 0
 			})
 		);
+	},
+	/**
+	 * get a media type string acorrding to dol mapping. 
+	 */
+	getMediaType: function(){
+		// Get the media type: 
+		var mediaType = this.embedPlayer.evaluate('{mediaProxy.entry.mediaType}');
+		switch( mediaType ){
+			case 5:
+				return 'aud';
+			break;
+			case 2:
+				return 'img';
+			break;
+		}
+		// By default return video
+		return 'vid';
 	},
 	getAutoPlayFlag: function(){
 		var embedPlayer = this.embedPlayer;

@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6f/modules/DolStatistics
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6g/modules/DolStatistics
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-18T17:15:19.535554Z
-7349
-rany
+2012-03-28T21:31:21.627895Z
+7402
+mdale
 
 
 
@@ -32,7 +32,7 @@ file
 
 
 
-2017-07-03T22:56:26.000000Z
+2017-07-03T22:59:33.000000Z
 107ed115d928ab536f24570e2aeebe33
 2012-03-18T17:15:19.535554Z
 7349
@@ -69,11 +69,11 @@ file
 
 
 
-2017-07-03T22:56:26.000000Z
-4f83ec65d71bcc9927eb8af029e5f200
-2012-03-18T17:15:19.535554Z
-7349
-rany
+2017-07-03T22:59:33.000000Z
+177b669da16c9c3f952a9189dabdaa9a
+2012-03-28T21:31:21.627895Z
+7402
+mdale
 
 
 
@@ -95,5 +95,5 @@ rany
 
 
 
-11915
+13048
 

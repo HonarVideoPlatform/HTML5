@@ -889,6 +889,8 @@ mw.EmbedPlayerNative = {
 	*/
 	_onplay: function(){
 		mw.log("EmbedPlayerNative:: OnPlay:: propogate:" +  this._propagateEvents + ' paused: ' + this.paused);
+		// make sure the interface reflects the current state:
+		this.playInterfaceUpdate();
 		// Update the interface ( if paused )
 		if( ! this.isFirstEmbedPlay && this._propagateEvents && this.paused ){
 			this.parent_play();
