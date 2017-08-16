@@ -1,27 +1,46 @@
+
+( function( mw, $ ) {
+	
 mw.addResourcePaths({
-	"freeWheelAdMannager": "freeWheelAdMannager.js",
-	"mw.freeWheelController": "mw.freeWheelController.js"
+	"mw.freeWheelController": "mw.freeWheelController.js",
+	"tv.freewheel.SDK" : "freeWheelAdMannager.js"
+		
+});
+// Set the base config:
+mw.setConfig( {
+	'FreeWheel.AdManagerUrl': 'http://adm.fwmrm.net/p/release/latest-JS/adm/prd/AdManager.js'
+} );
+
+mw.addModuleLoader( 'FreeWheel', [
+    'mw.freeWheelController',
+]);
+
+// To support companion ads.
+$( mw ).bind( 'AddIframePlayerMethods', function( event, exportedMethods ){
+	exportedMethods.push( 'setFreeWheelAddCompanions' );
 });
 
-// Check for new Embed Player events: 
-$j( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
+$( mw ).bind( 'AddIframePlayerBindings', function( event, exportedBindings){
+	exportedBindings.push( 'FreeWheel_GetAddCompanions', 'FreeWheel_UpdateCompanion' );
+});
 
-	// Check for KalturaSupport uiConf
-	$j( embedPlayer ).bind( 'KalturaSupport_CheckUiConf', function( event, $uiConf, callback ){
-
-		if( mw.getConfig('TEMP.ForceFreeWheelXML') ){
-			mw.load( [ "AdSupport", "mw.freeWheelController", "freeWheelAdMannager" ], function(){
-				mw.addFreeWheelControler(embedPlayer, $j( mw.getConfig('TEMP.ForceFreeWheelXML') ), callback );
+$( mw ).bind( 'newIframePlayerClientSide', function( event, playerProxy ){
+	$( playerProxy ).bind( 'FreeWheel_GetAddCompanions', function(){
+		var companionSet = [];
+		$('._fwph').each(function(inx, node){
+			companionSet.push( {
+				'id' : $( node ).attr('id'),
+				'val' : $( node ).find( 'input' ).val()
 			});
-		} else {
-			callback();
+		});
+		playerProxy.setFreeWheelAddCompanions( companionSet );
+	});
+	
+	$( playerProxy ).bind( 'FreeWheel_UpdateCompanion', function( event, companion ){
+		if( companion.id && $('#_fw_container_' + companion.id).length ){
+			$('#_fw_container_' + companion.id).html( companion.content );
 		}
-		// Check if the kaltura ad plugin is enabled:
-		/*if( $uiConf.find('Plugin#freewheel').length ){
-			adPlugin( embedPlayer,  $uiConf, callback );
-		} else {
-			// Continue player build out for players without ads
-			callback();
-		}*/
 	});
 });
+
+} )( window.mw, window.jQuery );

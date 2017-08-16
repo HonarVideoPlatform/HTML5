@@ -44,6 +44,8 @@ $wgKalturaUseManifestUrls = true;
 
 $wgAllowRemoteKalturaService = true;
 
+$wgKalturaEnableCuePointsRequest = true;
+
 // Define which modules to load
 $wgMwEmbedEnabledModules = array( 'EmbedPlayer', 'KalturaSupport', 'AdSupport', 'Playlist', 'TimedText', 'FreeWheel' );
 

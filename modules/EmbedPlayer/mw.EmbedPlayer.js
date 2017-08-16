@@ -1065,7 +1065,6 @@ mw.EmbedPlayer.prototype = {
 			// Inherit the playback system of the selected player:
 			this.inheritEmbedPlayer( callback );
 		} else {
-
 			// Show the interface: 
 			this.$interface.find( '.control-bar,.play-btn-large').show();
 		}
@@ -1119,7 +1118,7 @@ mw.EmbedPlayer.prototype = {
 
 			// Run player display with timeout to avoid function stacking
 			setTimeout(function(){
-				_this.showPlayer();			
+				_this.showPlayer();
 				// Run the callback if provided
 				if ( typeof callback == 'function' ){
 					callback();
@@ -1143,8 +1142,7 @@ mw.EmbedPlayer.prototype = {
 			this.inheritEmbedPlayer( function(){
 				// Hide / remove track container
 				_this.$interface.find( '.track' ).remove();
-				// We have to re-bind hoverIntent ( has to happen in this scope
-				// )
+				// We have to re-bind hoverIntent ( has to happen in this scope )
 				if( _this.controls && _this.controlBuilder.isOverlayControls() ){
 					_this.controlBuilder.showControlBar();
 					_this.$interface.hoverIntent({
@@ -1415,18 +1413,15 @@ mw.EmbedPlayer.prototype = {
 		
 		mw.playerManager.playerReady( this );
 		
+		
 		// Right before player autoplay ... check if there are any errors that prevent playback or player:
 		if( this['data-playerError'] ){
 			this.showErrorMsg( this['data-playerError'] );
 			return ;
 		}
-
 		if ( this.autoplay ) {
-			mw.log( 'EmbedPlayer::showPlayer::activating autoplay' );			
-			// Issue a non-blocking play request
-			setTimeout(function(){
-				_this.play();
-			},1);
+			mw.log( 'EmbedPlayer::showPlayer::Do autoPlay' );			
+			_this.play();
 		}
 	},
 	getPlayerInterface: function(){
@@ -2596,11 +2591,12 @@ mw.EmbedPlayer.prototype = {
 				'src' : source.src,
 				'type' : source.type
 			}));
+			mw.log("EmbedPlayer::getCompatibleSource: add " + source.src + ' of type:' + source.type );
 		});
 		var myMediaElement =  new mw.MediaElement( $media.get(0) );
 		var source = myMediaElement.autoSelectSource();
 		if( source ){
-			mw.log("AdTimeline::getCompatibleSource: " + source.getSrc());
+			mw.log("EmbedPlayer::getCompatibleSource: " + source.getSrc());
 			return source.getSrc();
 		}
 		mw.log("Error:: could not find compatible source");

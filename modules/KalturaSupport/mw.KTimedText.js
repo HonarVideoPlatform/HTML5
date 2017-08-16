@@ -12,10 +12,15 @@ mw.KTimedText.prototype = {
 		// Override embedPlayer hasTextTracks: 
 		embedPlayer.hasTextTracks = function(){ return true };				
 		// Set the KTimedText plugin configuration 
-		_this.kVars= kalturaConfig;
+		_this.kVars = kalturaConfig;
+		
+		// Check for kaltura plugin representation of offset:
+		if( _this.kVars.timeOffset ){
+			this.timeOffset = _this.kVars.timeOffset;
+		}
 
 		// Inherit the timed text support via the base TimedText module:
-		var baseTimedText = new mw.TimedText( embedPlayer );
+		var baseTimedText = new mw.TimedText( embedPlayer, kalturaConfig );
 		for( var i in _this ){
 			if( baseTimedText[ i ] ){
 				baseTimedText[ 'parent_' + i] = baseTimedText[i];
@@ -37,7 +42,6 @@ mw.KTimedText.prototype = {
 	 */
 	loadTextSources: function( callback ) {
 		var _this = this;
-		
 		// Check if text sources are already loaded ( not null )
 		if( this.textSources !== null ){
 			callback();

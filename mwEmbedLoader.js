@@ -21,7 +21,7 @@
 *	// Path to kaltura api 
 *	'Kaltura.ServiceBase' : '/api_v3/index.php?service=',
 *
-*	// The CDN url that hosts your assets.
+*	// The CDN url that hosts your assets
 *	'Kaltura.CdnUrl' : 'http://cdn.kaltura.com'
 *
 *	// If the html5 library should be loaded when there are video tags in the page.  
@@ -35,7 +35,7 @@
 *	'EmbedPlayer.EnableIframeApi' : true
 */
 // The version of this script
-KALTURA_LOADER_VERSION = '1.4b16';
+KALTURA_LOADER_VERSION = '1.4b21';
 // Static script loader url: 
 var SCRIPT_LOADER_URL = 'http://www.kaltura.org/apis/html5lib/mwEmbed/ResourceLoader.php';
 var SCRIPT_FORCE_DEBUG = false;
@@ -383,7 +383,7 @@ function kOverideJsFlashEmbed(){
 				}
 
 				// Check if kIsHTML5FallForward
-				if( kIsHTML5FallForward() && kEmbedSettings.uiconf_id ){
+				if( kIsHTML5FallForward() && kEmbedSettings.uiconf_id ){ 
 					doEmbedSettingsWrite( kEmbedSettings, replaceElemIdStr, widthStr,  heightStr);
 				} else {
 					// if its a kaltura player embed restore kdp callback:
@@ -894,7 +894,7 @@ function kGetEntryThumbUrl( entry ){
 // Copied from kalturaSupport loader mw.getKalturaEmbedSettings  
 function kGetKalturaEmbedSettings ( swfUrl, flashvars ){
 	var embedSettings = {};	
-
+	
 	// Convert flashvars if in string format:
 	if( typeof flashvars == 'string' ){
 		flashvars = kFlashVars2Object( flashvars );
@@ -924,7 +924,7 @@ function kGetKalturaEmbedSettings ( swfUrl, flashvars ){
 			case 'entry_id':
 				embedSettings.entry_id = prevUrlPart;
 			break;
-			case 'uiconf_id':
+			case 'uiconf_id': case 'ui_conf_id':
 				embedSettings.uiconf_id = prevUrlPart;
 			break;
 			case 'cache_st':

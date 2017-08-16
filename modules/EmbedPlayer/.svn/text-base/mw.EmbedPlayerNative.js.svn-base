@@ -201,20 +201,19 @@ mw.EmbedPlayerNative = {
 				pWidth = this.$interface.width();
 				pHeight =  parseInt( vid.videoHeight / vid.videoWidth * pWidth );
 			}
-			mw.log( 'left:' + ( ( $j( this ).width() - pWidth ) * .5 ) + ' this width:' +  $j( this ).width() );
+			mw.log( 'EmbedPlayerNative: applyIntrinsicAspect:: left:' + ( ( $j( this ).width() - pWidth ) * .5 ) + ' this width:' +  $j( this ).width() );
 			// see if we need to leave room for controls: 
 			var controlBarOffset = 0;
 			if( ! this.controlBuilder.isOverlayControls() ){
 				controlBarOffset = this.controlBuilder.height;
 			}
-			
 			$j( vid ).css({
 				'height' : pHeight + 'px',
 				'width':  pWidth + 'px',
 				'left': ( ( this.$interface.width() - pWidth ) * .5 ) + 'px',
-				'top': ( ( this.$interface.height() - controlBarOffset - pHeight ) * .5 ) + 'px',
-				'position' : 'absolute'
+				'top': ( ( this.$interface.height() - controlBarOffset - pHeight ) * .5 ) + 'px'
 			});
+			
 		}
 	},
 	
@@ -437,6 +436,16 @@ mw.EmbedPlayerNative = {
 	switchPlaySrc: function( src, switchCallback, doneCallback ){
 		var _this = this;
 		mw.log( 'EmbedPlayerNative:: switchPlaySrc:' + src + ' native time: ' + this.getPlayerElement().currentTime );
+		if( !src ){
+			if( switchCallback ){
+				switchCallback();
+			}
+			setTimeout(function(){
+				if( doneCallback )
+					doneCallback();
+			},100);
+			return ;
+		}
 		// Update some parent embedPlayer vars: 
 		this.duration = 0;
 		this.currentTime = 0;
@@ -444,7 +453,7 @@ mw.EmbedPlayerNative = {
 		var vid = this.getPlayerElement();		
 		if ( vid ) {
 			try {
-				// issue a play request on the source
+				// Issue a play request on the source
 				vid.play();
 				setTimeout(function(){
 					// Remove all native player bindings
@@ -463,7 +472,7 @@ mw.EmbedPlayerNative = {
 						}
 						vid.src = src;
 						// Give iOS 50ms to figure out the src got updated ( iPad OS 4.0 )
-						setTimeout(function() {
+						setTimeout( function() {
 							var vid = _this.getPlayerElement();
 							if (!vid){
 								mw.log( 'Error: switchPlaySrc no vid');
@@ -475,10 +484,10 @@ mw.EmbedPlayerNative = {
 							// for the switchCallback
 							setTimeout(function() {
 								var vid = _this.getPlayerElement();			
-								// restore controls 
+								// Restore controls 
 								vid.controls = orginalControlsState;
 								// add the end binding: 
-								$j(vid).bind('ended', function( event ) {
+								$j( vid ).bind( 'ended', function( event ) {
 									if(typeof doneCallback == 'function' ){
 										doneCallback();
 									}
@@ -494,7 +503,7 @@ mw.EmbedPlayerNative = {
 						// Null the src and wait 50ms ( helps unload video without crashing
 						// google chrome 7.x )
 						vid.src = '';
-						setTimeout(updateSrcAndPlay, 100);
+						setTimeout( updateSrcAndPlay, 100);
 					} else {
 						updateSrcAndPlay();
 					}
@@ -504,7 +513,24 @@ mw.EmbedPlayerNative = {
 			}
 		}
 	},
-	
+	/** if html5 implementation did not suck we could use the following code: */
+	/*switchPlaySrc: function( src, switchCallback, doneCallback ){
+		var vid = this.getPlayerElement();
+		
+		$j(vid).unbind();
+		
+		$j( vid ).bind( 'ended', function( event ) {
+			if( doneCallback ){
+				doneCallback();
+			}
+			return false;
+		});
+		if ( switchCallback ) {
+			switchCallback( vid );
+		}
+		vid.src = src;
+		vid.play();
+	},*/
 	/**
 	* Pause the video playback
 	* calls parent_pause to update the interface
@@ -538,9 +564,16 @@ mw.EmbedPlayerNative = {
 	/**
 	 * Stop the player ( end all listeners )
 	 */
-	stop:function(){
+	stop: function(){
+		var _this = this;
 		if( this.playerElement ){
-			$j( this.playerElement ).unbind();
+			this.stopEventPropagation();
+			this.playerElement.currentTime = 0;
+			this.playerElement.pause();
+			// Restore event propagation after stop; 
+			setTimeout( function(){
+				_this.restoreEventPropagation();
+			}, mw.getConfig( 'EmbedPlayer.MonitorRate' ) );
 		}
 		this.parent_stop();
 	},

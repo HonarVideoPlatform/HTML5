@@ -160,14 +160,14 @@ mw.AdTimeline.prototype = {
 			// TODO read the add disable control bar to ad config and check that here. 
 			_this.embedPlayer.disableSeekBar();
 			
-			var restorePlayer = function(){
+			var restorePlayer = function(){ 
 				_this.embedPlayer.restoreEventPropagation();
 				_this.embedPlayer.enableSeekBar();
 				_this.embedPlayer.play();
 			};
 			
-			var showBumper = function() {
-				_this.display('bumper', function() {
+			var showBumper = function() { 
+				_this.display('bumper', function() { 
 					var vid = _this.getNativePlayerElement();
 					// Enable overlays ( for monitor overlay events )
 					_this.adOverlaysEnabled = true;
@@ -184,7 +184,7 @@ mw.AdTimeline.prototype = {
 								},100);
 							}
 						);
-					} else {
+					} else { 
 						restorePlayer();
 					}
 				});
@@ -192,7 +192,7 @@ mw.AdTimeline.prototype = {
 			// Chain display of preroll and then bumper:
 			var prerollsLength = _this.getTimelineTargets('preroll').length;
 			for( var i=0; i < prerollsLength; i++) {
-				if( i == ( prerollsLength - 1 ) ) {
+				if( i == ( prerollsLength - 1 ) ) { 
 					_this.display('preroll', showBumper);
 				} else {
 					_this.display('preroll', function() {
@@ -200,11 +200,15 @@ mw.AdTimeline.prototype = {
 					});
 				}
 			}
-
+			// if no prerolls, restore player
+			if( prerollsLength === 0 ) {
+				restorePlayer();
+				_this.adOverlaysEnabled = true;
+			}
 			// Bind the player "ended" event to play the postroll if present
 			if( _this.getTimelineTargets('postroll').length > 0 ){
 				var displayedPostroll = false;
-				$j( _this.embedPlayer ).bind( 'ended', function(event){				
+				$j( _this.embedPlayer ).bind( 'ended', function(event){
 					if( displayedPostroll ){
 						return ;
 					}
@@ -244,7 +248,7 @@ mw.AdTimeline.prototype = {
 			}
 			
 			// See if we have overlay ads:
-			if( _this.getTimelineTargets('overlay').length > 0 ){
+			if( _this.getTimelineTargets('overlay').length > 0 ){ 
 				var overlayTiming = _this.getTimelineTargets('overlay')[  _this.timelineTargetsIndex[ 'overlay' ] ];
 				var lastPlayEndTime = false;
 				var playedStart = false;
@@ -255,7 +259,7 @@ mw.AdTimeline.prototype = {
 					var time = _this.embedPlayer.currentTime;
 					if( !lastPlayEndTime ){
 						lastPlayEndTime = time;
-					}
+					} 
 					if( ( 	
 							( time >= overlayTiming.start && ! playedStart )
 							||
@@ -393,7 +397,7 @@ mw.AdTimeline.prototype = {
 
 		// Check for companion ads:
 		if ( adConf.companions && adConf.companions.length ) {
-			this.displayCompanion(  displayTarget, adConf, timeTargetType);
+			this.displayCompanions(  displayTarget, adConf, timeTargetType);
 		};
 		
 		// Check for nonLinear overlays
@@ -418,6 +422,15 @@ mw.AdTimeline.prototype = {
 	 */
 	displayVideoFile: function( displayTarget, adConf ){
 		var _this = this;
+		
+		// check that we have a video to display: 
+		var targetSrc =  _this.embedPlayer.getCompatibleSource( adConf.videoFiles );
+		if( !targetSrc ){
+			displayTarget.playbackDone();
+			return ;
+		}
+		mw.log("AdTimeline:: adConf.videoFiles: " + targetSrc );
+		
 		if ( adConf.lockUI ) {
 			// TODO lock controls
 			_this.getNativePlayerElement().controls = false;
@@ -436,10 +449,13 @@ mw.AdTimeline.prototype = {
 				return true;							
 			});
 		}
-
+		
 		// Play the source then run the callback
-		_this.embedPlayer.switchPlaySrc( _this.embedPlayer.getCompatibleSource( adConf.videoFiles ), 
+		_this.embedPlayer.switchPlaySrc( targetSrc, 
 			function(vid) {
+				if( !vid ){
+					return ;
+				}
 				mw.log("AdTimeline:: source updated, add tracking");
 				// Bind all the tracking events ( currently vast based but will abstract if needed ) 
 				if( adConf.trackingEvents ){
@@ -508,44 +524,66 @@ mw.AdTimeline.prototype = {
 		);
 	},
 	/**
-	 * Display a companion add
+	 * Display companion ads
 	 * @param displayTarget
 	 * @param adConf
 	 * @return
 	 */
-	displayCompanion:  function( displayTarget, adConf, timeTargetType ){
+	displayCompanions:  function( displayTarget, adConf, timeTargetType ){
 		var _this = this;
-		var companionConf = this.selectFromArray( adConf.companions );
-		mw.log("AdTimeline::selectCompanion: " + companionConf.html );
+		mw.log("AdTimeline::displayCompanions: " + timeTargetType );
 		// NOTE:: is not clear from the ui conf response if multiple
 		// targets need to be supported, and how you would do that
-		var ctargets = this.getTimelineTargets( timeTargetType ).companionTargets;
-		if( ! ctargets || !ctargets.length ){
+		var timelineTarget = this.getTimelineTargets( timeTargetType )[ _this.timelineTargetsIndex[ timeTargetType ] ];;
+		var companionTargets = timelineTarget.companionTargets;
+		// Make sure we have some companion targets:
+		if( ! companionTargets || !companionTargets.length ){
 			return ;
 		}
-		var companionTarget = ctargets[ Math.floor(Math.random() * ctargets.length) ];
-		
-		
-		if( companionTarget.elementid ){
-			var originalCompanionHtml = $j('#' + companionTarget.elementid ).html();
-
-			// Display the companion:
-			$j( '#' + companionTarget.elementid ).html( companionConf.html );
-			
-			// Display the companion across the iframe client ( if setup );
-			var companionObject = {
-				'elementid' : companionTarget.elementid,
-				'html' : companionConf.html
-			};
-			$j( _this.embedPlayer ).trigger( 'updateCompanionTarget', [ companionObject ] );
-			
-			// Once display is over restore the original companion html
-			displayTarget.doneFunctions.push(function(){
-				$j( '#' + companionTarget.elementid ).html( originalCompanionHtml );
+		// Store filledCompanion ids
+		var filledCompanions = {};
+		// Go though all the companions see if there are good companionTargets
+		$j.each( adConf.companions, function( inx, companion ){			
+			// Check for matching size: 
+			// TODO we should check for multiple matching size companions 
+			// ( although VAST should only return one of matching type )
+			$j.each( companionTargets, function( cInx, companionTarget){
+				if( companionTarget.width ==  companion.width && 
+						companionTarget.height == companion.height )
+				{			
+					if( !filledCompanions[ companionTarget.elementid ]){
+						_this.displayCompanion( displayTarget, companionTarget, companion);
+						filledCompanions[ companionTarget.elementid ] = true;
+					}
+				}
 			});
-		} else {
-			mw.log( "AdTimeline: possible error no elementid in companionTarget");
-		}	
+		});
+	},
+	displayCompanion: function( displayTarget, companionTarget, companion ){
+		var _this = this;
+		var originalCompanionHtml = $j('#' + companionTarget.elementid ).html();
+		// Display the companion if local to the page target:
+		if( $j( '#' + companionTarget.elementid ).length ){
+			$j( '#' + companionTarget.elementid ).html( companion.html );
+		}
+		
+		// Display the companion across the iframe client
+		var companionObject = {
+			'elementid' : companionTarget.elementid,
+			'html' : companion.html
+		};
+		$j( _this.embedPlayer ).trigger( 'AdSupport_UpdateCompanion', [ companionObject ] );
+		
+		// Once display is over restore the original companion html
+		displayTarget.doneFunctions.push( function(){
+			// Do not restore content This should be configurable. 
+			/*
+			if( originalCompanionHtml ){
+				$j( '#' + companionTarget.elementid ).html( originalCompanionHtml );
+			}
+			$j( _this.embedPlayer ).trigger( 'AdSupport_RestoreCompanion', companionTarget.elementid );
+			*/
+		});
 	},
 	/**
 	 * Display a nonLinier add ( like a banner overlay )

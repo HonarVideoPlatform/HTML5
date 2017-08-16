@@ -26,9 +26,9 @@ mw.KWidgetSupport.prototype = {
 			$j( embedPlayer ).bind( 'checkPlayerSourcesEvent', function( event, callback ) {
 				_this.loadAndUpdatePlayerData( embedPlayer, callback );
 			});
-			// Add kaltura iframe share support:
+			// Add Kaltura iframe share support:
 			$j( embedPlayer ).bind( 'GetShareIframeSrc', function(event, callback){
-				callback( mw.getConfig('Kaltura.ServiceUrl') + '/p/' + _this.kClient.getPartnerId() +
+				callback( mw.getConfig( 'Kaltura.ServiceUrl' ) + '/p/' + _this.kClient.getPartnerId() +
 						'/embedIframe/entry_id/' + embedPlayer.kentryid +
 						'/uiconf_id/' + embedPlayer.kuiconfid );
 			});
@@ -78,7 +78,7 @@ mw.KWidgetSupport.prototype = {
 		if( playerData.accessControl ){
 			var acStatus = _this.getAccessControlStatus( playerData.accessControl );
 			if( acStatus !== true ){
-				$j('.loadingSpinner').remove();
+				$j( '.loadingSpinner' ).remove();
 				embedPlayer.showErrorMsg( acStatus );
 				return ;
 			}
@@ -142,16 +142,18 @@ mw.KWidgetSupport.prototype = {
 			playerData.entryCuePoints = mw.getConfig( 'Kaltura.TempCuePoints' );
 		}
 		// End Remove
+		
 		if( playerData.entryCuePoints ) {
 			mw.log( "KCuePoints:: Add CuePoints to embedPlayer");
 			embedPlayer.entryCuePoints = playerData.entryCuePoints;
 			new mw.KCuePoints( embedPlayer );
 
 			// Allow other plugins to subscribe to cuePoint ready event:
-			$( embedPlayer ).trigger( 'KalturaSupport_CuePointsReady', embedPlayer.entryCuePoints );
+			$j( embedPlayer ).trigger( 'KalturaSupport_CuePointsReady', embedPlayer.entryCuePoints );
 		}
 
 		if( embedPlayer.$uiConf ){
+			_this.baseUiConfChecks( embedPlayer );
 			// Trigger the check kaltura uiConf event					
 			$j( embedPlayer ).triggerQueueCallback( 'KalturaSupport_CheckUiConf', embedPlayer.$uiConf, function(){	
 				mw.log("KWidgetSupport::KalturaSupport_CheckUiConf callback");
@@ -163,9 +165,19 @@ mw.KWidgetSupport.prototype = {
 		}
 	},
 	/**
+	 * Run base ui conf / flashvars checks
+	 * @param embedPlayer
+	 * @return
+	 */
+	baseUiConfChecks: function( embedPlayer ){
+		// Check for autoplay:
+		var autoPlay = this.getPluginConfig( embedPlayer, embedPlayer.$uiConf, '', 'autoPlay');
+		if( autoPlay ){
+			embedPlayer.autoplay = true;
+		}
+	},
+	/**
 	 * Check for xml config, let flashvars override  
-	 * @param {Object} $uiConf jQuery object xml to look for plugin attributes
-	 * @param {Object} $uiConf jQuery object xml to look for plugin attributes
 	 */
 	getPluginConfig: function( embedPlayer, $uiConf, pluginName, attr ){
 		var singleAttrName = false;
@@ -173,10 +185,37 @@ mw.KWidgetSupport.prototype = {
 			singleAttrName = attr;
 			attr = $j.makeArray( attr );
 		}
+		// If we have the "plugin" enabled check also check for "disableHTML5"
+		if( $j.inArray( 'plugin', attr ) != -1 ){
+			attr.push( "disableHTML5" );
+		}
+		
 
 		var config = {};
-		var $plugin = $uiConf.find( 'plugin#' + pluginName );
-		var $uiPluginVars = $uiConf.find( 'var[key^="' + pluginName + '"]' );
+		var $plugin = [];
+		var $uiPluginVars = [];
+		
+		if( pluginName ){ 
+			$plugin = $uiConf.find( 'plugin#' + pluginName );
+			// When defined from uiConf ( "plugin" tag is equivalent to "pluginName.plugin = true" in the uiVars )
+			if( $plugin.length && $j.inArray( 'plugin', attr ) != -1 ){ 
+				config['plugin'] = true;
+			}
+			$uiPluginVars = $uiConf.find( 'var[key^="' + pluginName + '"]' );
+		} else {
+			// When pluginName is empty we still need to check for config in the ui Plugin Vars section
+			var uiPluginVarsSelect = '';
+			// pre-build out $uiPluginVars list
+			var coma = '';
+			$j.each( attr, function(inx, attrName ){
+				uiPluginVarsSelect+= coma + 'var[key="' + attrName + '"]';
+				coma = ',';
+			});
+			if( uiPluginVarsSelect ){
+				$uiPluginVars = $uiConf.find( uiPluginVarsSelect );
+			}
+		}		
+		
 		// @@TODO the iframe really should apply the "data" instead of this hacky merge here:
 		var fv = mw.getConfig( 'KalturaSupport.IFramePresetFlashvars' );
 		// Check for embedPlayer flashvars ( will overwrite iframe values if present )
@@ -184,21 +223,24 @@ mw.KWidgetSupport.prototype = {
 			fv = $j( embedPlayer ).data('flashvars' );
 		}
 		$j.each( attr, function(inx, attrName ){
-			if( $plugin.attr( attrName ) ){
-				config[attrName] = $plugin.attr( attrName );
-			}
-			// XML sometimes comes in all lower case
-			if( $plugin.attr( attrName.toLowerCase() ) ){
-				config[attrName] = $plugin.attr( attrName.toLowerCase() );
+			if( $plugin.length ){
+				if( $plugin.attr( attrName ) ){
+					config[ attrName ] = $plugin.attr( attrName );
+				}
+				// XML sometimes comes in all lower case
+				if( $plugin.attr( attrName.toLowerCase() ) ){
+					config[ attrName ] = $plugin.attr( attrName.toLowerCase() );
+				}
 			}
 			
 			// Check flashvars overrides
-			if( fv[ pluginName + '.' + attrName ] ){
-				config[ attrName ] = fv[ pluginName + '.' + attrName ];
+			var pluginPrefix = ( pluginName )? pluginName + '.': '';
+			if( fv[ pluginPrefix + attrName ] ){
+				config[ attrName ] = fv[ pluginPrefix + attrName ];
 			}
 			// Check for "flat plugin vars" stored at the end of the uiConf ( instead of as attributes )"
 			$uiPluginVars.each( function(inx, node){
-				if( $j( node ).attr('key') == pluginName + '.' + attrName ){
+				if( $j( node ).attr('key') == pluginPrefix + attrName ){
 					if( $j(node).attr('overrideflashvar') != "false" || ! config[attrName] ){
 						config[attrName] = $j(node).get(0).getAttribute('value');
 					}
@@ -206,6 +248,7 @@ mw.KWidgetSupport.prototype = {
 					return false;
 				}
 			});
+			
 		
 			// Convert string to boolean 
 			if( config[ attrName ] === "true" )
@@ -213,6 +256,13 @@ mw.KWidgetSupport.prototype = {
 			if( config[ attrName ] === "false" )
 				config[ attrName ] = false; 
 		});
+		
+		// Check if disableHTML5 was "true" and return false for the plugin config ( since we are the html5 library ) 
+		if( config['disableHTML5'] == true && config['plugin'] ){
+			config['plugin'] = false;
+		}
+		
+		
 		if( singleAttrName != false ){
 			return config[ singleAttrName ];
 		} else {
