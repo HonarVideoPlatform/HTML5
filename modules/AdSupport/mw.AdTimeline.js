@@ -166,15 +166,15 @@ mw.AdTimeline.prototype = {
 				_this.embedPlayer.play();
 			};
 			
-			var showBumper = function() { 
-				_this.display('bumper', function() { 
+			var showBumper = function() {
+				_this.display( 'bumper', function() { 
 					var vid = _this.getNativePlayerElement();
 					// Enable overlays ( for monitor overlay events )
 					_this.adOverlaysEnabled = true;
 					// Check if the src does not match original src if
 					// so switch back and restore original bindings
 					if ( _this.originalSrc != vid.src ) {
-						_this.embedPlayer.switchPlaySrc(_this.originalSrc,
+						_this.embedPlayer.switchPlaySrc( _this.originalSrc,
 							function() {
 								mw.log( "AdTimeline:: restored original src:" + vid.src);
 								// Restore embedPlayer native bindings
@@ -193,17 +193,21 @@ mw.AdTimeline.prototype = {
 			var prerollsLength = _this.getTimelineTargets('preroll').length;
 			for( var i=0; i < prerollsLength; i++) {
 				if( i == ( prerollsLength - 1 ) ) { 
-					_this.display('preroll', showBumper);
+					_this.display('preroll', function() {
+						// After preroll had ended we like to increase the index
+						// So when we have preroll from cue points, we will show that correct one
+						_this.timelineTargetsIndex[ 'preroll' ]++;
+						showBumper();
+					});
 				} else {
 					_this.display('preroll', function() {
 						_this.timelineTargetsIndex['preroll']++;
 					});
 				}
 			}
-			// if no prerolls, restore player
+			// if no prerolls, show bumper
 			if( prerollsLength === 0 ) {
-				restorePlayer();
-				_this.adOverlaysEnabled = true;
+				showBumper();
 			}
 			// Bind the player "ended" event to play the postroll if present
 			if( _this.getTimelineTargets('postroll').length > 0 ){
@@ -226,9 +230,12 @@ mw.AdTimeline.prototype = {
 							mw.log('Done with postroll ad, trigger normal ended');
 							_this.embedPlayer.enableSeekBar();
 							_this.embedPlayer.restoreEventPropagation();
-							// Run stop for now. 
-							_this.embedPlayer.stop();
-							mw.log( " run video pause ");
+							// Run stop for now.
+							setTimeout( function() {
+								_this.embedPlayer.stop();
+							}, 100);
+							
+							mw.log( "AdTimeline:: run video pause ");
 							if( vid && vid.pause ){
 								// Pause playback state
 								vid.pause();							
@@ -316,7 +323,7 @@ mw.AdTimeline.prototype = {
 		}
 		
 		var displayTarget =  this.getTimelineTargets( timeTargetType )[ _this.timelineTargetsIndex[ timeTargetType ] ];
-
+		
 		// If the current ad type is already being displayed don't do anything
 		if( displayTarget.currentlyDisplayed === true ){
 			return ;
@@ -432,8 +439,7 @@ mw.AdTimeline.prototype = {
 		mw.log("AdTimeline:: adConf.videoFiles: " + targetSrc );
 		
 		if ( adConf.lockUI ) {
-			// TODO lock controls
-			_this.getNativePlayerElement().controls = false;
+			_this.embedPlayer.disableSeekBar();
 		};						
 		
 		// Check for click binding 

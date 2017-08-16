@@ -14,10 +14,10 @@ $kConf = new kConf();
 $wgKalturaVersion = basename(getcwd()); // Gets the version by the folder name
 
 // The default Kaltura service url:
-$wgKalturaServiceUrl = 'http://' . $kConf->get('www_host');
+$wgKalturaServiceUrl = $wgHTTPProtocol . '://' . $kConf->get('www_host');
 
 // Default Kaltura CDN url:
-$wgKalturaCDNUrl = 'http://' . $kConf->get('cdn_host');
+$wgKalturaCDNUrl = $wgHTTPProtocol. '://' . $kConf->get('cdn_host_https');
 
 // Default Kaltura service url:
 $wgKalturaServiceBase = '/api_v3/index.php?service=';

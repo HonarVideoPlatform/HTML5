@@ -1303,7 +1303,7 @@ class simpleFileCache {
 
 		// Suppress error so javascript can format it
 		if ( @wfMkdirParents( $mydir1 ) === false || @wfMkdirParents( $mydir2 ) === false ) {
-			return 'Could not create cache directory. Check your cache directory permissions?' . $mydir1 . ' - ' . $mydir2;
+			return 'Could not create cache directory. Check your cache directory permissions?';
 		} else {
 			return true;
 		}

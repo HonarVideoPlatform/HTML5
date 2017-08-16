@@ -47,7 +47,7 @@ mw.KWidgetSupport.prototype = {
 										? 'horizontal' : 'vertical';
 						$j( '#' + widgetTarget.id ).playlist({
 							'layout': layout,
-							'titleHeight' : 0 // kaltura playlist don't include the title ontop of the video
+							'titleHeight' : 0 // Kaltura playlist don't include the title ontop of the video
 						}); 
 						callback();
 					});
@@ -62,9 +62,6 @@ mw.KWidgetSupport.prototype = {
 				break;
 			}
 		});
-		/*
-		
-		*/
 	},
 	getWidgetType: function( uiConf ){
 		var $uiConf = $j( uiConf );
@@ -154,17 +151,35 @@ mw.KWidgetSupport.prototype = {
 			}
 		}
 
-		// Add kaltura analytics if we have a session if we have a client ( set in loadPlayerData )
+		// Add Kaltura analytics if we have a session if we have a client ( set in loadPlayerData )
 		if( mw.getConfig( 'Kaltura.EnableAnalytics' ) === true && _this.kClient ) {
 			mw.addKAnalytics( embedPlayer, _this.kClient );
 		}
-		
 		// Apply player Sources
 		if( playerData.flavors ){
 			_this.addFlavorSources( embedPlayer, playerData.flavors );
 		}
-		mw.log("KWidgetSupport:: check for meta:");
 		
+		// Check for "image" mediaType ( 2 ) 
+		if( playerData.meta && playerData.meta.mediaType == 2 ){ 
+			mw.log( 'KWidgetSupport:: add image Source:: ( use poster getter ) ' );
+			embedPlayer.mediaElement.tryAddSource(
+				$j('<source />')
+				.attr( {
+					'src' : mw.getKalturaThumbUrl({
+						'partner_id' : this.kClient.getPartnerId(),
+						'entry_id' : embedPlayer.kentryid,
+						'width' : embedPlayer.getWidth(),
+						'height' :  embedPlayer.getHeight()
+					}),
+					'type' : 'image/jpeg'
+				} )
+				.get( 0 )
+			);
+		}
+		
+		mw.log("KWidgetSupport:: check for meta:");
+
 		// Add any custom metadata:
 		if( playerData.entryMeta ){
 			embedPlayer.kalturaEntryMetaData = playerData.entryMeta;
@@ -185,7 +200,7 @@ mw.KWidgetSupport.prototype = {
 		// End Remove
 		
 		if( playerData.entryCuePoints ) {
-			mw.log( "KCuePoints:: Add CuePoints to embedPlayer");
+			mw.log( "KCuePoints:: Added " + playerData.entryCuePoints.length + " CuePoints to embedPlayer");
 			embedPlayer.entryCuePoints = playerData.entryCuePoints;
 			new mw.KCuePoints( embedPlayer );
 
@@ -467,6 +482,7 @@ mw.KWidgetSupport.prototype = {
 	addFlavorSources: function( embedPlayer, flavorData ) {
 		var _this = this;
 		mw.log( 'KWidgetSupport::addEntryIdSources:');
+
 		// Set the poster ( if not already set ) 
 		if( !embedPlayer.poster && embedPlayer.kentryid ){
 			embedPlayer.poster = mw.getKalturaThumbUrl({
@@ -474,7 +490,7 @@ mw.KWidgetSupport.prototype = {
 				'entry_id' : embedPlayer.kentryid,
 				'width' : embedPlayer.getWidth(),
 				'height' :  embedPlayer.getHeight()
-			});			
+			});
 		}
 		
 		var deviceSources = {};
@@ -550,7 +566,6 @@ mw.KWidgetSupport.prototype = {
 			if( mw.getConfig( 'Kaltura.UseManifestUrls' ) ){
 
 				var src  = flavorUrl + '/entryId/' + asset.entryId;
-
 				// Check if Apple http streaming is enabled and the tags include applembr
 				if( asset.tags.indexOf('applembr') != -1 ) {
 					src += '/format/applehttp/protocol/http';
@@ -704,18 +719,6 @@ mw.KWidgetSupport.prototype = {
 		}
 		
 		return sources;
-	},
-
-	getPlayerMode: function( $uiConf ) {
-		// Set default mode to empty
-		var mode = 'empty';
-
-		// Check if we have playlist plugin
-		if( this.getPluginConfig( false, $uiConf, 'playlistAPI', 'plugin') ) {
-			mode = 'playlist';
-		}
-		console.log(mode);
-		return mode;
 	}
 };
 
@@ -729,10 +732,4 @@ if( !window.kWidgetSupport ){
  */
 mw.getEntryIdSourcesFromApi = function( widgetId, entryId, callback ){
 	kWidgetSupport.getEntryIdSourcesFromApi( widgetId, entryId, callback);
-};
-/**
- * Register a global shortcuts for getting Player mode by uiConf
- */
-mw.getPlayerMode = function( $uiConf ) {
-	kWidgetSupport.getPlayerMode( $uiConf );
 };

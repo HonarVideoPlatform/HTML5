@@ -15,6 +15,7 @@
 		'Kaltura.ServiceUrl' : 'http://www.kaltura.com',
 		'Kaltura.ServiceBase' : '/api_v3/index.php?service=',
 		'Kaltura.CdnUrl' : 'http://cdn.kaltura.com',
+		'Kaltura.NoApiCache' : false, // By default tell the client to cache results
 		// A video file for when no suitable flavor can be found
 		'Kaltura.MissingFlavorSources' : [
 		    { 
@@ -426,6 +427,10 @@
 				// Add debug flag if set: 
 				if( mw.getConfig( 'debug' ) ){
 					iframeRequest+= '&debug=true';
+				}
+				// Add no cache flag if set:
+				if( mw.getConfig('Kaltura.NoApiCache') ) {
+					iframeRequest+= '&nocache=true';
 				}
 				// Add the flashvars to the request:
 				if( iframeParams['flashvars'] ){

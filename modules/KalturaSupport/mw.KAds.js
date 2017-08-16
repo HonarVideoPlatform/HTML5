@@ -76,7 +76,7 @@ mw.KAds.prototype = {
 
 				var adCuePointConf = {
 					duration: ( (cuePoint.cuePoint.endTime - cuePoint.cuePoint.startTime) / 1000 ),
-					start: ( ( cuePoint.cuePoint.startTime / 1000 ) + 5 )
+					start: ( cuePoint.cuePoint.startTime / 1000  )
 				};
 
 				var adsCuePointConf = {
@@ -92,7 +92,7 @@ mw.KAds.prototype = {
 					}
 				};
 
-				var adType = _this.getAdTypeFromCuePoint(cuePoint);
+				var adType = _this.getAdTypeFromCuePoint( cuePoint );
 
 				// Add the cue point to Ad Timeline
 				mw.addAdToPlayerTimeline( 
@@ -123,13 +123,28 @@ mw.KAds.prototype = {
 							// async for iPhone issues
 							setTimeout(function(){
 								restorePlayer();
-							},100);
+							}, 100 );
 
 							// Sometimes the duration of the video is zero after switching source
 							// So i'm re-setting it to it's old duration
 							_this.embedPlayer.duration = oldDuration;
-							// Seek to where we did the switch
-							_this.embedPlayer.doSeek( seekTime );
+							if( adType == 'postroll' ) {
+								// Run stop for now.
+								setTimeout( function() {
+									_this.embedPlayer.stop();
+								}, 100);
+
+								mw.log( "AdTimeline:: run video pause ");
+								if( vid && vid.pause ){
+									// Pause playback state
+									vid.pause();
+									// iPhone does not catch synchronous pause
+									setTimeout( function(){ if( vid && vid.pause ){ vid.pause(); } }, 100 );
+								}
+							} else {
+								// Seek to where we did the switch
+								_this.embedPlayer.doSeek( seekTime );
+							}
 						});
 					} else {
 						restorePlayer();
@@ -138,16 +153,21 @@ mw.KAds.prototype = {
 
 				// If out ad is preroll/midroll/postroll, disable the player 
 				if( adType == 'preroll' || adType == 'midroll' || adType == 'postroll' ){
-					// Disable player
-					_this.embedPlayer.stopEventPropagation();
+					//
 					_this.embedPlayer.disableSeekBar();
+
+					// Remove big play button if we have one
+					if( _this.embedPlayer.$interface ){
+						_this.embedPlayer.$interface.find( '.play-btn-large' ).remove();
+					}
 				} else {
 					// in case of overlay do nothing
 					doneCallback = function() {};
 				}
 
 				// Tell the player to show the Ad
-				_this.embedPlayer.adTimeline.display( adType, doneCallback, (cuePoint.cuePoint.duration / 1000) );
+				var adDuration = Math.round(cuePoint.cuePoint.duration / 1000);
+				_this.embedPlayer.adTimeline.display( adType, doneCallback, adDuration );
 			});
 		}
 	},

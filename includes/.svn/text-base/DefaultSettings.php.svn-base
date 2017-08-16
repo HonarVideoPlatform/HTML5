@@ -19,7 +19,7 @@ $wgMwEmbedPathUrl = str_replace(
 );
 
 // The version of the library ( should match the mwEmbedLoader KALTURA_LOADER_VERSION
-$wgMwEmbedVersion = '1.4b7';
+$wgMwEmbedVersion = '1.4b27';
 
 // Url to the resource loader php script: 
 $wgResourceLoaderUrl = $wgMwEmbedPathUrl . 'ResourceLoader.php';
@@ -47,11 +47,14 @@ $wgKalturaRemoteAddressSalt = false;
 // Default debug mode
 $wgEnableScriptDebug = false;
 
+// Default HTTP protocol
+$wgHTTPProtocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] == 'on') ? "https" : "http";
+
 // The default Kaltura service url:
-$wgKalturaServiceUrl = 'http://www.kaltura.com';
+$wgKalturaServiceUrl = $wgHTTPProtocol . '://www.kaltura.com';
 
 // Default Kaltura CDN url: 
-$wgKalturaCDNUrl = 'http://cdnbakmi.kaltura.com';
+$wgKalturaCDNUrl = $wgHTTPProtocol . '://cdnsecakmi.kaltura.com';
 
 // Default Kaltura service url:
 $wgKalturaServiceBase = '/api_v3/index.php?service=';
