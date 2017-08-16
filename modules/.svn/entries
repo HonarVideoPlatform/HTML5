@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6m/modules
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.3/modules/MiroSubs/mirosubs/media/images/prettyPhoto
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-04-29T17:41:14.963732Z
-7492
-mdale
+2012-03-15T21:24:28.458908Z
+7342
+aviv
 
 
 
@@ -26,75 +26,18 @@ mdale
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-DoubleClick
+dark_rounded
 dir
 
-AdSupport
+dark_square
 dir
 
-SmilPlayer
+light_rounded
 dir
 
-InternetArchiveSupport
+light_square
 dir
 
-AddMedia
-dir
-
-EmbedPlayer
-dir
-
-DolStatistics
-dir
-
-Sequencer
-dir
-
-EmbedWizard
-dir
-
-ClipEdit
-dir
-
-NielsenCombined
-dir
-
-MediaWikiSupport
-dir
-
-KalturaSupport
-dir
-
-Playlist
-dir
-
-Omniture
-dir
-
-MiroSubs
-dir
-
-Plymedia
-dir
-
-NielsenVideoCensus
-dir
-
-Conviva
-dir
-
-SyntaxHighlighter
-dir
-
-FreeWheel
-dir
-
-SwarmTransport
-dir
-
-TimedText
-dir
-
-Comscore
+facebook
 dir
 

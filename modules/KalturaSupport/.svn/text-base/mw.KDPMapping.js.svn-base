@@ -621,7 +621,7 @@
 					b( "seeked" );
 					break;
 				case 'playerPlayEnd':
-					b( "postEnded" );
+					b( "onEndedDone" );
 					break;
 				case 'durationChange':
 					b( "durationchange", function(){

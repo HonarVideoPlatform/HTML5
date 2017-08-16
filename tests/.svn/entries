@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6m/tests
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.3/modules/MiroSubs/mirosubs/media/js/statwidget
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-18T17:15:19.535554Z
-7349
-rany
+2012-03-15T21:24:28.458908Z
+7342
+aviv
 
 
 
@@ -26,38 +26,17 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-media
-dir
-
-qunit
-dir
-
-qunit-tests
-dir
-
-selenium
-dir
-
-test_files
-dir
-
-jslib
-dir
-
-selenium_tests
-dir
-
-svn_watcher.sh
+statwidget.js
 file
 
 
 
 
-2017-07-03T19:35:40.000000Z
-3afc239578ac29b1da9da1ad451ec816
-2012-03-18T17:15:19.535554Z
-7349
-rany
+2017-07-03T20:17:55.000000Z
+ebd3b6e772192d47362e075462af52da
+2012-03-15T21:24:28.458908Z
+7342
+aviv
 
 
 
@@ -79,42 +58,5 @@ rany
 
 
 
-2608
-
-README
-file
-
-
-
-
-2017-07-03T19:35:40.000000Z
-1c796ab09a5bb1ff0337b8524f16335b
-2012-03-18T17:15:19.535554Z
-7349
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-153
-
-selenium_framework
-dir
+2190
 

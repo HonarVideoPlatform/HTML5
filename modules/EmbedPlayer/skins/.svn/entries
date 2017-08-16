@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6m/modules/EmbedPlayer/skins
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.7/modules/EmbedPlayer/skins
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-18T17:57:06.538564Z
-7350
-rany
+2012-03-22T12:45:30.453103Z
+7369
+aviv
 
 
 
@@ -35,11 +35,11 @@ file
 
 
 
-2017-07-03T19:36:49.000000Z
-e94988d80bb8462c8269f9a8c07bd1ed
-2012-03-18T17:57:06.538564Z
-7350
-rany
+2017-07-03T22:39:27.000000Z
+bd6b745430e7ae8534536684a16e7c62
+2012-03-22T12:45:30.453103Z
+7369
+aviv
 
 
 
@@ -61,7 +61,7 @@ rany
 
 
 
-75031
+75148
 
 mw.style.EmbedPlayer.css
 file
@@ -69,11 +69,11 @@ file
 
 
 
-2017-07-03T19:36:49.000000Z
+2017-07-03T22:39:27.000000Z
 8262f541ffb421be1c4fb6ff97313c92
-2012-03-18T17:15:19.535554Z
-7349
-rany
+2012-03-19T10:48:02.037253Z
+7353
+aviv
 
 
 

@@ -362,6 +362,10 @@ mw.PlayerControlBuilder.prototype = {
 	*/
 	getPlayButtonPosition: function( size ) {
 		var _this = this;
+		// Set the width to screen's width if in fullscreen
+		if ( this.inFullScreen ) {
+			size.width = screen.width;
+		}
 		// Set the offset depending if controls are hidden or displayed: 
 		var pheight = this.getComponentHeight( 'playButtonLarge' );
 		var topCompoentOffset = ( this.isOverlayControls() ) ? pheight : pheight / 2;
@@ -822,16 +826,16 @@ mw.PlayerControlBuilder.prototype = {
 			// Update player size
 			$( embedPlayer ).css( targetAspectSize );
 			
+			if( embedPlayer.getPlayerElement() ){
+				$( embedPlayer.getPlayerElement() ).css( targetAspectSize );
+			}
+			
 			// Update play button pos
 			$interface.find('.play-btn-large' ).css(  _this.getPlayButtonPosition( buttonScale ) );
 			
 			// if a spinner is displayed re-add to center: 
 			if( $( '#loadingSpinner_' + embedPlayer.id ).length ){
 				embedPlayer.addPlayerSpinner();
-			}
-			
-			if( embedPlayer.getPlayerElement() ){
-				$( embedPlayer.getPlayerElement() ).css( targetAspectSize );
 			}
 			
 			if( callback ){

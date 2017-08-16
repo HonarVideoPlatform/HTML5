@@ -7,7 +7,7 @@
  * DEVID="" USRAGNT="" ASSETID="" playheadFrequency="10" listenTo="mediaReady,percentReached" />
  *
  * */
-( function( mw, $ ) { "use strict";
+( function( mw, $){
 
 mw.addResourcePaths({
 	"mw.DolStatistics": "mw.DolStatistics.js"

@@ -146,7 +146,7 @@ class KalturaResultObject {
 	// we just have to use the 
 	function isEmptyPlayer(){
 		if( !$this->urlParameters['entry_id'] && ! isset( $this->urlParameters['flashvars']['referenceId'] ) && !$this->isJavascriptRewriteObject()
-			&& !$this->isPlaylist() ){
+			&& !$this->isPlaylist() && !$this->isCarousel() ){
 			return true;
 		}
 		return false;
@@ -166,7 +166,7 @@ class KalturaResultObject {
 			return $this->isPlaylist;
 		}
 		// Check if its a playlist url exists ( better check for playlist than playlist id )
-		$this->isPlaylist = !! $this->getPlayerConfig('playlistAPI', 'kpl0Url');
+		$this->isPlaylist = ( !! $this->getPlayerConfig('playlistAPI', 'kpl0Url') && !$this->isCarousel() ) ;
 		return $this->isPlaylist;
 	}
 	function isJavascriptRewriteObject() {

@@ -4,7 +4,7 @@
 	width="100%" height="100" hoverItemName="" styleName="List_background_default" columnWidth="100" 
 	rowHeight="100" columnCount="4" direction="horizontal" dataProvider="{playlistAPI.dataProvider}" itemRenderer="playlistItemRenderer" />
 */
-( function( mw, $ ) {
+( function( mw, $ ) { "use strict";
 	// Bind to new player event
 	$( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
 		embedPlayer.bindHelper( 'KalturaSupport_CheckUiConf', function( event, $uiConf, callback ){
@@ -27,6 +27,8 @@
 		
 		imgMargin: 15,
 		
+		carouselLeft: 30,
+		
         init: function( embedPlayer ) {
             this.embedPlayer = embedPlayer;
             this.addPlayerBindings();
@@ -35,45 +37,25 @@
 		
 		addPlayerBindings: function() {
 			var _this = this;
-            var embedPlayer = this.embedPlayer;
+			var embedPlayer = this.embedPlayer;
 			
+			embedPlayer.unbindHelper( _this.bindPostFix );
+
 			// Add carousel when player is ready
-			embedPlayer.unbindHelper( 'playerReady' + _this.bindPostFix );
 			embedPlayer.bindHelper( 'playerReady' + _this.bindPostFix, function() {
 				_this.addCarousel();
 			} );
 			
 			// Add carousel when pausing
-			embedPlayer.unbindHelper( 'pause' + _this.bindPostFix );
             embedPlayer.bindHelper( 'pause' + _this.bindPostFix, function() {
 				_this.addCarousel();
             } );
 			
 			// Remove carousel when playing
-			embedPlayer.unbindHelper( 'onplay' + _this.bindPostFix );
 			embedPlayer.bindHelper( 'onplay' + _this.bindPostFix, function() {
 				_this.removeAll();
 			} );
-			
-			embedPlayer.unbindHelper( 'onOpenFullScreen' + _this.bindPostFix );
-			embedPlayer.bindHelper( 'onOpenFullScreen' + _this.bindPostFix, function() {
-				_this.removeAll();
-				if ( embedPlayer.paused ) {
-					_this.addCarousel();
-				}
-			} );
-			
-			embedPlayer.unbindHelper( 'onCloseFullScreen' + _this.bindPostFix );
-			embedPlayer.bindHelper( 'onCloseFullScreen' + _this.bindPostFix, function() {
-				_this.removeAll();
-				if ( embedPlayer.paused ) {
-					setTimeout( function() {
-						_this.addCarousel();
-					}, 50 );
-				}
-			} );
-			
-			embedPlayer.unbindHelper( 'onResizePlayer' + _this.bindPostFix );
+
 			embedPlayer.bindHelper( 'onResizePlayer' + _this.bindPostFix, function() {
 				_this.removeAll();
 				if ( embedPlayer.paused ) {
@@ -92,36 +74,13 @@
 				videoName = embedPlayer.kalturaPlayerMetaData.name;
 			}
 			var $titleContainer = $( '<div />' )
-				.addClass( 'carouselVideoTitle' )
-				.css( {
-					'position' : 'absolute',
-					'top' : '0px',
-					'left' : '0px',
-					'width' : '100%',
-					'background' : 'rgba(0, 0, 0, 0.8)',
-					'color' : 'white',
-					'font-size' : 'small',
-					'font-weight' : 'bold',
-					'z-index' : 5
-				} );
+				.addClass( 'carouselVideoTitle' );
 			var $title = $( '<div />' )
 				.text( videoName )
-				.css( {
-					'display' : 'block',
-					'padding' : '10px 10px 10px 20px'
-				} );
+				.addClass( 'carouselVideoTitleText' );
 			var $duration = $( '<div />' )
 				.text( mw.seconds2npt( embedPlayer.duration, false) )
-				.css( {
-					'position' : 'absolute',
-					'top' : '0px',
-					'right' : '0px',
-					'padding' : '2px',
-					'background-color' : '#5A5A5A',
-					'color' : '#D9D9D9',
-					'font-size' : 'smaller',
-					'z-index' : 6
-				} );
+				.addClass( 'carouselTitleDuration' );
 			$titleContainer.append( $title, $duration );
 			// Add the title to the interface
 			embedPlayer.$interface.append( $titleContainer );
@@ -131,42 +90,43 @@
 		// Add the carousel components
         addCarousel: function( visibleThumbnails ) {
 			var _this = this;
-            var embedPlayer = this.embedPlayer;
-			
+			var embedPlayer = this.embedPlayer;
+
 			var maxThumbnails = _this.getMaxThumbnails();
 			visibleThumbnails = ( ( typeof visibleThumbnails ) !== 'undefined' ) ? visibleThumbnails : maxThumbnails;
-			
+
+			// If fixedThumbnails flag is true then try to get number of thumbnails, otherwise default to maximum thumbnails
+			if ( embedPlayer.playerConfig['vars'].fixedThumbnails && embedPlayer.playerConfig['vars'].numOfThumbnails ) {
+				if ( parseInt( embedPlayer.playerConfig['vars'].numOfThumbnails ) <= maxThumbnails ) {
+					visibleThumbnails = parseInt( embedPlayer.playerConfig['vars'].numOfThumbnails );
+					_this.imgMargin = parseInt( ( embedPlayer.$interface.width() - 41 - ( visibleThumbnails * _this.imgWidth ) ) / ( visibleThumbnails + 1 ) );
+					_this.carouselLeft += _this.imgMargin - 10;
+				}
+			}
+
 			// Remove any previous carousel
 			_this.removeCarousel();
-			
+
 			// Get all entries in the playlist
 			var entriesArray = [];
 
 			for ( var playlist_id in embedPlayer.kalturaPlaylistData ) {
 				entriesArray = $.merge( entriesArray, embedPlayer.kalturaPlaylistData[ playlist_id ] );
 			}
-			
+
 			// Carousel Container
 			var $carouselContainer = $( '<div />')
 				.addClass( 'carouselContainer' );
-				
+
 			// Carousel main component
-            var $carousel = $( '<div />' )
+			var $carousel = $( '<div />' )
 				.addClass( 'carousel' )
-                .append( '<ul />' );
-			
+				.append( '<ul />' );
+
 			// When hovering over an entry, display entry name below carousel
 			var $imgTitle = $( '<div />')
 				.addClass( 'carouselImgTitle' )
-				.css( {
-					'position' : 'absolute',
-					'bottom' : embedPlayer.controlBuilder.getHeight() + 10 + 'px',
-					'width' : '100%',
-					'text-align' : 'center',
-					'color' : 'white',
-					'font-size' : 'small',
-					'background' : 'rgba(0, 0, 0, 0.4)'
-				} );
+				.css( 'bottom', embedPlayer.controlBuilder.getHeight() + 10 + 'px' );
 
 			// Iterate over playlist entries and generate thumbnails
 			$.each( entriesArray, function( i, currEntryObj ) {
@@ -179,7 +139,7 @@
 					} )
 					.css( {
 						'margin-right' : _this.imgMargin + 'px',
-						'border' : '1px solid white'
+						'border' : '1px groove white'
 					} )
 					.hover( 
 						function() {
@@ -193,78 +153,69 @@
 					.bind( 'click', function() {
 						$imgTitle.remove();
 						_this.removeCarousel();
+						embedPlayer.bindHelper( 'onChangeMediaDone', function() {
+							embedPlayer.play();
+							embedPlayer.bindHelper( 'playing', function() {
+								embedPlayer.controlBuilder.syncPlayerSize();
+							} );
+						} );
 						embedPlayer.sendNotification( "changeMedia", {'entryId' : currEntryObj.id} ); 
 					} );
 				// Entry duration is overlayed on the thumbnail
 				var $imgOverlay = $( '<span />' )
 					.text( mw.seconds2npt( currEntryObj.duration, false) )
-					.css( { 
-						'position' : 'absolute',
-						'top' : '2px',
-						'left' : '2px',
-						'background' : 'rgba( 0, 0, 0, 0.7 )',
-						'color' : 'white',
-						'padding' : '1px 6px',
-						'font-size' : 'small'
-					} );
-                var $currentEntry = $( '<li />')
+					.addClass( 'carouselImgDuration' ); 
+				var $currentEntry = $( '<li />')
 					.css( 'position', 'relative' )
-                    .append( $img, $imgOverlay )
-                $carousel.find( 'ul' )
-                    .append( $currentEntry );
-            } );
-			
+					.append( $img, $imgOverlay )
+				$carousel.find( 'ul' )
+					.append( $currentEntry );
+			} );
+
 			// Add the carousel main component
 			$carouselContainer.append( $carousel );
-			
+
+			var imagesUrl = window['SCRIPT_LOADER_URL'].replace('ResourceLoader.php','skins/common/images/')
 			// Carousel scroll back 
 			var $prevButton = $( '<img />' )
 				.attr( {
 					'id' : 'prev',
 					'title' : 'Previous',
-					'src' : '../../../skins/common/images/leftarrow-white.png',
+					'src' : imagesUrl + 'leftarrow.png',
 					'width' : '15px'
 				} )
-				.css( { 
-					'display' : 'block',
-					'position' : 'absolute',
-					'left' : '5px'
-				} )
+				.addClass( 'carouselPrevButton' )
 				.hover(
 					function() {
-						$( this ).attr( 'src', '../../../skins/common/images/leftarrow-orange.png' )
+						$( this ).attr( 'src', imagesUrl + 'leftarrow-hover.png' )
 							.css( 'cursor', 'pointer' );
 					},
 					function() {
-						$( this ).attr( 'src', '../../../skins/common/images/leftarrow-white.png' );
+						$( this ).attr( 'src', imagesUrl + 'leftarrow.png' );
 					}
 				);
-					
+
 			// Carousel scroll forward
 			var $nextButton = $( '<img />' )
 				.attr( {
 					'id' : 'next',
 					'title' : 'Next',
-					'src' : '../../../skins/common/images/rightarrow-white.png',
+					'src' : imagesUrl + 'rightarrow.png',
 					'width' : '15px'
 				} )
-				.css( { 
-					'position' : 'absolute',
-					'right' : '6px',
-					'display' : 'block'
-				} )
+				.addClass( 'carouselNextButton' )
 				.hover(
 					function() {
-						$( this ).attr( 'src', '../../../skins/common/images/rightarrow-orange.png' )
+						$( this ).attr( 'src', imagesUrl + 'rightarrow-hover.png' )
 							.css( 'cursor', 'pointer' );
 					},
 					function() {
-						$( this ).attr( 'src', '../../../skins/common/images/rightarrow-white.png' );
+						$( this ).attr( 'src', imagesUrl + 'rightarrow.png' );
 					}
 				);
 					
 			_this.addTitle();
-			
+
 			// iPhone uses native player so the carousel should be drawn below the player and not on top of it. 
 			// In order to avoid resizing the iframe container, only the player is resized
 			if ( mw.isIphone() ) {
@@ -279,31 +230,22 @@
 			if ( !mw.isIphone() ) {
 				$carouselContainer.after( $imgTitle );
 			}
-			// Place the next/previous buttons in the middle of the thumbnails vertically
-			$prevButton.css( 'bottom', parseInt( ( _this.imgHeight / 2 ) ) - parseInt( ( $prevButton.height() / 2 ) ) + 2 + 'px' );
-			$nextButton.css( 'bottom', parseInt( ( _this.imgHeight / 2 ) ) - parseInt( ( $nextButton.height() / 2 ) ) + 2 + 'px' );
 			$carousel.jCarouselLite( {
-				btnNext: "#next",
-				btnPrev: "#prev",
+				btnNext: '#next',
+				btnPrev: '#prev',
 				circular: false,
 				// TODO: make number of visible thumbnails configurable or computed (i.e how many that fit)
 				visible: visibleThumbnails,
 				scroll: 1
 			} );
-			$carouselContainer.css( { 
-				'position' : 'absolute', 
-				'bottom' : ( embedPlayer.controlBuilder.getHeight() + 30 ) + 'px',
-				'width' : '100%',
-				'z-index' : 100
-			} );
+			$carouselContainer.addClass( 'carouselContainer' )
+				.css( 'bottom', embedPlayer.controlBuilder.getHeight() + 30 + 'px' );
 			if ( mw.isIphone() ) {
-				$carouselContainer.css( { 
-					'bottom' : '0px'
-				} );
+				$carouselContainer.css( 'bottom', '0px' );
 			}
-			$carousel.css( {
-				'left' : '30px'
-			} );
+			$carousel.css( 'left', _this.carouselLeft + 'px' );
+			_this.carouselLeft = 30;
+			_this.imgMargin = 15;
 			return true;
         },
 
@@ -387,10 +329,7 @@
 			var embedPlayer = this.embedPlayer;
 			
 			// Available width = (Interface Width) - 30 (Previous/Next arrows)
-			var maxThumbnails = Math.floor( ( embedPlayer.$interface.width() - 30 ) / ( this.imgWidth + this.imgMargin ) );
-			if ( embedPlayer.controlBuilder.inFullScreen ) {
-				maxThumbnails = Math.floor( screen.width / ( this.imgWidth + this.imgMargin ) );
-			}
+			var maxThumbnails = Math.floor( ( embedPlayer.getWidth() - 30 ) / ( this.imgWidth + this.imgMargin ) );
 			
 			return maxThumbnails;
 		}

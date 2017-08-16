@@ -289,6 +289,10 @@ mw.EmbedPlayerNative = {
 		var _this = this;
 		var vid = _this.getPlayerElement();
 		
+		// Update duration
+		if( vid && vid.duration && isFinite( vid.duration ) ){
+			this.duration = vid.duration; 
+		}
 		// Update the bufferedPercent
 		if( vid && vid.buffered && vid.buffered.end && vid.duration ) {
 			try{
@@ -533,7 +537,7 @@ mw.EmbedPlayerNative = {
 					doneCallback();
 				}, mw.getConfig( 'EmbedPlayer.MonitorRate' ));
 			}
-			return ;
+			return;
 		}
 		// Set the poster to a black image
 		// Commented out by Ran: cause the poster to always be black, we already set the poster to black earlier (onChangeMedia)
@@ -543,12 +547,11 @@ mw.EmbedPlayerNative = {
 		mw.log( 'EmbedPlayerNative:: playerSwichSource: ' + src + ' native time: ' + vid.currentTime );
 		
 		// Update some parent embedPlayer vars: 
+		this.duration = 0;
 		this.currentTime = 0;
 		this.previousTime = 0;
-	
 		if ( vid ) {
 			try {
-				_this.hideIpadPlayerOffScreen();
 				// Remove all switch player bindings
 				$( vid ).unbind( switchBindPostfix );
 				vid.pause();
@@ -561,13 +564,15 @@ mw.EmbedPlayerNative = {
 					mw.log( 'Error: EmbedPlayerNative switchPlaySource no vid');
 					return ;
 				}
-
+				_this.hideIpadPlayerOffScreen();
+				// add a loading indicator: 
 				_this.addPlayerSpinner(); 
 				
 				// Do the actual source switch: 
 				vid.src = src;
 				
-				$( vid ).bind( 'playing', function(){
+				$( vid ).bind( 'loadedmetadata' + switchBindPostfix, function(){
+					$( vid ).unbind( 'loadedmetadata' + switchBindPostfix );
 					// restore video position: 
 					_this.restoreIpadPlayerOnScreen();
 					// now hide the spinner
@@ -628,23 +633,22 @@ mw.EmbedPlayerNative = {
 	},
 	hideIpadPlayerOffScreen: function(){
 		var vid = this.getPlayerElement();
-		// move the video offscreen while it switches ( hides quicktime logo only applies to iPad ) 
 		if ( mw.isIpad() ) {
 			$( vid ).css( {
 				'-webkit-transform' : 'translateX(-4048px)',
 				'position' : 'absolute',
 				'left' : '-4048px'
 			} );
-
 		}
 	},
 	restoreIpadPlayerOnScreen: function(){
 		var vid = this.getPlayerElement();
 		if ( mw.isIpad() ) {
 			$( vid ).css( {
-				'-webkit-transform' : 'translateX(0)',
+				'-webkit-transform' : 'translateX(0px)',
 				'left' : '0px'
-			} );		
+			} );
+			this.controlBuilder.syncPlayerSize();
 		}
 	},
 	/**
@@ -708,12 +712,13 @@ mw.EmbedPlayerNative = {
 		if( _this.parent_play() ){
 			this.getPlayerElement();
 			if ( this.playerElement && this.playerElement.play ) {
-				// Dont play if in pauseloading state
+				// Dont play if in pause loading state
 				if( this.isPauseLoading ){
-					this.hideSpinnerOncePlaying()
+					this.playerElement.pause();
+				} else {
+					// issue a play request 
+					this.playerElement.play();
 				}
-				// issue a play request 
-				this.playerElement.play();
 				// re-start the monitor:
 				this.monitor();
 			}
@@ -884,8 +889,6 @@ mw.EmbedPlayerNative = {
 	*/
 	_onplay: function(){
 		mw.log("EmbedPlayerNative:: OnPlay:: propogate:" +  this._propagateEvents + ' paused: ' + this.paused);
-		// make sure the interface reflects the current state:
-		this.playInterfaceUpdate();
 		// Update the interface ( if paused )
 		if( ! this.isFirstEmbedPlay && this._propagateEvents && this.paused ){
 			this.parent_play();
