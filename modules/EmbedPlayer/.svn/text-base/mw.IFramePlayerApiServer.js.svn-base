@@ -35,6 +35,7 @@ mw.IFramePlayerApiServer.prototype = {
 	     'proxyReady',
 	     'playerReady',
 	     'monitorEvent',
+	     'fullScreenStoreVerticalScroll',
 	     'onOpenFullScreen',
 	     'onCloseFullScreen',
 		 'onTouchEnd',
@@ -176,7 +177,6 @@ mw.IFramePlayerApiServer.prototype = {
 	},
 	
 	'postMessage': function( msgObject ){
-		
 		// Check if we have a target player id:
 		if( mw.getConfig('EmbedPlayer.IframeParentPlayerId') ){
 			msgObject.playerId = mw.getConfig('EmbedPlayer.IframeParentPlayerId');

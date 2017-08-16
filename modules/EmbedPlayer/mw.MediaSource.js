@@ -47,6 +47,7 @@ mw.mergeConfig( 'EmbedPlayer.SourceAttributes', [
 	'data-width', // the width of the stream
 	'data-height', // the height of the stream
 	'data-bandwidth', // the overall bitrate of the stream
+	'data-sizebytes', // the size of the stream in bytes
 	'data-framerate', // the framereate of the stream
 	'data-flavorid', // a source flavor id ( useful for targeting devices )
 	
@@ -112,11 +113,11 @@ mw.MediaSource.prototype = {
 		if ( typeof pUrl.query[ 't' ] != 'undefined' ) {
 			this.URLTimeEncoding = true;
 		} else if ( typeof mw.IA != 'undefined' ) {
-			this.URLTimeEncoding = mw.IA.isURLTimeEncoding(this.src);
+			this.URLTimeEncoding = mw.IA.isURLTimeEncoding( this.src );
 		}
-        
+     
 		var sourceAttr = mw.getConfig( 'EmbedPlayer.SourceAttributes' );
-		$.each(sourceAttr, function(inx, attr){
+		$.each( sourceAttr, function( inx, attr ){
 			if ( $( element ).attr( attr ) ) {
 				// strip data- from the attribute name
 				var attrName = ( attr.indexOf('data-') === 0) ? attr.substr(5) : attr
@@ -153,7 +154,7 @@ mw.MediaSource.prototype = {
 		// Conform long form "video/ogg; codecs=theora" based attributes
 		// @@TODO we should support codec in the type arguments
 		if( this.mimeType ){
-			this.mimeType = this.mimeType.split(';')[0];
+			this.mimeType = this.mimeType.split( ';' )[0];
 		}
 
 		// Check for parent elements ( supplies categories in "track" )
@@ -450,6 +451,15 @@ mw.MediaSource.prototype = {
 	getBitrate: function() {
 		if( this.bandwidth ){
 			return this.bandwidth / 1024;
+		}
+		return 0;
+	},
+	/**
+	 * Get the size of the stream in bytes
+	 */
+	getSize: function(){
+		if( this.sizebytes ){
+			return this.sizebytes;
 		}
 		return 0;
 	}

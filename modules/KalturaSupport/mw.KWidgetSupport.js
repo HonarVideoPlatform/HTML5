@@ -214,7 +214,6 @@ mw.KWidgetSupport.prototype = {
 				});
 			}
 		}
-		
 		// Apply player Sources
 		if( playerData.flavors ){
 			_this.addFlavorSources( embedPlayer, playerData.flavors );
@@ -456,6 +455,13 @@ mw.KWidgetSupport.prototype = {
 			if( attr && typeof plugins[ confPrefix ][ attr ] != 'undefined' ){
 				returnConfig[ attr ] = plugins[ confPrefix ][ attr ];
 			}
+            if ( attr && typeof attr == 'object' ) {
+                for ( var currAttr in attr ) {
+                    if ( plugins[ confPrefix ][ attr[ currAttr ] ] ) {
+                        returnConfig[ attr[ currAttr ] ] = plugins[ confPrefix ][ attr[ currAttr ] ];
+                    }
+                }
+            }
 		}
 		if( !confPrefix && attr ){
 			returnConfig[ attr ] = embedPlayer.playerConfig['vars'][attr]
@@ -793,11 +799,10 @@ mw.KWidgetSupport.prototype = {
 		// Add all the sources to the player element: 
 		for( var i=0; i < flavorSources.length; i++) {
 			mw.log( 'KWidgetSupport:: addSource::' + embedPlayer.id + ' : ' +  flavorSources[i].src + ' type: ' +  flavorSources[i].type);
-			embedPlayer.mediaElement.tryAddSource(
-				$('<source />')
+			var sourceElm = $('<source />')
 				.attr( flavorSources[i] )
-				.get( 0 )
-			);
+				.get( 0 );
+			embedPlayer.mediaElement.tryAddSource( sourceElm );
 		}
 	},
 	/** 
@@ -824,7 +829,6 @@ mw.KWidgetSupport.prototype = {
 			mw.log("Error: KWidgetSupport: flavorData is not defined ");
 			return ;
 		}
-		
 		// Remove the ':' from the protocol
 		var protocol = location.protocol.substr(0, location.protocol.length-1); 
 
@@ -848,9 +852,9 @@ mw.KWidgetSupport.prototype = {
 		for( var i = 0 ; i < flavorData.length; i ++ ) {
 			var asset = flavorData[i];
 			var entryId = asset.entryId;
-			
 			// Setup a source object:
 			var source = {
+				'data-sizebytes' : asset.size * 1024,
 				'data-bandwidth' : asset.bitrate * 1024,
 				'data-width' : asset.width,
 				'data-height' : asset.height
@@ -1006,4 +1010,3 @@ mw.getEntryIdSourcesFromApi = function( widgetId, entryId, size, callback ){
 };
 
 })( window.mw, jQuery );
-

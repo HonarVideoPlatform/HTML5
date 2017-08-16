@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.8/modules/TimedText/tests
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4b21/modules/MiroSubs/mirosubs/media/js/widget/translate
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-02-08T21:59:19.048153Z
-7234
-mdale
+2011-08-07T09:17:46.361583Z
+6092
+rany
 
 
 
@@ -26,20 +26,17 @@ mdale
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-media
-dir
-
-InlineTTML.qunit.html
+editabletranslation.js
 file
 
 
 
 
-2017-07-03T22:47:21.000000Z
-130002d04d1a5c65aa9d11b19658aed5
-2012-02-08T21:59:19.048153Z
-7234
-mdale
+2017-07-03T22:45:22.000000Z
+f98a0cbbc7524d636b366e709c58f3ca
+2011-08-07T09:17:46.361583Z
+6092
+rany
 
 
 
@@ -61,19 +58,19 @@ mdale
 
 
 
-2299
+1643
 
-jquery.cookie.js
+translationlist.js
 file
 
 
 
 
-2017-07-03T22:47:21.000000Z
-556584784f11454a6d9875bbda972083
-2012-02-08T21:59:19.048153Z
-7234
-mdale
+2017-07-03T22:45:22.000000Z
+ee2a46eedccd077ce80884ae466bbfc2
+2011-08-07T09:17:46.361583Z
+6092
+rany
 
 
 
@@ -95,19 +92,19 @@ mdale
 
 
 
-1534
+2842
 
-InlineSrt.qunit.html
+translationrightpanel.js
 file
 
 
 
 
-2017-07-03T22:47:21.000000Z
-bdbc15256929f2a41e7ebd8e9395a15b
-2012-02-08T21:59:19.048153Z
-7234
-mdale
+2017-07-03T22:45:22.000000Z
+80b742dd305e7cec59bb819af7ccbf15
+2011-08-07T09:17:46.361583Z
+6092
+rany
 
 
 
@@ -129,5 +126,107 @@ mdale
 
 
 
-6793
+2518
+
+translationpanel.js
+file
+
+
+
+
+2017-07-03T22:45:22.000000Z
+0d5f0f090ee8219dfea0472613daee8b
+2011-08-07T09:17:46.361583Z
+6092
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2752
+
+dialog.js
+file
+
+
+
+
+2017-07-03T22:45:22.000000Z
+74910601d3423643e1e80add8b175ad8
+2011-08-07T09:17:46.361583Z
+6092
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+4324
+
+translationwidget.js
+file
+
+
+
+
+2017-07-03T22:45:22.000000Z
+35efdd9098c48dd85bb332f1dd62afca
+2011-08-07T09:17:46.361583Z
+6092
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2710
 

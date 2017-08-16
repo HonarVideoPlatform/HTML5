@@ -1,4 +1,4 @@
-( function( mw, $ ) {
+( function( mw, $ ) { "use strict";
 	// 	Check for the Title 
 	$( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
 		$( embedPlayer ).bind( 'KalturaSupport_CheckUiConf', function( event, $uiConf, callback ){
@@ -61,27 +61,29 @@
 		}
 		function updatePlayerLayout(){
 			var $vid = $( embedPlayer.getPlayerElement() );
-			var vidHeight;
+			var vidHeight = $vid.height();
 			// Check if we are using flash ( don't move the player element )
 			if( embedPlayer.instanceOf != 'Native' || $vid.length == 0 ){
 				$vid = $();
 				vidHeight = embedPlayer.getHeight();
 			} else {
-				vidHeight = ( $vid.height() - titleScreenHeight );
+				vidHeight = embedPlayer.$interface.height() - titleScreenHeight;
+				if( !embedPlayer.controlBuilder.isOverlayControls() ){
+					vidHeight = vidHeight - embedPlayer.controlBuilder.height; 
+				}
 			}
+			mw.log("TitleLayout:: update height: " + titleScreenHeight );
 			// add space for the title: 
 			$vid
 			.css({
 				'position' : 'absolute',
-				'height' :vidHeight
+				'height' : vidHeight
 			});
 			if( !belowPlayer ){
+				mw.log("TitleLayout:: update top: " + titleScreenHeight );
 				$vid.css( 'top', titleScreenHeight + 'px' );
-				embedPlayer.$interface.find(".play-btn-large").css({
-					'top' : parseInt( ( vidHeight + parseInt( titleScreenHeight ) ) / 2 )  + 'px'
-				});
 			} else {
-				$( embedPlayer ).css('height', vidHeight )
+				// $( embedPlayer ).css('height', vidHeight )
 				embedPlayer.$interface.css( 'height', vidHeight +  embedPlayer.controlBuilder.getHeight() );
 				embedPlayer.$interface.parent().find( '.titleContainer' ).css({
 					'position': 'absolute',

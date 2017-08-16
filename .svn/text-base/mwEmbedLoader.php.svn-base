@@ -6,7 +6,8 @@
 require_once( realpath( dirname( __FILE__ ) ) . '/includes/DefaultSettings.php' );
 
 // Kaltura Comment
-$loaderComment = "/**
+$loaderComment = "'video audio source track'.replace(/\w+/g, function(n){ document.createElement(n); });
+/**
 * Kaltura HTML5 Library v$wgMwEmbedVersion 
 * Library Page http://www.kaltura.org/project/HTML5_Video_Media_JavaScript_Library
 * 
@@ -17,6 +18,7 @@ $loaderComment = "/**
 * http://html5video.org/wiki/Kaltura_HTML5_Release_Notes
 * 
 */\n";
+
 
 // Append ResourceLoder path to loader.js
 $loaderJs = "window['SCRIPT_LOADER_URL'] = '". addslashes( $wgResourceLoaderUrl ) . "';\n";

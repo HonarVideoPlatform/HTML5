@@ -1,7 +1,7 @@
 /*
  * The "kaltura player" embedPlayer interface for fallback h.264 and flv video format support
  */
-( function( mw, $ ) {
+( function( mw, $ ) { "use strict";
 
 // Called from the kdp.swf
 window.jsInterfaceReadyFunc = function() {
@@ -86,7 +86,8 @@ mw.EmbedPlayerKplayer = {
 					width :				'100%',
 					bgcolor :			"#000000",
 					allowNetworking : 	"all",
-					version :			[10,0]
+					version :			[10,0],
+					wmode : 			"opaque"
 				},
 				flashvars
 		)
@@ -405,7 +406,7 @@ mw.EmbedPlayerKplayer = {
 	 * function called by flash applet when download bytes changes
 	 */
 	onBytesDownloadedChange : function(data, id) {
-		mw.log('onBytesDownloadedChange');
+		//mw.log('onBytesDownloadedChange');
 		this.bytesLoaded = data.newValue;
 		this.bufferedPercent = this.bytesLoaded / this.bytesTotal;
 	

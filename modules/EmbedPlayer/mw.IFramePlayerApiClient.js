@@ -3,7 +3,6 @@
 * 
 * Client side ( binds a given iFrames to expose the player api ) 
 */
-
 ( function( mw, $ ) {
 	
 mw.IFramePlayerApiClient = function( iframe, playerProxy ){
@@ -23,6 +22,7 @@ mw.IFramePlayerApiClient.prototype = {
 	// Stores the current playerProxy ( can be updated by user js )
 	'init': function( iframe , playerProxy, options ){
 		mw.log( "mw.IFramePlayerApiClient:: init: " + playerProxy.id );
+
 		this.iframe = iframe;
 		this.playerProxy = playerProxy;
 
@@ -38,6 +38,7 @@ mw.IFramePlayerApiClient.prototype = {
 		
 		// Add bind helper ( for odd jQuery javascript scope issues cases iOS ) 
 		playerProxy.bindHelper = function( bindName, callback ){
+			// this == playerProxy here:
 			$( this ).bind( bindName, callback );
 		}
 	},
@@ -49,7 +50,7 @@ mw.IFramePlayerApiClient.prototype = {
 		if( $( this.iframe ).attr('src') ){
 			 return $( this.iframe ).attr('src')
 		} else {
-			return document.URL;
+			return document.URL.replace(/#.*/, '');
 		}
 	},
 	'addPlayerSendApi': function(){
@@ -94,6 +95,8 @@ mw.IFramePlayerApiClient.prototype = {
 		};
 		var orgStyle = $iframe.attr('style');
 		
+		var orginalViewPortContent =  $('meta[name="viewport"]').attr('content');
+		
 		// Add a local scope variable to register 
 		// local scope fullscreen calls on orientation change
 		// ( without this variable we would call fullscreen on all iframes on 
@@ -102,31 +105,25 @@ mw.IFramePlayerApiClient.prototype = {
 		var verticalScrollPosition = 0;
 		var viewPortTag;
 		
-		/* Un-used for now
-		var disableZoom = function() {
-			viewPortTag = $('head meta[name=viewport]')[0];
-			$('head meta[name=viewport]').remove();
-			$('head').prepend('<meta name="viewport" content="width=device-width, initial-scale=1.0">');
-		};
-
-		var restoreZoom = function() {
-			$('head meta[name=viewport]').remove();
-			$('head').prepend( viewPortTag );
-		};
-		*/
-
+		var storeVerticalScroll = function(){
+			verticalScrollPosition = (document.all ? document.scrollTop : window.pageYOffset);
+		}
 		var scrollToTop = function() {
 			window.scroll(0, 0);
 		};
 
 		var doFullscreen = function(){
-			mw.log("iframeClient:: doFullscreen()");
 			localIframeInFullscreen = true;
 			
-			// Save vertical scroll position and scroll to top
-			verticalScrollPosition = (document.all ? document.scrollTop : window.pageYOffset);
+			mw.log("iframeClient:: doFullscreen> verticalScrollPosition:" + verticalScrollPosition);
 			scrollToTop();
-			
+			/*
+			// make sure the page has a zoom of 1: 
+			if( !$('meta[name="viewport"]').length ){
+				$('head').append( $( '<meta />' ).attr('name', 'viewport') );
+			}
+			$('meta[name="viewport"]').attr('content', 'initial-scale=1;' );
+			*/
 			// iPad 5 supports fixed position in a bad way, use absolute pos for iOS
 			var playerCssPosition = ( mw.isIOS() ) ? 'absolute': 'fixed';
 			// Remove absolute css of the interface parents
@@ -144,8 +141,8 @@ mw.IFramePlayerApiClient.prototype = {
 			
 			// Don't resize bellow original size: 
 			var targetSize = {
-				'width' : $( window ).width(),
-				'height' : $( window ).height()
+				'width' : window.innerWidth,
+				'height' : window.innerHeight
 			};
 			if( targetSize.width < orgSize.width ){
 				targetSize.width = orgSize.width;
@@ -170,15 +167,25 @@ mw.IFramePlayerApiClient.prototype = {
 		}; 
 		
 		var restoreWindowMode = function(){
-			// Scroll back to the previews positon
-			window.scroll(0, verticalScrollPosition);
+			mw.log("iframeClient:: restoreWindowMode> verticalScrollPosition:" + verticalScrollPosition);
 			localIframeInFullscreen = false;
+			/*
+			// Restore document zoom: 
+			if( orginalViewPortContent ){
+				$('meta[name="viewport"]').attr('content', orginalViewPortContent );
+			} else{
+				// Restore user zoom: ( NOTE, there does not appear to be a way to know the 
+				// initial scale, so we just restore to 1 in the absence of explicit viewport tag ) 
+				$('meta[name="viewport"]').attr('content', 'initial-scale=1;');
+			}
+			*/
 			$iframe
 				.css( orgSize )
 				.data(
 					'isFullscreen', false
 				)
 				.attr('style', orgStyle);
+			
 			// restore any parent absolute pos: 
 			$( parentsAbsoluteList ).each( function() {	
 				$( this ).css( 'position', 'absolute' );
@@ -186,11 +193,15 @@ mw.IFramePlayerApiClient.prototype = {
 			$( parentsRelativeList ).each( function() {
 				$( this ).css( 'position', 'relative' );
 			} );
+			
+			// Scroll back to the previews position
+			window.scroll(0, verticalScrollPosition);
 		};
 		
 		// Bind orientation change to resize player ( if fullscreen )
 		$(window).bind( 'orientationchange', function(e){
 			if( localIframeInFullscreen ){
+				//$('meta[name="viewport"]').attr('content', 'initial-scale=1;  maximum-scale=1.0');
 				doFullscreen();
 			}
 		});
@@ -202,6 +213,7 @@ mw.IFramePlayerApiClient.prototype = {
 			}
 		});
 		
+		$( this.playerProxy ).bind( 'fullScreenStoreVerticalScroll', storeVerticalScroll );
 		$( this.playerProxy ).bind( 'onOpenFullScreen', doFullscreen);
 		$( this.playerProxy ).bind( 'onCloseFullScreen', restoreWindowMode);
 		
@@ -307,8 +319,9 @@ mw.IFramePlayerApiClient.prototype = {
 		        v = obj[n];
 		        t = typeof(v);
 		        // skip functions
-		        if( t == 'function' )
+		        if( t == 'function' ){
 		        	return true;
+		        }
 		        if (obj.hasOwnProperty(n)) {
 		            if (t == "string") v = '"' + v + '"'; else if (t == "object" && v !== null) v = _this.stringify(v);
 		            json.push((arr ? "" : '"' + n + '":') + String(v));

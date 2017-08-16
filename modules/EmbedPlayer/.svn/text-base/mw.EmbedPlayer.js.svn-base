@@ -420,6 +420,9 @@ mw.EmbedPlayer.prototype = {
 	 * @return {Number} pixel height of the video
 	 */
 	getPlayerWidth: function() {
+        if ( $.browser.mozilla && parseFloat( $.browser.version ) < 2 ) {
+            return ( $( this ).parent().parent().width() );
+        }
 		return $( this ).width();
 	},
 
@@ -480,11 +483,37 @@ mw.EmbedPlayer.prototype = {
 		if( targetPlayer.id != this.selectedPlayer.id ){
 			this.selectedPlayer = targetPlayer;
 			this.updatePlaybackInterface( function(){
-				_this.playerSwichSource( source, switchCallback, doneCallback );
+				// Workaround for hiding quicktime logo
+				if ( mw.isIpad() ) {
+					var vid = this.getPlayerElement();
+					if ( vid ) {
+						$( vid ).css( {
+							'-webkit-transform' : 'translateX(-4048px)',
+							'position' : 'absolute',
+							'left' : '-4048px'
+						} );
+					}
+				}
+				setTimeout( function() { 
+					_this.playerSwichSource( source, switchCallback, doneCallback );
+				}, 50 );
 			});
 		} else {
 			// Call the player switch directly:
-			_this.playerSwichSource( source, switchCallback, doneCallback );
+			if ( mw.isIpad() ) {
+				var vid = this.getPlayerElement();
+				if ( vid ) {
+					$( vid ).css( {
+						'-webkit-transform' : 'translateX(-4048px)',
+						'position' : 'absolute',
+						'left' : '-4048px'
+					} );
+				}
+			}
+			setTimeout( function() {
+				_this.playerSwichSource( source, switchCallback, doneCallback );
+			}, 50);
+			
 		}
 	},
 	/**
@@ -677,6 +706,9 @@ mw.EmbedPlayer.prototype = {
 	 * Get the player width
 	 */
 	getWidth: function(){
+        if ( $.browser.mozilla && parseFloat($.browser.version) < 2 ) {
+            return ( $(this).parent().parent().width() );
+        }
 		return this.width;
 	},
 
@@ -907,7 +939,6 @@ mw.EmbedPlayer.prototype = {
 		// Update the playerReady flag
 		this.playerReady = true;
 		mw.log("EmbedPlayer:: Trigger: playerReady");
-		
 		// trigger the player ready event;
 		$( this ).trigger( 'playerReady' );
 
@@ -1272,7 +1303,7 @@ mw.EmbedPlayer.prototype = {
 						_this.play();
 					} else {
 						// need to confirm this pause is not needed ( mdale )
-						//_this.pause();
+						_this.pause();
 					}
 					if( callback ){
 						callback()
@@ -1668,6 +1699,7 @@ mw.EmbedPlayer.prototype = {
 	play: function() {
 		var _this = this;
 		var $this = $( this );
+
 		mw.log( "EmbedPlayer:: play: " + this._propagateEvents + ' poster: ' +  this.stopped );
 
 		// Store the absolute play time ( to track native events that should not invoke interface updates )
@@ -1712,6 +1744,7 @@ mw.EmbedPlayer.prototype = {
 			// Trigger end done on replay
 			this.triggeredEndDone = false;
 			if( this.replayEventCount <= this.donePlayingCount){
+				mw.log("EmbedPlayer::play> trigger replayEvent");
 				$this.trigger( 'replayEvent' );
 			}
 		}
@@ -1769,11 +1802,12 @@ mw.EmbedPlayer.prototype = {
 		this.isPauseLoading = true;
 	},
 	addPlayerSpinner: function(){
+		var sId = 'loadingSpinner_' + this.id;
 		// remove any old spinner
-		$( '#loadingSpinner_' + this.id ).remove();
+		$( '#' + sId ).remove();
 		// re add an absolute positioned spinner: 
 		$( this ).getAbsoluteOverlaySpinner()
-		.attr( 'id', 'loadingSpinner_' + this.id );
+		.attr( 'id', sId );
 	},
 	hidePlayerSpinner: function(){
 		this.isPauseLoading = false;
@@ -1899,8 +1933,8 @@ mw.EmbedPlayer.prototype = {
 	 * Handles interface updates for toggling mute. Plug-in / player interface
 	 * must handle the actual media player action
 	 */
-	toggleMute: function() {
-		mw.log( 'f:toggleMute:: (old state:) ' + this.muted );
+	toggleMute: function( userAction ) {
+		mw.log( 'EmbedPlayer::toggleMute> (old state:) ' + this.muted );
 		if ( this.muted ) {
 			this.muted = false;
 			var percent = this.preMuteVolume;
@@ -1909,6 +1943,7 @@ mw.EmbedPlayer.prototype = {
 			this.preMuteVolume = this.volume;
 			var percent = 0;
 		}
+		// will auto trigger because of slider change, so no need to trigger volume change in this call
 		this.setVolume( percent );
 		// Update the interface
 		this.setInterfaceVolume( percent );
@@ -1942,9 +1977,7 @@ mw.EmbedPlayer.prototype = {
 
 		// Update the playerElement volume
 		this.setPlayerElementVolume( percent );
-
-		// mw.log(" setVolume:: " + percent + ' this.volume is: ' +
-		// this.volume);
+		//mw.log("EmbedPlayer:: setVolume:: " + percent + ' trigger volumeChanged: ' + triggerChange );
 		if( triggerChange ){
 			$( _this ).trigger('volumeChanged', percent );
 		}
@@ -2102,6 +2135,7 @@ mw.EmbedPlayer.prototype = {
 			this.stopMonitor();
 		}
 	},
+	
 	/**
 	 * Sync the video volume
 	 */
@@ -2270,10 +2304,12 @@ mw.EmbedPlayer.prototype = {
 	 */
 	updatePlayHead: function( perc ) {
 		//mw.log( 'EmbedPlayer: updatePlayHead: '+ perc);
-		$playHead = this.$interface.find( '.play_head' );
-		if ( !this.useNativePlayerControls() && $playHead.length != 0 ) {
-			var val = parseInt( perc * 1000 );
-			$playHead.slider( 'value', val );
+		if( this.$interface ){
+			var $playHead = this.$interface.find( '.play_head' );
+			if ( !this.useNativePlayerControls() && $playHead.length != 0 ) {
+				var val = parseInt( perc * 1000 );
+				$playHead.slider( 'value', val );
+			}
 		}
 		$( this ).trigger('updatePlayHeadPercent', perc);
 	},

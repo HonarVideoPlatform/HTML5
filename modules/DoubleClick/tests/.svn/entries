@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.8/modules/DoubleClick/tests
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9/modules/DoubleClick/tests
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-02-08T21:59:19.048153Z
-7234
+2012-02-24T22:23:55.128148Z
+7281
 mdale
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T22:46:45.000000Z
-486a393a1c43348656d4ebef64d7a32b
-2012-02-08T21:59:19.048153Z
-7234
+2017-07-03T22:47:55.000000Z
+f8f9e51d06a2d031d8e1c7068ad83be9
+2012-02-24T22:23:55.128148Z
+7281
 mdale
 
 
@@ -58,7 +58,7 @@ mdale
 
 
 
-20122
+20030
 
 DoubleClickPlaylist.html
 file
@@ -66,12 +66,12 @@ file
 
 
 
-2017-07-03T22:46:45.000000Z
+2017-07-03T22:47:55.000000Z
 4adda3c03df278b3ade4745fb9ac7382
-2012-02-08T21:59:19.048153Z
-7234
+2012-02-21T04:34:31.192570Z
+7271
 mdale
-
+has-props
 
 
 

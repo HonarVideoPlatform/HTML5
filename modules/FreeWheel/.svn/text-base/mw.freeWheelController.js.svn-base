@@ -7,8 +7,8 @@ mw.setConfig({
 	'FreeWheel.AdManagerUrl': 'http://adm.fwmrm.net/p/release/latest-JS/adm/prd/AdManager.js'
 });
 
-mw.FreeWheelController = function( embedPlayer, callback, pluginName ){
-	return this.init( embedPlayer, callback, pluginName );
+mw.FreeWheelController = function( embedPlayer, callback ){
+	return this.init( embedPlayer, callback );
 };
 
 mw.FreeWheelController.prototype = {
@@ -60,16 +60,13 @@ mw.FreeWheelController.prototype = {
 	 * @param {Function} callback
 	 * @return
 	 */
-	init: function( embedPlayer, callback, pluginName ){
+	init: function( embedPlayer, callback ){
 		var _this = this;
 		// Inherit BaseAdPlugin
 		mw.inherit( this, new mw.BaseAdPlugin( embedPlayer, callback ) );
 		
 		// unbind any existing bindings:
 		_this.embedPlayer.unbindHelper( _this.bindPostfix );
-		
-		// Set the plugin name ( used to get config ) 
-		this.pluginName = pluginName;
 		
 		// Load the freewheel ad manager then setup the ads
 		if( !window['tv'] || !tv.freewheel ){
@@ -393,8 +390,9 @@ mw.FreeWheelController.prototype = {
 		// Update the timeRemaining ( if not an overlay ) 
 		if(  this.getSlotType( this.activeSlot ) != 'overlay' ){
 			var vid = _this.getAdVideoElement();
-			_this.embedPlayer.adTimeline.updateSequenceProxy( 'timeRemaining', vid.duration - vid.currentTime );
+			_this.embedPlayer.adTimeline.updateSequenceProxy( 'timeRemaining', parseInt( vid.duration - vid.currentTime ) );
 			_this.embedPlayer.adTimeline.updateSequenceProxy( 'duration',  vid.duration );
+			_this.embedPlayer.triggerHelper( 'AdSupport_AdUpdatePlayhead', vid.currentTime );
 		}
 		
 		// Keep monitoring ad progress at MonitorRate
@@ -499,7 +497,7 @@ mw.FreeWheelController.prototype = {
 			return this.embedPlayer.evaluate('{mediaProxy.entry.duration}');
 		}
 		// return the live attribute value
-		return this.embedPlayer.getKalturaConfig( this.pluginName, propId );
+		return this.embedPlayer.getKalturaConfig( 'freeWheel', propId );
 	},
 	getAdManager: function(){
 		if( !this.adManager ){

@@ -19,6 +19,7 @@ class KalturaResultObject {
 	var $noCache = false;
 	// flag to control if we are in playlist mode
 	var $isPlaylist = null; // lazy init
+    var $isCarousel = null;
 	var $isJavascriptRewriteObject = null;
 	var $error = false;
 	// Set of sources
@@ -150,6 +151,14 @@ class KalturaResultObject {
 		}
 		return false;
 	}
+    // Check if the requested url includes a carousel
+    function isCarousel(){
+        if ( !is_null ( $this->isCarousel ) ){
+            return $this->isCarousel;
+        }
+		$this->isCarousel = ( !! $this->getPlayerConfig('playlistAPI', 'kpl0Url') ) && ( !! $this->getPlayerConfig( 'related' ) );
+        return $this->isCarousel;
+    }
 	// Check if the requested url is a playlist
 	function isPlaylist(){
 		// Check if the playlist is null: 
@@ -157,7 +166,7 @@ class KalturaResultObject {
 			return $this->isPlaylist;
 		}
 		// Check if its a playlist url exists ( better check for playlist than playlist id )
-		$this->isPlaylist = !! $this->getPlayerConfig('playlistAPI', 'kpl0Url');;
+		$this->isPlaylist = !! $this->getPlayerConfig('playlistAPI', 'kpl0Url');
 		return $this->isPlaylist;
 	}
 	function isJavascriptRewriteObject() {
@@ -337,7 +346,9 @@ class KalturaResultObject {
 			for( $i=0; $i < count($pluginsXml); $i++ ) {
 				$pluginId = (string) $pluginsXml[ $i ]->attributes()->id;
 				// Enforce the lower case first letter of plugin convention: 
-				$pluginId = strtolower( $pluginId[0] ) . substr($pluginId, 1 );
+                if ( isset( $pluginId[0] ) ) {
+                    $pluginId = strtolower( $pluginId[0] ) . substr( $pluginId, 1 );
+                }
 				$plugins[ $pluginId ] = array(
 					'plugin' => true
 				);
@@ -354,9 +365,7 @@ class KalturaResultObject {
 		if( $this->urlParameters[ 'flashvars' ] ) {
 			$flashVars = $this->urlParameters[ 'flashvars' ];
 			foreach( $flashVars as $fvKey => $fvValue) {
-				if( $fvKey && $fvValue ) {
-					$vars[ $fvKey ] = $this->formatString( $fvValue );
-				}
+				$vars[ $fvKey ] = $this->formatString( $fvValue );
 			}
 		}
 
@@ -376,7 +385,6 @@ class KalturaResultObject {
 				$vars[ $key ] = $this->formatString($value);
 			}
 		}
-		
 		// Set Plugin attributes from uiVars/flashVars to our plugins array
 		foreach( $vars as $key => $value ) {
 			// If this is not a plugin setting, continue
@@ -400,7 +408,6 @@ class KalturaResultObject {
 					$pluginAttribute => $value
 				);
 			}
-
 			// Removes from vars array (keep only flat vars)
 			unset( $vars[ $key ] );
 		}
@@ -515,7 +522,7 @@ class KalturaResultObject {
 	private function getResultObjectFromApi(){
 		if( $this->isEmptyPlayer() ){
 			return $this->getUiConfResult();
-		} else if( $this->isPlaylist() ){
+		} else if( $this->isPlaylist() || $this->isCarousel() ){
 			return $this->getPlaylistResult();
 		} else {
 			return $this->getEntryResult();
@@ -577,12 +584,15 @@ class KalturaResultObject {
 	function getPlaylistResult(){
 		// Get the first playlist list:
 		$playlistId =  $this->getFirstPlaylistId();
+
 		$playlistObject = $this->getPlaylistObject( $playlistId  );
 		
 		// Create an empty resultObj
 		if( isset( $playlistObject[0] ) && $playlistObject[0]->id ){
 			// Set the isPlaylist flag now that we are for sure dealing with a playlist
-			$this->isPlaylist = true;
+			if ( !$this->isCarousel() ) {
+				$this->isPlaylist = true;
+			}
 			// check if we have playlistAPI.initItemEntryId
 			if( $this->getPlayerConfig('playlistAPI', 'initItemEntryId' ) ){
 				$this->urlParameters['entry_id'] = 	htmlspecialchars( $this->getPlayerConfig('playlistAPI', 'initItemEntryId' ) );

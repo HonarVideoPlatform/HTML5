@@ -102,6 +102,19 @@
 							playerProxy.kPreSeekTime = playerProxy.currentTime;
 						}
 					}
+					// @@TODO if we split kaltura playlist into its own folder with own loader we can move that there. 
+					playerMethods[ 'setKDPAttribute' ] = function( componentName, property, value ){
+						// Check for playlist change media call and issue a play directly on the video element
+						// gets around iOS restriction on async playback
+						if( componentName == 'playlistAPI.dataProvider' && property == 'selectedIndex' ){
+							// only iOS devices have the autoPlay restriction 
+							if( mw.isIOS() ){
+								$( '#' + playerProxy.id + '_ifp' )
+									.get(0).contentWindow
+									.$( '#' + playerProxy.id ).get(0).play();
+							}
+						}
+					};
 				});
 				
 				// Directly build out the evaluate call on the playerProxy
@@ -585,30 +598,7 @@
 				case 'doPause':
 					b( "onpause" );
 					break;
-				// TODO move ad Support events to the sequence proxy ( not in core KDPMapping )
-				case 'adStart':
-					b('AdSupport_StartAdPlayback');	
-					break;
-				case 'adEnd':
-					b('AdSupport_EndAdPlayback');
-					break;
-				// Pre sequences: 
-				case 'preSequenceStart':
-				case 'pre1start':
-					b( 'AdSupport_PreSequence');
-					break;
-				case 'preSequenceComplete':
-					b( 'AdSupport_PreSequenceComplete');
-					break;
-				
-				// Post sequences:
-				case 'post1start':
-				case 'postSequenceStart':
-					b( 'AdSupport_PostSequence');
-					break;
-				case 'postSequenceComplete':
-					b( 'AdSupport_PostSequenceComplete' );
-					break;
+					
 				case 'playerPlayed':
 				case 'play':
 				case 'doPlay':
@@ -674,6 +664,102 @@
 				case 'metadataReceived':
 					b('KalturaSupport_MetadataReceived');
 					break;
+				
+				/**
+				 * Buffer related listeners 
+				 */	
+				case 'bufferChange':
+					var triggeredBufferStart = false;
+					var triggeredBufferEnd = false;
+					// html5 has no buffer change event.. just trigger buffering on progress then again on bufferPercent == 1;
+					b( 'monitorEvent', function(){
+						if( !triggeredBufferStart){
+							callback( true, embedPlayer.id );
+							triggeredBufferStart = true;
+						}
+						if( !triggeredBufferEnd && embedPlayer.bufferedPercent == 1 ){
+							callback( false, embedPlayer.id );
+							triggeredBufferEnd = true;
+						}
+					})
+					break;
+				case 'bytesDownloadedChange':
+					// KDP sends an initial bytes loaded zeor at player ready: 
+					var prevBufferBytes = 0;
+					b( 'monitorEvent', function(){
+						if( typeof embedPlayer.bufferedPercent != 'undefined' ){
+							var bufferBytes = parseInt( embedPlayer.bufferedPercent *  embedPlayer.mediaElement.selectedSource.getSize() );
+							if( bufferBytes != prevBufferBytes ){
+								callback( { 'newValue': bufferBytes }, embedPlayer.id );
+								prevBufferBytes = bufferBytes;
+							}
+						}
+					})
+					break;
+				case 'playerDownloadComplete':
+					b( 'monitorEvent', function(){
+						if(  embedPlayer.bufferedPercent == 1 ){
+							callback( embedPlayer.id );
+						}
+					});
+					break;
+				case 'bufferProgress':
+					var prevBufferTime = 0;
+					b( 'monitorEvent', function(){
+						if( typeof embedPlayer.bufferedPercent != 'undefined' ){
+							var bufferTime = parseInt( embedPlayer.bufferedPercent * embedPlayer.duration );
+							if( bufferTime != prevBufferTime ){
+								callback( { 'newTime': bufferTime }, embedPlayer.id );
+								prevBufferTime = bufferTime;
+							}
+						}
+					})
+					break;
+				case 'bytesTotalChange':
+					var prevBufferBytesTotal = 0;
+					// Fired once per media loaded: 
+					b( 'mediaLoaded', function(){
+						callback( { 'newValue': embedPlayer.mediaElement.selectedSource.getSize()  } );
+					})
+					break;
+					
+				
+				/**
+				 * Ad support listeneres
+				 *  TODO move to AdTimeline.js ( not in core KDPMapping )
+				 */
+				case 'adStart':
+					b('AdSupport_StartAdPlayback');	
+					break;
+				case 'adEnd':
+					b('AdSupport_EndAdPlayback');
+					break;
+				// Pre sequences: 
+				case 'preSequenceStart':
+				case 'pre1start':
+					b( 'AdSupport_PreSequence');
+					break;
+				case 'preSequenceComplete':
+					b( 'AdSupport_PreSequenceComplete');
+					break;
+				
+				// Post sequences:
+				case 'post1start':
+				case 'postSequenceStart':
+					b( 'AdSupport_PostSequence');
+					break;
+				case 'postSequenceComplete':
+					b( 'AdSupport_PostSequenceComplete' );
+					break;
+				case 'adUpdatePlayhead': 
+					b( 'AdSupport_AdUpdatePlayhead', function( event, adTime) {
+						callback( adTime, embedPlayer.id );
+					});
+					break;
+					
+				/**
+				 * Cue point listeners TODO ( move to mw.kCuepoints.js )
+				 */
 				case 'cuePointsReceived':
 					b( 'KalturaSupport_CuePointsReady', function( event, cuePoints ) {
 						callback( embedPlayer.rawCuePoints, embedPlayer.id );
@@ -689,6 +775,7 @@
 						callback( cuePointWrapper, embedPlayer.id );
 					});
 					break;
+					
 				/**
 				 * Mostly for analytics ( rather than strict kdp compatibility )
 				 */

@@ -15,6 +15,8 @@
 		'Kaltura.ServiceBase' : '/api_v3/index.php?service=',
 		'Kaltura.CdnUrl' : 'http://cdnakmi.kaltura.com',
 		'Kaltura.NoApiCache' : false, // By default tell the client to cache results
+		// By default support apple adaptive 
+		'Kaltura.UseAppleAdaptive': true,
 		// A video file for when no suitable flavor can be found
 		'Kaltura.MissingFlavorSources' : [
 		    { 
@@ -92,16 +94,16 @@
 		"captionPlugin"	: 	"uiConfComponents/captionPlugin.js",		
 		"bumperPlugin"	: 	"uiConfComponents/bumperPlugin.js",
 		"myLogo" : "uiConfComponents/myLogo.js",
-
-		"playlistPlugin" : "uiConfComponents/playlistPlugin.js",
-		
+		"playlistPlugin" : "uiConfComponents/playlistPlugin.js",	
 		"controlbarLayout"	: 	"uiConfComponents/controlbarLayout.js",
 		"titleLayout" : "uiConfComponents/titleLayout.js",
 		"volumeBarLayout"	:	"uiConfComponents/volumeBarLayout.js",
 		"shareSnippet"	:	"uiConfComponents/shareSnippet.js",
 		"moderationPlugin"    :   "uiConfComponents/moderationPlugin.js",
         "downloadPlugin"    :   "uiConfComponents/downloadPlugin.js",
-        "captureThumbnailPlugin"    :   "uiConfComponents/captureThumbnailPlugin.js"
+        "captureThumbnailPlugin"    :   "uiConfComponents/captureThumbnailPlugin.js",
+        "jCarousel"     :   "uiConfComponents/jcarousellite_1.0.1.js",
+        "carouselPlugin"    :   "uiConfComponents/carouselPlugin.js"
 	} );
 	
 	// Set a local variable with the request set so we can append it to embedPlayer
@@ -133,7 +135,9 @@
 		'adPlugin',
 		'captionPlugin',
 		'bumperPlugin',
-		'playlistPlugin'
+		'playlistPlugin',
+        'jCarousel',
+        'carouselPlugin'
 	];
 	
 	mw.newEmbedPlayerCheckUiConf = function( callback ){
@@ -482,7 +486,7 @@
 			var iframeRequest = '';
 			for( var key in iframeParams ){
 				// don't put flashvars or readyCallback into the post url ( will be a request param ) 
-				if( key == 'flashvars' || key == 'readyCallback' ){
+				if( key == 'flashvars' || key == 'readyCallback' || key == 'isHTML5' ){
 					continue;
 				}
 				
@@ -560,7 +564,7 @@
 			
 			// Check if we are setting iframe src or propagating via callback:
 			if( mw.getConfig('EmbedPlayer.PageDomainIframe') ){
-				// Set the iframe contents via callback 
+				// Set the iframe contents via callback replace any non-alpha numeric charachters 
 				var cbName = 'mwi_' + iframeId.replace(/[^0-9a-zA-Z]/g, '');
 				if( window[ cbName ] ){
 					mw.log( "Error: iframe callback already defined: " + cbName );	
@@ -575,7 +579,7 @@
 					// Invoke the iframe player api system:
 					$iframeProxy.iFramePlayer( callback );
 					
-					// clear out this global function 
+					// Clear out this global function 
 					window[ cbName ] = null;
 				};
 				// Replace the player with the iframe: 

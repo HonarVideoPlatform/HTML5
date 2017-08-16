@@ -63,19 +63,24 @@ window.kWidget = {
 								( elm.style.height ) ? parseInt( elm.style.height ) : 300;
 
 			var flashvarValue = ( settings.flashvars ) ? kFlashVarsToString( settings.flashvars ) : '&';
+			
+			// we may have to borrow more from:
+			// http://code.google.com/p/swfobject/source/browse/trunk/swfobject/src/swfobject.js#407
+			// There seems to be issue with passing all the flashvars in playlist context.
+			
 			var defaultParamSet = {
 				'allowFullScreen': 'true',
 				'allowNetworking': 'all',
 				'allowScriptAccess': 'always',
 				'bgcolor': '#000000'
 			}
-			var o = '<object id="' + pId + '" ';
+			var o = '<object id="' + pId + '" ' +
+				'name="' + pId + '" ';
 			// output classid if in IE
 			if(  window.ActiveXObject ){
 				o += 'classid="clsid:D27CDB6E-AE6D-11cf-96B8-444553540000" ';
 			}
-			o += 'name="' + pId + '" '+
-				'width="' + width +'" ' +
+			o += 'width="' + width +'" ' +
 				'height="' + height + '" ' +
 				'style="width:' + width + 'px;height:' + height + 'px;" ' +
 				'resource="' + swfUrl + '" ' +
@@ -90,8 +95,8 @@ window.kWidget = {
 			}
 			var objectTag = o + ' > ' + p + '</object>'; 
 			// update the span target: 
-			spanTarget.innerHTML = 	objectTag;	
 			elm.parentNode.replaceChild( spanTarget, elm );
+			spanTarget.innerHTML = 	objectTag;	
 		}
 	},	
 	/**
