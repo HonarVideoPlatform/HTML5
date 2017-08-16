@@ -42,6 +42,8 @@ $wgEnableIpadHTMLControls = true;
 // Use playManifest
 $wgKalturaUseManifestUrls = true;
 
+$wgAllowRemoteKalturaService = true;
+
 // Define which modules to load
 $wgMwEmbedEnabledModules = array( 'EmbedPlayer', 'KalturaSupport', 'AdSupport', 'Playlist', 'TimedText', 'FreeWheel' );
 

@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4a8/skins
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.2/modules/MiroSubs/mirosubs/media/js/widgetizer
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-07-24T16:01:31.812756Z
-5926
-rany
+2012-03-15T12:41:33.489510Z
+7338
+aviv
 
 
 
@@ -26,23 +26,17 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-jquery.ui.themes
-dir
-
-common
-dir
-
-README
+extension.js
 file
 
 
 
 
-2017-07-03T19:19:37.000000Z
-d781c6567660811bfac68b0d6d2c8488
-2011-07-24T16:01:31.812756Z
-5926
-rany
+2017-07-03T20:13:20.000000Z
+ac3b027726e22c8bc6a37f3a047aabc5
+2012-03-15T12:41:33.489510Z
+7338
+aviv
 
 
 
@@ -64,5 +58,73 @@ rany
 
 
 
-42
+4868
+
+widgetizer.js
+file
+
+
+
+
+2017-07-03T20:13:20.000000Z
+a380e5fdb3be0e8bb51e12e2d713425e
+2012-03-15T12:41:33.489510Z
+7338
+aviv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6652
+
+dowidgetize.js
+file
+
+
+
+
+2017-07-03T20:13:20.000000Z
+ac28ce890da4b7654adf56991a83cec9
+2012-03-15T12:41:33.489510Z
+7338
+aviv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+841
 

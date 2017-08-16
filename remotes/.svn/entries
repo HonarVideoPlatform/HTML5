@@ -2,7 +2,7 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.2/modules/MiroSubs/mirosubs/media/css/imported
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.2/modules/MiroSubs/mirosubs/media/js/widget
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
@@ -26,14 +26,14 @@ aviv
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-home.css
+chooselanguagedialog.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-dad58f5598966c40329d75c8adb7ad20
+2017-07-03T20:13:17.000000Z
+3438c1a7fae5b4d67519c5452b2e46a5
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -58,16 +58,16 @@ aviv
 
 
 
-7675
+4355
 
-classes.css
+edittranslationstate.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-06dcf8d6519e18dadc33bd1c1cbb249a
+2017-07-03T20:13:17.000000Z
+717fbad161d005dc1a72366e2b1a1b14
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -92,16 +92,16 @@ aviv
 
 
 
-6202
+1615
 
-buttons.css
+newtranslationstate.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-dfb9ff55be83eb23f7e1f01abe2fc52e
+2017-07-03T20:13:17.000000Z
+b48ed281cc1aaa8271ea5dd3f3538ade
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -126,16 +126,16 @@ aviv
 
 
 
-17594
+1400
 
-about_faq.css
+samedomainembed.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-2a71e4a72db5607624d92fb32ee9f527
+2017-07-03T20:13:17.000000Z
+6cc0077d644305dfc9e58cd8c9c96a5b
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -160,16 +160,16 @@ aviv
 
 
 
-738
+2446
 
-html.css
+dropdowncontents.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-39be3420286c7a72a06ae19c7c0eff39
+2017-07-03T20:13:17.000000Z
+a54bbed34b12934726e84accae43fa8b
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -194,16 +194,16 @@ aviv
 
 
 
-1451
+1374
 
-breadcrumb.css
+basestate.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-ba0736c8b54408075500cb04138f5f70
+2017-07-03T20:13:17.000000Z
+45470c8ece9345ca564c31081a20ffc2
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -228,50 +228,19 @@ aviv
 
 
 
-1886
+2157
 
-activity_stream.css
-file
-
-
-
-
-2017-07-03T20:13:13.000000Z
-ae4bb9cea994240324d6d6310fe96b1c
-2012-03-15T12:41:33.489510Z
-7338
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-348
+translate
+dir
 
-teams.css
+controller.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-b6056ac59b5b871183e04eb677c20bd3
+2017-07-03T20:13:17.000000Z
+e5cb4e6f772f45f32c19ab841d59b838
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -296,16 +265,16 @@ aviv
 
 
 
-239
+2284
 
-tables.css
+widget.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-64db254c52769fb6ae75f4e7e1c34769
+2017-07-03T20:13:17.000000Z
+4affc9b58de0a245e752b2de1c91111a
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -330,16 +299,16 @@ aviv
 
 
 
-1198
+7420
 
-transcripts.css
+widgetstate.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-4365f174bf9c83cb5332bade9cfe4d2d
+2017-07-03T20:13:17.000000Z
+6e5728c23ae99fd005a51918087db639
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -364,16 +333,16 @@ aviv
 
 
 
-2512
+920
 
-layout.css
+captionmanager.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-4720f8e1a808f253f95317c73e96c69b
+2017-07-03T20:13:17.000000Z
+006e6622940428f18889e2dd64b78c5f
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -398,84 +367,22 @@ aviv
 
 
 
-3522
+6716
 
-960.css
-file
-
-
-
-
-2017-07-03T20:13:13.000000Z
-2d9aa39acf31b2aac7a10d990022f87c
-2012-03-15T12:41:33.489510Z
-7338
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-9398
+controls
+dir
 
-revision_history.css
-file
-
-
-
-
-2017-07-03T20:13:13.000000Z
-36882517b59a4aba6370114aa4a3a200
-2012-03-15T12:41:33.489510Z
-7338
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-4861
+play
+dir
 
-profile_pages.css
+unsavedwarning.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-831fe5d0c82cc1c339c2e78a672e6fd3
+2017-07-03T20:13:17.000000Z
+a3bee0a5a42cb9595c73a36b55814c30
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -500,16 +407,16 @@ aviv
 
 
 
-1685
+2634
 
-background.css
+dropdown.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-0e80dd2bd69389910e5147bb59ddee45
+2017-07-03T20:13:17.000000Z
+aada6cd8e295c6a05779f8253f08b8c8
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -534,16 +441,16 @@ aviv
 
 
 
-219
+15586
 
-nav.css
+videotab.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-4999c2379d172a68e3a352bb27034766
+2017-07-03T20:13:17.000000Z
+68e7d21c9cea3764576a432260163fce
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -568,16 +475,16 @@ aviv
 
 
 
-4537
+4567
 
-comments.css
+rightpanel.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-35d9082a63c4b760e3c31de8e6bb89c0
+2017-07-03T20:13:17.000000Z
+c0d47ce952452c9052602988db9e9f9d
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -602,16 +509,16 @@ aviv
 
 
 
-1561
+12834
 
-forms.css
+usersettings.js
 file
 
 
 
 
-2017-07-03T20:13:13.000000Z
-b963815f273dc2a06a48875269205ce6
+2017-07-03T20:13:17.000000Z
+594031c97fbad2c258460608b2b1fa85
 2012-03-15T12:41:33.489510Z
 7338
 aviv
@@ -636,5 +543,323 @@ aviv
 
 
 
-7849
+1744
+
+testing
+dir
+
+brokenwarning.js
+file
+
+
+
+
+2017-07-03T20:13:17.000000Z
+0c28d8022f482b24c054e364f4ccc87c
+2012-03-15T12:41:33.489510Z
+7338
+aviv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2347
+
+howtovideopanel.js
+file
+
+
+
+
+2017-07-03T20:13:17.000000Z
+bf5a9103223641a91af83229c65dce19
+2012-03-15T12:41:33.489510Z
+7338
+aviv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6424
+
+playcontroller.js
+file
+
+
+
+
+2017-07-03T20:13:17.000000Z
+f522e678eef0b0cc13c4df11b3fa591d
+2012-03-15T12:41:33.489510Z
+7338
+aviv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5356
+
+viewstate.js
+file
+
+
+
+
+2017-07-03T20:13:17.000000Z
+d0dfee42b9befa074cca6ce0d50fd0a3
+2012-03-15T12:41:33.489510Z
+7338
+aviv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1590
+
+crossdomainembed.js
+file
+
+
+
+
+2017-07-03T20:13:17.000000Z
+b4c27ed56efdbf6ee8a93653642f2ebe
+2012-03-15T12:41:33.489510Z
+7338
+aviv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2057
+
+subtitle
+dir
+
+logindialog.js
+file
+
+
+
+
+2017-07-03T20:13:17.000000Z
+557ce877cea3f077a59939101e19998f
+2012-03-15T12:41:33.489510Z
+7338
+aviv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5637
+
+timeline
+dir
+
+subtitlestate.js
+file
+
+
+
+
+2017-07-03T20:13:17.000000Z
+80fd6b27677eb2c912dbb13afc7fc763
+2012-03-15T12:41:33.489510Z
+7338
+aviv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1564
+
+api
+dir
+
+subtitlecontroller.js
+file
+
+
+
+
+2017-07-03T20:13:17.000000Z
+1b341df3f3c88b4afba21f437f8ad1b2
+2012-03-15T12:41:33.489510Z
+7338
+aviv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+8421
+
+dialog.js
+file
+
+
+
+
+2017-07-03T20:13:17.000000Z
+e48fa8e87618f1d506b9d7cf1938baa5
+2012-03-15T12:41:33.489510Z
+7338
+aviv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6600
 

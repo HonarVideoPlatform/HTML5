@@ -76,13 +76,11 @@ class KalturaGetResultObject {
 	public function userAgentRestricted( $uiConf ) {
 		// Get flashvars
 		$flashVars = $this->urlParameters[ 'flashvars' ];
-		$restrictedMessage = true;
+
 		// Check for plugin definition in flashVars
 		if( $flashVars && isset($flashVars['restrictUserAgent.plugin']) ) {
 			$restrictedStrings = $flashVars['restrictUserAgent.restrictedUserAgents'];
-			if( isset($flashVars['restrictUserAgent.restrictedUserAgentTitle']) && isset($flashVars['restrictUserAgent.restrictedUserAgentMessage']) ) {
-				$restrictedMessage = $flashVars['restrictUserAgent.restrictedUserAgentTitle'] ."\n". $flashVars['restrictUserAgent.restrictedUserAgentMessage'];
-			}
+			$restrictedMessage = $flashVars['restrictUserAgent.restrictedUserAgentTitle'] .'\n'. $flashVars['restrictUserAgent.restrictedUserAgentMessage'];
 		} else if( $uiConf ) {
 			// Check for plug definition in uiConf
 			$xml = new SimpleXMLElement( $uiConf );
@@ -90,9 +88,7 @@ class KalturaGetResultObject {
 			if( $restrictUserAgentPlugin ) {
 				$restrictUserAgentPlugin = $restrictUserAgentPlugin[0]->attributes();
 				$restrictedStrings = $restrictUserAgentPlugin->restrictedUserAgents;
-				if( isset($restrictUserAgentPlugin->restrictedUserAgentTitle) && isset($restrictUserAgentPlugin->restrictedUserAgentMessage) ) {
-					$restrictedMessage = $restrictUserAgentPlugin->restrictedUserAgentTitle . "\n" . $restrictUserAgentPlugin->restrictedUserAgentMessage;
-				}
+				$restrictedMessage = $restrictUserAgentPlugin->restrictedUserAgentTitle . '\n' . $restrictUserAgentPlugin->restrictedUserAgentMessage;
 			}
 		} else {
 			return false;
@@ -100,19 +96,19 @@ class KalturaGetResultObject {
 
 		// If we don't have any string to search for, return true
 		if( !isset($restrictedStrings) || empty($restrictedStrings) ) { return false; }
+		if( !$restrictedMessage ) { $restrictedMessage = true; }
 
 		// Lower case user agents string
 		$userAgent = strtolower( $this->getUserAgent() );
 		$restrictedStrings = strtolower( $restrictedStrings );
 		$restrictedStrings = explode(",", $restrictedStrings);
-
 		foreach( $restrictedStrings as $string ) {
 			$string = str_replace(".*", "", $string); // Removes .*
-			$string = trim($string);
 			if( ! strpos( $userAgent, $string ) === false ) {
 				return $restrictedMessage;
 			}
 		}
+
 		return false;
 	}
 
@@ -234,16 +230,13 @@ class KalturaGetResultObject {
 		}
 
 		/* User Agent Restricted */
-		$userAgentMessage = "User Agent Restricted\nWe're sorry, this content is not available for certain user agents.";
 		if(isset($accessControl->isUserAgentRestricted) && $accessControl->isUserAgentRestricted ) {
-			return $userAgentMessage;
-		} else {
 			$userAgentRestricted = $this->userAgentRestricted( $resultObject['uiConf'] );
 			if( $userAgentRestricted === false ) {
 				return true;
 			} else {
 				if( $userAgentRestricted === true ) {
-					return $userAgentMessage;
+					return "User Agent Restricted\nWe're sorry, this content is not available for certain user agents.";
 				} else {
 					return $userAgentRestricted;
 				}
@@ -608,7 +601,6 @@ class KalturaGetResultObject {
 		$conf->serviceUrl = $wgKalturaServiceUrl;
 		$conf->clientTag = $this->clientTag;
 		$conf->curlTimeout = $wgKalturaServiceTimeout;
-		$conf->userAgent = $this->getUserAgent();
 		
 		$client = new KalturaClient( $conf );
 

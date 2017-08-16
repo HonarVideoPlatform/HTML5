@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4a8/libraries
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.2/modules/MiroSubs/mirosubs/media/js/statwidget
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-07-24T16:01:31.812756Z
-5926
-rany
+2012-03-15T12:41:33.489510Z
+7338
+aviv
 
 
 
@@ -26,15 +26,37 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-jquery
-dir
-
-crypto
-dir
-
-jquerymobile
-dir
-
-json
-dir
+statwidget.js
+file
+
+
+
+
+2017-07-03T20:13:15.000000Z
+ebd3b6e772192d47362e075462af52da
+2012-03-15T12:41:33.489510Z
+7338
+aviv
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2190
 
