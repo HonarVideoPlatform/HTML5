@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.7/modules/KalturaSupport
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/modules/KalturaSupport
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-25T17:02:55.262804Z
-7382
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -26,153 +26,18 @@ aviv
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-mw.KAds.js
-file
-
-
-
-
-2017-07-03T22:39:38.000000Z
-b948eb4ecb9f515b18527b39a75795d5
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-13119
-
-KalturaResultObject.php
-file
-
-
-
-
-2017-07-03T22:39:38.000000Z
-b0900741371efd6f2481e0aba1fd5ffd
-2012-03-21T10:12:28.522719Z
-7358
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-34950
-
-mw.KPPTWidget.js
-file
-
-
-
-
-2017-07-03T22:39:38.000000Z
-aeaa246803dce4bcac62c7c5937197e7
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-22885
-
-mw.KTimedText.js
-file
-
-
-
-
-2017-07-03T22:39:38.000000Z
-7bb11fc5ac26d34c041d73892bb06287
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-11693
-
 mw.PlaylistHandlerKaltura.js
 file
 
 
 
 
-2017-07-03T22:39:38.000000Z
-1b8a13fff4aea39d5ce2689ffad39710
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2017-07-03T19:16:58.000000Z
+9b06cd2d3a5fd6ade7d3d063c6a772b5
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -193,178 +58,7 @@ aviv
 
 
 
-
-21834
-
-loader.js
-file
-
-
-
-
-2017-07-03T22:39:38.000000Z
-d99c6218d9606d1cf548576f36b16dba
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-21775
-
-mw.KCuePoints.js
-file
-
-
-
-
-2017-07-03T22:39:38.000000Z
-f51c9b7d0625b65e486de166297addd9
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-6503
-
-mw.KApi.js
-file
-
-
-
-
-2017-07-03T22:39:38.000000Z
-821bbd871b0b6c5aaf441d57dc322707
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-13919
-
-KalturaNamedMultiRequest.php
-file
-
-
-
-
-2017-07-03T22:39:38.000000Z
-a2a725f2b97850b0b431cadd2e9cf666
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1035
-
-mw.KLayout.js
-file
-
-
-
-
-2017-07-03T22:39:38.000000Z
-1d85360c23da2e5037b3bc722473a4d4
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-5763
+24129
 
 mw.KDPMapping.js
 file
@@ -372,11 +66,12 @@ file
 
 
 
-2017-07-03T22:39:38.000000Z
-39d14d74d99e522fb87650a3482b9f39
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2017-07-03T19:16:58.000000Z
+49129de32bcc8a2ee5e57b61c5a801bb
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -397,45 +92,7 @@ aviv
 
 
 
-
-31724
-
-mw.KWidgetSupport.js
-file
-
-
-
-
-2017-07-03T22:39:38.000000Z
-895a1fdb777412504e4f1d6e135a5c15
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-34570
-
-uiConfComponents
-dir
+36316
 
 KalturaLogger.php
 file
@@ -443,11 +100,11 @@ file
 
 
 
-2017-07-03T22:39:38.000000Z
-b05a5d394c53c7d799030fade8b0ba19
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2017-07-03T19:16:58.000000Z
+0f273066cefac91c0ed05578f9ca0cfe
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -469,7 +126,10 @@ aviv
 
 
 
-471
+473
+
+uiConfComponents
+dir
 
 download.php
 file
@@ -477,11 +137,11 @@ file
 
 
 
-2017-07-03T22:39:38.000000Z
-330e39d4c2db76e77405d31e11f7e428
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2017-07-03T19:16:58.000000Z
+8bc1d8043141e1cc820d008a7e5fb03a
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -503,7 +163,7 @@ aviv
 
 
 
-13023
+13033
 
 mw.KAnalytics.js
 file
@@ -511,11 +171,12 @@ file
 
 
 
-2017-07-03T22:39:38.000000Z
-25bf885e26433be9195fe9659c059591
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2017-07-03T19:16:58.000000Z
+1cd6d7ad205aa8bce9ef4112bb45c560
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -536,42 +197,7 @@ aviv
 
 
 
-
-8262
-
-KalturaSupport.i8ln.php
-file
-
-
-
-
-2017-07-03T22:39:38.000000Z
-d41d8cd98f00b204e9800998ecf8427e
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-0
+8737
 
 KalturaPlaylistIframe.php
 file
@@ -579,11 +205,11 @@ file
 
 
 
-2017-07-03T22:39:38.000000Z
+2017-07-03T19:16:58.000000Z
 6e8b83772484aaa903677b42b8a7d7da
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -610,18 +236,506 @@ aviv
 tools
 dir
 
+tests
+dir
+
+mw.PlaylistHandlerKalturaRss.js
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+2d7f27e25eef4acdd8a2d1cef776bfdb
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1938
+
+kdpPageJs
+dir
+
+mw.KAdPlayer.js
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+12c1218a9196f73ac9e8ff60e95a2c7d
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+22299
+
+standAloneTests
+dir
+
+kalturaIframe.php
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+deab6f1590cc48e6c6c150ce8894daa3
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+31014
+
+apiServices
+dir
+
+mw.KTimedText.js
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+1b69db0c83c95e2f7e190b613926944b
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+12237
+
+mw.KPPTWidget.js
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+2a797c59799dc1f0e5f28e49c0f9fd6b
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+22769
+
+KalturaResultObject.php
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+3a2e3fe3986a629ba299a2493d860f93
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+38144
+
+mw.KAds.js
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+a24aaf74287c19a0de6f289edce05bbf
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+14870
+
+loader.js
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+bea3d43dd4f98edab6c030b8f8f58b2b
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+23157
+
+mw.KCuePoints.js
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+47ca947e3aecb1a26bb77f1065a3f839
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+6560
+
+mw.KApi.js
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+0b8feed322c6e895af2e7596cb718f2f
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+14174
+
+KalturaNamedMultiRequest.php
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+c04e665c800e3a1b0fde37573ce46450
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1068
+
+mw.KLayout.js
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+3913446d3d2930941a8be2185def6bf1
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5777
+
+mw.KWidgetSupport.js
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+21bd17d2497f436ea662e5399ee47289
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+39251
+
+KalturaSupport.i8ln.php
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+d41d8cd98f00b204e9800998ecf8427e
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+0
+
 mw.style.klayout.css
 file
 
 
 
 
-2017-07-03T22:39:38.000000Z
+2017-07-03T19:16:58.000000Z
 472fcce5c5083bf71bcc57991a8b6430
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -644,63 +758,58 @@ aviv
 
 51
 
-tests
-dir
+KalturaSupport.i18n.php
+file
+
+
+
+
+2017-07-03T19:16:58.000000Z
+2517bb5fcdce29145c8c1b155c3e6a93
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+326
 
 iframePlugins
 dir
 
-kdpPageJs
-dir
-
-mw.PlaylistHandlerKalturaRss.js
-file
-
-
-
-
-2017-07-03T22:39:38.000000Z
-02026520e29f6936feb3d64af69873f4
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1924
-
 kaltura_client_v3
 dir
 
-mw.KAdPlayer.js
+IframePlayerSetup.js
 file
 
 
 
 
-2017-07-03T22:39:38.000000Z
-b2c4b4abb526dca332c6792061dc9d9a
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2017-07-03T19:16:58.000000Z
+3924bfde4e32c4b414e2df3bfba2be8c
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -721,46 +830,5 @@ aviv
 
 
 
-
-19650
-
-standAloneTests
-dir
-
-apiServices
-dir
-
-kalturaIframe.php
-file
-
-
-
-
-2017-07-03T22:39:38.000000Z
-76cf6b1b0175a375b5ecd289610d275a
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-32380
+2931
 

@@ -14,7 +14,7 @@
  * 		Array An Array of request params for multi-request 
  * 		Object Named request params
  */
-( function( mw, $ ) {
+( function( mw, $ ) { "use strict";
 
 mw.KApi = function( partner_id ){
 	return this.init( partner_id );	
@@ -29,11 +29,17 @@ mw.KApi.prototype = {
 		'ignoreNull' : 1
 	},
 	playerLoaderCache: [],
-	
 	// The local kaltura session key ( so it does not have to be re-grabbed with every request
 	ks : null,
 	init: function( partner_id ){
 		this.partner_id = partner_id;
+	},
+	/**
+	 * Clears the local cache for the ks and player data:
+	 */
+	clearCache:function(){
+		this.playerLoaderCache = [];
+		this.ks = null;
 	},
 	// Stores a callback index for duplicate api requests
 	callbackIndex:0,
@@ -146,10 +152,12 @@ mw.KApi.prototype = {
 		}
 		window[ globalCBName ] = function( data ){
 			// issue the local scope callback:
-			if( callback )
+			if( callback ){
 				callback( data );
-			// null this global function name: 
-			window[ globalCBName ] = null;
+				callback = null;
+			}
+			// don't null this global function name  
+			// window[ globalCBName ] = null;
 		};
 		requestURL+= '&callback=' + globalCBName; 
 		mw.log("kAPI:: doApiRequest: " + requestURL);
@@ -257,7 +265,6 @@ mw.KApi.prototype = {
 					 'action' : 'listByReferenceId',
 					 'refId' : kProperties.reference_id
 			});
-			useReferenceId = true;
 
 			if( kProperties.uiconf_id ) {
 				refIndex = 2;
@@ -279,11 +286,11 @@ mw.KApi.prototype = {
 	        	 'action' : 'getContextData'
 		});
 		
-		 // Get flavorasset
+		// Get flavorasset
 		requestObject.push({
-	        	 'entryId' : entryIdValue,
-	        	 'service' : 'flavorasset',
-	        	 'action' : 'getByEntryId'
+	        	'service' : 'flavorasset',
+	        	'action' : 'list',
+				'filter:entryIdEqual' : entryIdValue
 	    });
 					
 	    // Get custom Metadata	
@@ -364,6 +371,9 @@ mw.KApi.prototype = {
 			namedData['accessControl'] = data[ dataIndex ];
 			dataIndex++;
 			namedData['flavors'] = data[ dataIndex ];
+			if ( data[ dataIndex ].objects ) {
+				namedData['flavors'] = data[ dataIndex ].objects;
+			}
 			dataIndex++;
 			namedData['entryMeta'] = _this.convertCustomDataXML( data[ dataIndex ] );
 			dataIndex++;

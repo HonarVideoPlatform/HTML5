@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.7/modules/KalturaSupport/kaltura_client_v3
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/modules/KalturaSupport/kaltura_client_v3
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -32,11 +32,11 @@ file
 
 
 
-2017-07-03T22:39:38.000000Z
-a4c4315f40afb5ffe6089cf813be7d25
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2017-07-03T19:16:57.000000Z
+09351d1916a74178fa87b7948c72bbbf
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -58,7 +58,7 @@ aviv
 
 
 
-47192
+47895
 
 agpl.txt
 file
@@ -66,12 +66,12 @@ file
 
 
 
-2017-07-03T22:39:38.000000Z
+2017-07-03T19:16:57.000000Z
 d32239bcb673463ab874e80d47fae504
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -100,11 +100,11 @@ file
 
 
 
-2017-07-03T22:39:38.000000Z
-721811fe95ce10021e3178b385695f5e
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2017-07-03T19:16:57.000000Z
+9a7a858460ffc9d01133101c92f89abc
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -126,7 +126,7 @@ aviv
 
 
 
-24500
+24476
 
 KalturaPlugins
 dir
@@ -137,11 +137,11 @@ file
 
 
 
-2017-07-03T22:39:38.000000Z
-3b3af5434783d3c479befd787b699e81
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2017-07-03T19:16:57.000000Z
+ca15d8354debfac03fb93ebae7fc84d4
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -163,7 +163,7 @@ aviv
 
 
 
-166001
+169232
 
 KalturaTypes.php
 file
@@ -171,11 +171,11 @@ file
 
 
 
-2017-07-03T22:39:38.000000Z
-69c3f3ed22a524157cf512f0e480540f
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2017-07-03T19:16:57.000000Z
+a44601a445184425792e363d89075e28
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -197,5 +197,5 @@ aviv
 
 
 
-106227
+126974
 

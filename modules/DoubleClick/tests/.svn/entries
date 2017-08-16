@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.7/modules/DoubleClick/tests
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/modules/DoubleClick/tests
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -32,12 +32,12 @@ file
 
 
 
-2017-07-03T22:39:21.000000Z
+2017-07-03T19:16:02.000000Z
 f8f9e51d06a2d031d8e1c7068ad83be9
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -66,11 +66,12 @@ file
 
 
 
-2017-07-03T22:39:21.000000Z
-4adda3c03df278b3ade4745fb9ac7382
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2017-07-03T19:16:02.000000Z
+ccbe7e70188a86aa0dab76951c930e4e
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -91,6 +92,141 @@ aviv
 
 
 
+21409
+
+DoubleClickAdPattern.html
+file
 
-21924
+
+
+
+2017-07-03T19:16:02.000000Z
+98d66a8e7f2818e78f8b5bd300a353a1
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+21505
+
+iPhoneCompatibleDoubleClickPreroll.html
+file
+
+
+
+
+2017-07-03T19:16:02.000000Z
+0de86021ebd64c43a55c4c4e699a24bc
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+17462
+
+DoubleClickEnablePlayPauseUi.qunit.html
+file
+
+
+
+
+2017-07-03T19:16:02.000000Z
+710f7d1daa6081a0b8f5a604674f3e72
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+18080
+
+DoubleClickManagedPlayerAdApi.qunit.html
+file
+
+
+
+
+2017-07-03T19:16:02.000000Z
+a97600c5ef1ebe6e82af5eea166b333d
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+18432
 

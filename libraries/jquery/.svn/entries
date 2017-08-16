@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.7/libraries/jquery
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/libraries/jquery
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -38,12 +38,12 @@ file
 
 
 
-2017-07-03T22:40:30.000000Z
+2017-07-03T19:19:35.000000Z
 12840be281cca027968c56e19ebdf6ec
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -65,4 +65,38 @@ aviv
 
 
 236202
+
+jquery-1.7.2.js
+file
+
+
+
+
+2017-07-03T19:19:35.000000Z
+6975eed5d72a6020f0cdd6fa4418d14d
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+253068
 

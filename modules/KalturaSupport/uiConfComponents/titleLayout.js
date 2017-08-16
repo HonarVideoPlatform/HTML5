@@ -2,12 +2,6 @@
 	// 	Check for the Title 
 	$( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
 		$( embedPlayer ).bind( 'KalturaSupport_CheckUiConf', function( event, $uiConf, callback ){
-
-			// If native controls don't show the title
-			if( embedPlayer.useNativePlayerControls() ) {
-				callback();
-				return ;
-			}
 			// Check for Titles: 
 			if( $uiConf.find( '#TopTitleScreen' ).length ){
 				// Bind changeMedia to update title  
@@ -25,7 +19,7 @@
 		
 		var belowPlayer = embedPlayer.$uiConf.find( '#controlsHolder' ).next( '#TopTitleScreen' ).length
 		
-		function doTitleLayout(){
+		var doTitleLayout = function(){
 			// unbind any old bindings: 
 			$( embedPlayer ).unbind( ".titleLayout" );
 			
@@ -51,19 +45,22 @@
 				}
 				updatePlayerLayout();
 			});
-		}
-		function getTitleBox(){
+		};
+		var getTitleBox = function(){
 			var titleLayout = new mw.KLayout({
 				'$layoutBox' : $titleConfig,
 				'embedPlayer' : embedPlayer
 			});
-			return titleLayout.getLayout();
-		}
-		function updatePlayerLayout(){
-			var $vid = $( embedPlayer.getPlayerElement() );
+			var $returnLayout = titleLayout.getLayout();
+			if ( $returnLayout.find('span').text() == 'null' ) {
+				$returnLayout.find('span').text('');
+			}
+			return $returnLayout;
+		};
+		var updatePlayerLayout = function(){
+			var $vid = $( '#' + embedPlayer.pid + ',.playerPoster,#' + embedPlayer.id );
 			var vidHeight = $vid.height();
-			// Check if we are using flash ( don't move the player element )
-			if( embedPlayer.instanceOf != 'Native' || $vid.length == 0 ){
+			if( $vid.length == 0 ){
 				$vid = $();
 				vidHeight = embedPlayer.getHeight();
 			} else {
@@ -72,11 +69,12 @@
 					vidHeight = vidHeight - embedPlayer.controlBuilder.height; 
 				}
 			}
+			var position = (mw.isIOS4()) ? 'static' : 'absolute';
 			mw.log("TitleLayout:: update height: " + titleScreenHeight );
 			// add space for the title: 
 			$vid
 			.css({
-				'position' : 'absolute',
+				'position' : position,
 				'height' : vidHeight
 			});
 			if( !belowPlayer ){
@@ -99,4 +97,4 @@
 		doTitleLayout();
 	};
 	
-})( window.mw, jQuery );
+})( window.mw, window.jQuery );

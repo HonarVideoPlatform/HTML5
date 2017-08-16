@@ -7,11 +7,10 @@
  *
  */
 
-( function( mw, $ ) {
+( function( mw, $ ) { "use strict";
 	
 mw.processEmbedPlayers = function( playerSelect, callback ) {
 	mw.log( 'processEmbedPlayers:: playerSelector: '+ playerSelect);
-	
 	// The player id list container
 	var playerIdList = [];
 	
@@ -19,7 +18,7 @@ mw.processEmbedPlayers = function( playerSelect, callback ) {
 	var areSelectedPlayersReady = function(){
 		var playersLoaded = true;
 		$.each( playerIdList, function(inx, playerId){
-			if( ! $( '#' + playerId )[0].playerReady ){
+			if( ! $( '#' + playerId )[0].playerReadyFlag ){
 				playersLoaded = false;
 				return false;
 			}
@@ -75,7 +74,7 @@ mw.processEmbedPlayers = function( playerSelect, callback ) {
 		var ranPlayerSwapFlag = false;			
 		
 		// Local callback to runPlayer swap once playerElement has metadata
-		function runPlayerSwap() {
+		var runPlayerSwap = function () {
 			// Don't run player swap twice
 			if( ranPlayerSwapFlag ){
 				return ;
@@ -87,7 +86,7 @@ mw.processEmbedPlayers = function( playerSelect, callback ) {
 			var inDomPlayer = swapEmbedPlayerElement( playerElement, playerInterface );	
 			
 			// Trigger the newEmbedPlayerEvent for embedPlayer interface
-			mw.log("processEmbedPlayers::tirgger:: newEmbedPlayerEvent " + inDomPlayer.id );
+			mw.log("processEmbedPlayers::trigger:: newEmbedPlayerEvent " + inDomPlayer.id );
 			
 			// Allow plugins to add bindings to the inDomPlayer
 			$( mw ).trigger ( 'newEmbedPlayerEvent', inDomPlayer );
@@ -107,7 +106,7 @@ mw.processEmbedPlayers = function( playerSelect, callback ) {
 				// interface: make sure to use the element that is in the DOM:
 				inDomPlayer.checkPlayerSources();
 			});
-		}
+		};
 
 		if( waitForMeta && mw.getConfig('EmbedPlayer.WaitForMeta' ) ) {
 			mw.log('processEmbedPlayers::WaitForMeta ( video missing height (' +
@@ -185,7 +184,7 @@ mw.processEmbedPlayers = function( playerSelect, callback ) {
 		}
 
 		// Firefox default width height is ~sometimes~ 150 / 300
-		if( this.height == 150 && this.width == 300 ){
+		if( playerElement.height == 150 && playerElement.width == 300 ){
 			waitForMeta = true;
 		}
 
@@ -268,7 +267,7 @@ mw.processEmbedPlayers = function( playerSelect, callback ) {
 			'width' : playerInterface.width + 'px',
 			'height' : playerInterface.height + 'px'
 		} );
-
+	
 		// If we don't already have a loadSpiner add one:
 		if( $('#loadingSpinner_' + playerInterface.id ).length == 0 && !$.browser.mozilla ){
 			if( playerInterface.useNativePlayerControls() || playerInterface.isPersistentNativePlayer() ) {
@@ -279,6 +278,7 @@ mw.processEmbedPlayers = function( playerSelect, callback ) {
 			}
 			$spinner.attr('id', 'loadingSpinner_' + playerInterface.id );
 		}
+		
 		return swapPlayerElement;
 	};
 

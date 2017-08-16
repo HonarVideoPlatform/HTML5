@@ -19,7 +19,7 @@
 * and enabled in mwEnabledModuleList below.
 */
 
-( function( mw, $ ) {
+( function( mw, $ ) { "use strict";
 	
 
 var mwCoreComponentList = [
@@ -97,7 +97,7 @@ mw.setConfig( 'loaderContext', '' );
  */
 mw.addResourcePaths( {
 	"mwEmbed"				: "mwEmbed.js",
-	"window.jQuery"			: "libraries/jquery/jquery-1.6.2.js",
+	"window.jQuery"			: "libraries/jquery/jquery-1.7.2.js",
 
 	"$j.mobile"				: "libraries/jquerymobile/jquery.mobile-1.0a2.js",
 	"mw.style.mobile"		: "libraries/jquerymobile/jquery.mobile-1.0a2.css",
@@ -180,7 +180,9 @@ mw.addResourcePaths( {
 	"$j.ui.selectable"		: "libraries/jquery/jquery.ui/ui/jquery.ui.selectable.js",
 	"$j.ui.slider"			: "libraries/jquery/jquery.ui/ui/jquery.ui.slider.js",
 	"$j.ui.sortable"		: "libraries/jquery/jquery.ui/ui/jquery.ui.sortable.js",
-	"$j.ui.tabs"			: "libraries/jquery/jquery.ui/ui/jquery.ui.tabs.js"
+	"$j.ui.tabs"			: "libraries/jquery/jquery.ui/ui/jquery.ui.tabs.js",
+	
+	"$j.ui.touchPunch"		: "libraries/jquery/plugins/jquery.ui.touchPunch.js"
 
 
 } );

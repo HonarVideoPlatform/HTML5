@@ -40,6 +40,9 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
  * The global mw object:
  */
 ( function( mw ) {
+	// Use strict ECMAScript 5
+	"use strict";
+	
 	// The version of mwEmbed
 	mw.version = MW_EMBED_VERSION;
 	
@@ -1209,8 +1212,11 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	mw.isIOS = function(){
 		return ( mw.isIphone() || mw.isIpod() || mw.isIpad() );
 	};
+	mw.isIOS4 = function(){
+		return /OS 4_/.test( navigator.userAgent ) && mw.isIOS();
+	};
 	mw.isIOS5 = function(){
-		return /OS 5_/.test( navigator.userAgent ) && ( mw.isIphone() || mw.isIpod() || mw.isIpad() );
+		return /OS 5_/.test( navigator.userAgent ) && mw.isIOS();
 	};
 	mw.isIE9 = function(){
 		return ( /msie 9/.test( navigator.userAgent.toLowerCase() ) );
@@ -1330,6 +1336,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 *         undefined
 	 */
 	mw.isset = function( objectPath ) {
+		var ptest;
 		if ( !objectPath || typeof objectPath != 'string') {
 			return false;
 		}
@@ -1338,7 +1345,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 
 		for ( var p = 0; p < pathSet.length; p++ ) {
 			cur_path = ( cur_path == '' ) ? cur_path + pathSet[p] : cur_path + '.' + pathSet[p];
-			eval( 'var ptest = typeof ( ' + cur_path + ' ); ' );
+			var ptest = eval( 'typeof ( ' + cur_path + ' ); ' );
 			if ( ptest == 'undefined' ) {
 				return false;
 			}
@@ -1461,11 +1468,12 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		if ( mw.getConfig( 'Mw.LogPrepend' ) && arguments.length > 0 ){
 			arguments[0] = mw.getConfig('Mw.LogPrepend') + arguments[0];
 		}
-		if(window.console){
+		if( window.console ){
 			if (arguments.length == 1) {
 				console.log( /*'ss:' + mw.getCallStack().length + ' ' + */ arguments[0] );
 			} else {
-				console.log( Array.prototype.slice.call(arguments) );
+				var args = Array.prototype.slice.call(arguments);  
+				console.log( args[0], args.slice( 1 ) );
 			}
 		}
 		// To debug stack size ( useful for iPad / safari that have a 100 call
@@ -1552,7 +1560,6 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 *            callback Function to run once DOM and jQuery are ready
 	 */
 	mw.ready = function( callback ) {
-		//alert( 'run ready function! : ' + callback);
 		if( mwReadyFlag === false ) {
 			// Add the callbcak to the onLoad function stack
 			mwOnLoadFunctions.push ( callback );
@@ -1566,7 +1573,6 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 * Runs all the queued functions called by mwEmbedSetup
 	 */
 	mw.runReadyFunctions = function ( ) {
-		mw.log('mw.runReadyFunctions: ' + mwOnLoadFunctions.length + ' preMwEmbedReady:' );
 		// Run any pre-setup ready functions
 		while( window.preMwEmbedReady.length ){
 			window.preMwEmbedReady.shift()();
@@ -1609,6 +1615,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		// scriptRequest
 		// ( presently script loader only handles "classes" not relative urls:
 		var scriptLoaderPath = mw.getResourceLoaderPath();
+		var url;
 
 		// Check if its a resource name, ( ie does not start with "/" and does
 		// not include ://
@@ -1751,7 +1758,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 				'type' : 'text/css',
 				'href' : url
 			} )
-		);
+		);			
 		// No easy way to check css "onLoad" attribute
 		// In production sheets are loaded via resource loader and fire the
 		// onDone function call.
@@ -1837,7 +1844,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 			//mw.log("Warning: trying to get npt time on NaN:" + sec);			
 			return '0:00:00';
 		}
-		
+		var hoursStr;
 		var tm = mw.seconds2Measurements( sec );
 				
 		// Round the number of seconds to the required number of significant
@@ -1927,7 +1934,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		var min = 0;
 		var sec = 0;
 
-		times = npt_str.split( ':' );
+		var times = npt_str.split( ':' );
 		if ( times.length == 3 ) {
 			sec = times[2];
 			min = times[1];
@@ -2832,8 +2839,8 @@ if( window.jQuery ){
 				callback( callbackData );
 			}
 		};
-		var tirggerArgs = ( triggerParam )? [ triggerParam, doCallbackCheck ] : [ doCallbackCheck ];
-		$( this ).trigger( triggerName, tirggerArgs);
+		var triggerArgs = ( triggerParam )? [ triggerParam, doCallbackCheck ] : [ doCallbackCheck ];
+		$( this ).trigger( triggerName, triggerArgs);
 		
 	};
 	
@@ -2842,7 +2849,7 @@ if( window.jQuery ){
 	 */
 	$.fn.loadingSpinner = function( opts ) {
 		// empty the target: 
-		$(this).empty();
+		$( this ).empty();
 
 		// If we have loader path defined, load an image
 		if( mw.getConfig('LoadingSpinner.ImageUrl') ) {
@@ -2861,25 +2868,27 @@ if( window.jQuery ){
 							'margin-left': '-' + (this.width/2) + 'px'
 						});
 					});
-					thisSpinner = $this.append($loadingSpinner);
+					thisSpinner = $this.append( $loadingSpinner);
 				}
 			});
 			return this;
 		}
 
-		// Else, use Spin.js
-		if(!opts)
+		// Else, use Spin.js defaults
+		if( !opts ){
 			opts = {};
+		}
+		// add color and shadow:
 		opts = $.extend( {'color' : '#eee', 'shadow': true }, opts);
-		this.each(function() {
+		this.each( function() {
 			var $this = $(this).empty();
 			var thisSpinner = $this.data('spinner');
 			if (thisSpinner) {
 				thisSpinner.stop();
 				delete thisSpinner;
 			}
-			if (opts !== false) {
-				thisSpinner = new Spinner($.extend({color: $this.css('color')}, opts)).spin(this);
+			if ( opts !== false ) {
+				thisSpinner = new Spinner( $.extend( { color: $this.css('color') }, opts ) ).spin( this );
 			}
 		});
 		// correct the position: 
@@ -2891,26 +2900,25 @@ if( window.jQuery ){
 	 * element does not display child elements, ( images, video )
 	 */
 	$.fn.getAbsoluteOverlaySpinner = function(){
-		var pos = $j( this ).offset();
-		var posLeft = ( $j( this ).width() ) ?
-			parseInt( pos.left + ( .5 * $j( this ).width() ) ) :
-			pos.left + 30;
-
-		var posTop = ( $j( this ).height() ) ?
-			parseInt( pos.top + ( .5 * $j( this ).height() ) ) :
-			pos.top + 30;
-
-		var $spinner = $j('<div />')
-			.loadingSpinner()
+		// Set the spin size to "small" ( length 5 ) if video height is small
+		var spinOps = ( $( this ).height() < 36 )? { 'length' : 5, 'width' : 2, 'radius' : 4 }: {};
+		var spinerSize = {
+				'width' : 45, 
+				'height' : 45
+		};
+		var $spinner = $('<div />')
 			.css({
-				'width' : 45,
-				'height' : 45,
+				'width' : spinerSize.width,
+				'height' : spinerSize.height,
 				'position': 'absolute',
-				'top' : posTop + 'px',
-				'left' : posLeft + 'px',
+				'top' : '50%',
+				'left' : '50%',
 				'z-index' : 100
-			});
-		$j('body').append( $spinner	);
+			})
+			.loadingSpinner(
+				spinOps
+			);
+		$( this ).append( $spinner	);
 		return $spinner;
 	};
 

@@ -3,8 +3,8 @@
 * 
 * Client side ( binds a given iFrames to expose the player api ) 
 */
-( function( mw, $ ) {
-	
+( function( mw, $ ) { "use strict";
+
 mw.IFramePlayerApiClient = function( iframe, playerProxy ){
 	return this.init( iframe , playerProxy );
 };
@@ -65,19 +65,30 @@ mw.IFramePlayerApiClient.prototype = {
 		
 		$.each( this.exportedMethods, function( na, method ){
 			_this.playerProxy[ method ] = function(){
+				var doPostMessage = true;
 				// Call any local named callbacks
 				if( $.isFunction( namedMethodCallbacks[ method ] ) ){
-					namedMethodCallbacks[ method ].apply( this, $.makeArray( arguments ) );
+					doPostMessage = namedMethodCallbacks[ method ].apply( this, $.makeArray( arguments ) );
 				}
-				_this.postMessage( {
-					'method' : method,
-					'args' : $.makeArray( arguments )
-				} );
+				if( doPostMessage ){
+					mw.log("IframePlayerApiClient:: postMessage > " + method  + ' : ' + arguments[0] );
+					_this.postMessage( {
+						'method' : method,
+						'args' : $.makeArray( arguments )
+					} );
+				}
 			};
 		});
 	},
 	'addPlayerReciveApi': function(){
-		var _this = this;		
+		var _this = this;
+		// Don't add the recive api if already defined for this player proxy id
+		if( $( '#' + this.playerProxy.id ).data('hasPlayerReciveApi') ){
+			mw.log("Error trying to add player api for:" + this.playerProxy.id + " that already has one");
+			return ;
+		}
+		 $( '#' + this.playerProxy.id ).data('hasPlayerReciveApi', true);
+		// Set the flag for the current global message receiver 
 		$.receiveMessage( function( event ){
 			_this.handleReceiveMessage( event );
 		}, this.iframeServer);
@@ -86,7 +97,6 @@ mw.IFramePlayerApiClient.prototype = {
 		var _this = this;
 		var parentsAbsoluteList = [];
 		var parentsRelativeList = [];
-		var fullscreenMode = false;
 		var $iframe = $( _this.iframe );
 		var orgSize = {
 			'width' : $iframe.width(),
@@ -94,7 +104,6 @@ mw.IFramePlayerApiClient.prototype = {
 			'position' : $iframe.css( 'position' )
 		};
 		var orgStyle = $iframe.attr('style');
-		
 		var orginalViewPortContent =  $('meta[name="viewport"]').attr('content');
 		
 		// Add a local scope variable to register 
@@ -114,14 +123,14 @@ mw.IFramePlayerApiClient.prototype = {
 		var doFullscreen = function(){
 			localIframeInFullscreen = true;
 			
-			mw.log("iframeClient:: doFullscreen> verticalScrollPosition:" + verticalScrollPosition);
+			mw.log("IframePlayerApiClient:: doFullscreen> verticalScrollPosition:" + verticalScrollPosition);
 			scrollToTop();
 			
 			// make sure the page has a zoom of 1: 
 			if( !$('meta[name="viewport"]').length ){
 				$('head').append( $( '<meta />' ).attr('name', 'viewport') );
 			}
-			$('meta[name="viewport"]').attr('content', 'initial-scale=1;' );
+			$('meta[name="viewport"]').attr('content', 'initial-scale=1; maximum-scale=1; minimum-scale=1;' );
 			
 			// iPad 5 supports fixed position in a bad way, use absolute pos for iOS
 			var playerCssPosition = ( mw.isIOS() ) ? 'absolute': 'fixed';
@@ -143,10 +152,11 @@ mw.IFramePlayerApiClient.prototype = {
 				'width' : window.innerWidth,
 				'height' : window.innerHeight
 			};
-			
-			/* 
-			 * This was used to solve issue with resizing the player on desktop
-			/
+			/*
+			 * We don't need that check anymore.
+			 * On Desktop browsers we use native fullscreen so you unable to resize the window
+			 * and that fixes issue on iPad when you enter the player while zoomed in.
+			 * 
 			if( targetSize.width < orgSize.width ){
 				targetSize.width = orgSize.width;
 			}
@@ -171,7 +181,7 @@ mw.IFramePlayerApiClient.prototype = {
 		}; 
 		
 		var restoreWindowMode = function(){
-			mw.log("iframeClient:: restoreWindowMode> verticalScrollPosition:" + verticalScrollPosition);
+			mw.log("IframePlayerApiClient:: restoreWindowMode> verticalScrollPosition:" + verticalScrollPosition);
 			localIframeInFullscreen = false;
 			
 			// Restore document zoom: 
@@ -180,7 +190,8 @@ mw.IFramePlayerApiClient.prototype = {
 			} else{
 				// Restore user zoom: ( NOTE, there does not appear to be a way to know the 
 				// initial scale, so we just restore to 1 in the absence of explicit viewport tag ) 
-				$('meta[name="viewport"]').attr('content', 'initial-scale=1;');
+				// In order to restore zoom, we must set maximum-scale to a valid value
+				$('meta[name="viewport"]').attr('content', 'initial-scale=1; maximum-scale=8; minimum-scale=1;' );
 			}
 			
 			$iframe
@@ -205,7 +216,6 @@ mw.IFramePlayerApiClient.prototype = {
 		// Bind orientation change to resize player ( if fullscreen )
 		$(window).bind( 'orientationchange', function(e){
 			if( localIframeInFullscreen ){
-				$('meta[name="viewport"]').attr('content', 'initial-scale=1');
 				doFullscreen();
 			}
 		});
@@ -298,14 +308,28 @@ mw.IFramePlayerApiClient.prototype = {
 		}
 	},
 	'postMessage': function( msgObject ){
-		/*mw.log( "IFramePlayerApiClient:: postMessage(): " + JSON.stringify( msgObject ) + 
+		/*mw.log( "IFramePlayerApiClient:: postMessage(): " + this.stringify( msgObject ) + 
 				' iframe: ' +  this.iframe + ' cw:' + this.iframe.contentWindow + 
 				' src: ' + mw.absoluteUrl( $( this.iframe ).attr('src')  ) );*/
+		// remove undeifned properties
+		msgObject = this.removeUndefined( msgObject );
+		
 		$.postMessage(
 			this.stringify( msgObject ), 
-			mw.absoluteUrl(  this.getIframeSrc() ), 
+			mw.absoluteUrl( this.getIframeSrc() ), 
 			this.iframe.contentWindow 
 		);
+	},
+	'removeUndefined': function( obj ){
+		for( var i in obj ){
+			if( typeof obj[i] == 'undefined' ){
+				delete obj[i];
+			}
+			if( typeof obj[i] == 'object' ){
+				obj[i] = this.removeUndefined( obj[i] );
+			}
+		}
+		return obj;
 	},
 	// local stringify function to prevent prototype override 
 	'stringify' : function stringify( obj ) {

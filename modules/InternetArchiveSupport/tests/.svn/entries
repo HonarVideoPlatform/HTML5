@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.7/modules/InternetArchiveSupport/tests
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/modules/InternetArchiveSupport/tests
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -32,12 +32,12 @@ file
 
 
 
-2017-07-03T22:39:24.000000Z
+2017-07-03T19:16:05.000000Z
 6a5fec77a14e2a2ef2838456470018b8
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -66,12 +66,12 @@ file
 
 
 
-2017-07-03T22:39:24.000000Z
+2017-07-03T19:16:05.000000Z
 5c06977d09063cc1c6bb815502755fde
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 

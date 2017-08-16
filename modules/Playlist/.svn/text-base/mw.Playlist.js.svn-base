@@ -1,7 +1,7 @@
 /**
 * Playlist Embed. Enables the embedding of a playlist using the mwEmbed player
 */
-( function( mw, $ ) {
+( function( mw, $ ) { "use strict";
 
 // Get all our message text
 mw.includeAllModuleMessages();
@@ -112,7 +112,7 @@ mw.Playlist.prototype = {
 			if( _this.sourceHandler.autoPlay || _this.autoPlay ){
 				// only auto play if ipad3x ( iPad 4 and iOS does not let you autoplay )
 				if( !mw.isIOS() || mw.isIpad3() ){
-					_this.playClip( _this.clipIndex );
+					_this.playClip( _this.clipIndex, (_this.sourceHandler.autoPlay || _this.autoPlay) );
 				}
 			}
 			drawDoneCallback();
@@ -209,8 +209,9 @@ mw.Playlist.prototype = {
 				// just the default left side assignment ( updates once we have player size ) 
 				var leftPx = '444px';
 				var playerSize = _this.getTargetPlayerSize();
-				if( playerSize.width )
+				if( playerSize.width ){
 					leftPx = playerSize.width;
+				}
 			}
 			var $plListContainer =$('<div />')
 			.addClass( 'playlist-set-container' )
@@ -418,6 +419,7 @@ mw.Playlist.prototype = {
 		 _this.sourceHandler.loadCurrentPlaylist( function(){
 			 $( _this.target + ' .media-rss-video-list').empty();
 			_this.addMediaList();
+			_this.embedPlayer.triggerHelper( 'indexChanged', { 'newIndex' : inx } );
 		 });
 	},
 	/**
@@ -483,22 +485,37 @@ mw.Playlist.prototype = {
 	// Play a clipIndex, if the player is already in the page swap the player src to the new target
 	playClip: function( clipIndex, autoContinue ){
 		var _this = this;
-		mw.log( "mw.Playlist::playClip > " + clipIndex );
+		mw.log( "Playlist::playClip: index: " + clipIndex + ' autoContinue: ' + autoContinue);
 		// Check for a video/audio tag already in the page:
 		var embedPlayer = this.getEmbedPlayer();
 		this.clipIndex = clipIndex;
 		if( !embedPlayer ){
 			mw.log("Error: Playlist:: playClip called with null embedPlayer ");
 			return ;
-		}
+		}	
+
 		// trigger a playlist_playClip event: 
 		embedPlayer.triggerHelper( 'Playlist_PlayClip', [ clipIndex, !!autoContinue ]);
 		
+		// iOS devices have a autoPlay restriction, we issue a raw play call on 
+		// the video tag to "capture the user gesture" so that future 
+		// javascript play calls can work
+		if( embedPlayer.getPlayerElement() ){
+			mw.log("Playlist:: issue raw play call to capture play click");
+			embedPlayer.getPlayerElement().play();
+		}
+		
+		// Update selected clip: 
+		_this.updatePlayerUi( clipIndex );
+		
+		// disable switching playlist items while loading the next one
+		_this.disablePrevNext();
+		
         // Hand off play clip request to sourceHandler: 
 		_this.sourceHandler.playClip( embedPlayer, clipIndex, function(){
-			mw.log( "mw.Playlist::playClip > sourceHandler playClip callback ");
-			// Do any local player interface updates: 
-			_this.updatePlayerUi( clipIndex );
+			mw.log( "Playlist::playClip > sourceHandler playClip callback ");
+			// restore next prev buttons: 
+			_this.enablePrevNext();
 			// Add playlist specific bindings: 
 			_this.addClipBindings();
 			// Restore onDoneInterfaceFlag 
@@ -510,9 +527,8 @@ mw.Playlist.prototype = {
 	*/
 	drawEmbedPlayer: function( clipIndex , callback ){
 		var _this = this;
-		mw.log( "mw.Playlist:: updatePlayer " + clipIndex );
+		mw.log( "Playlist:: updatePlayer " + clipIndex );
 		this.clipIndex = clipIndex;
-		
 		// Check if we really have to update: 
 		var embedPlayer = _this.getEmbedPlayer();
 		if( $( embedPlayer ).data('clipIndex') == clipIndex ){
@@ -531,7 +547,7 @@ mw.Playlist.prototype = {
 	},
 	addClipBindings: function( ){
 		var _this = this;
-		mw.log( "mw.Playlist::addClipBindings" );
+		mw.log( "Playlist::addClipBindings" );
 		
 		var embedPlayer = _this.getEmbedPlayer();
 		// remove any old playlist bindings:
@@ -549,17 +565,18 @@ mw.Playlist.prototype = {
 		// Setup ondone playing binding to play next clip (if autoContinue is true )
 		if( _this.sourceHandler.autoContinue == true ){
 			$( embedPlayer ).bind( 'postEnded' + _this.bindPostfix, function(event ){
-				mw.log("mw.Playlist:: postEnded > on inx: " + _this.clipIndex );
+				mw.log("Playlist:: postEnded > on inx: " + _this.clipIndex );
 				// Play next clip
-				if( parseInt(  _this.clipIndex ) + 1 < _this.sourceHandler.getClipCount() ){
+				if( parseInt(  _this.clipIndex ) + 1 < _this.sourceHandler.getClipCount() && parseInt( _this.clipIndex ) + 1 <= parseInt( mw.getConfig( 'Playlist.MaxClips' ) ) ){
 					// Update the onDone action object to not run the base control done:
-					mw.log("mw.Playlist:: postEnded > continue playlist set: onDoneInterfaceFlag false ");
+					mw.log("Playlist:: postEnded > continue playlist set: onDoneInterfaceFlag false ");
 					embedPlayer.onDoneInterfaceFlag = false;
 					_this.clipIndex = parseInt( _this.clipIndex ) + 1;
 					// update the player and play the next clip
 					_this.playClip( _this.clipIndex, true );
 				} else {
-					mw.log("mw.Playlist:: End of playlist, run normal end action" );
+					mw.log("Playlist:: End of playlist, run normal end action" );
+					embedPlayer.triggerHelper( 'playlistDone' );
 					// Update the onDone action object to not run the base control done:
 					embedPlayer.onDoneInterfaceFlag = true;
 				}
@@ -581,24 +598,64 @@ mw.Playlist.prototype = {
 			if( !_this.sourceHandler.includeInLayout ){
 				return ;
 			}
+			
 			// Do another resize on a timeout ( takes time for iframe to resize )
 			setTimeout(function(){
 				_this.syncPlayerSize();
 			}, 250);
-
+			// Add an additional sync player size call in case things are not up-to date at 250ms  
+			setTimeout(function(){
+				_this.syncPlayerSize();
+			}, 500);
+			
 			$(uiSelector).show();
 		});
+		
+		$( embedPlayer ).bind( 'playlistPlayPrevious' + this.bindPostfix, function() {
+			_this.playPrevious();
+		});
+		
+		$( embedPlayer ).bind( 'playlistPlayNext' + this.bindPostfix, function() {
+			_this.playNext();
+		});
+		// check for interface events and update playlist specific interface components: 
+		$( embedPlayer ).bind( 'onDisableInterfaceComponents' + this.bindPostfix, function(){
+			_this.disablePrevNext();
+		});
+		$( embedPlayer ).bind( 'onEnableInterfaceComponents' + this.bindPostfix, function(){
+			_this.enablePrevNext();
+		});
+		
+		// Trigger playlistsListed when we get the data
+		$( embedPlayer ).trigger( 'playlistsListed' );		
 	},
-	
-	syncPlayerSize: function() {
+	disablePrevNext: function(){
+		this.embedPlayer.$interface.find('.playlistPlayPrevious,.playlistPlayNext')
+	 		.unbind('mouseenter mouseleave click')
+	 		.css('cursor', 'default' );
+	},
+	enablePrevNext: function(){
+		var _this = this;
+		this.embedPlayer.$interface.find('.playlistPlayPrevious,.playlistPlayNext')
+		.css('cursor', 'pointer' )
+		.unbind('click')
+		.click(function(){
+			if( $( this).hasClass( 'playlistPlayPrevious' ) ){
+				$( _this.embedPlayer ).trigger( 'playlistPlayPrevious' );
+			} else if( $( this ).hasClass( 'playlistPlayNext' ) ){
+				$( _this.embedPlayer ).trigger( 'playlistPlayNext');
+			}
+		})
+		.buttonHover();
+	},
+	syncPlayerSize: function(){
 		var _this = this;
 		var playerSize = {
 			'width' : $( _this.target + ' .media-rss-video-player-container' ).width() + 'px',
 			'height' : ( $( _this.target + ' .media-rss-video-player-container' ).height() - _this.getTitleHeight() ) + 'px'
 		};
-		_this.embedPlayer.resizePlayer( playerSize, false );			
+		_this.embedPlayer.resizePlayer( playerSize, false );
 	},
-	
 	updatePlayerUi:function( clipIndex ){
 		var _this = this;
 		// Give a chance for sourceHandler to update player ui
@@ -626,69 +683,64 @@ mw.Playlist.prototype = {
 		}
 		// add previous / next buttons if not present: 
 		// TODO (HACK) we should do real controlBar support for custom buttons
-		if( embedPlayer.controlBuilder ){
-			var $controlBar = embedPlayer.$interface.find('.control-bar');
+		if( ! embedPlayer.controlBuilder ){
+			return ;
+		}
+		var $controlBar = embedPlayer.$interface.find('.control-bar');
+		if( $controlBar.find( '.ui-icon-seek-next' ).length != 0 ){
+			// already have seek buttons
+			return false;
+		}
+		
+		var $plButton = $('<div />')
+			.addClass("ui-state-default ui-corner-all ui-icon_link lButton")
+			.buttonHover()
+			.append(
+				$('<span />')
+				.addClass( "ui-icon")
+			);
 			
-			if( $controlBar.find( '.ui-icon-seek-next' ).length != 0 ){
-				// already have seek buttons
-				return false;
-			}
-			
-			var $plButton = $('<div />')
-				.addClass("ui-state-default ui-corner-all ui-icon_link lButton")
-				.buttonHover()
-				.append(
-					$('<span />')
-					.addClass( "ui-icon")
-				);
+		var $playButton = $controlBar.find( '.play-btn');
+		
+		if( _this.sourceHandler.isNextButtonDisplayed() ){	
+		 	// make space ( reduce playhead length ) 
+			var pleft =  parseInt( $controlBar.find( '.play_head' ).css( 'left' ) ) + 28;
+			$controlBar.find('.play_head').css('left', pleft);
 				
-			var $playButton = $controlBar.find( '.play-btn');
-			
-			if( _this.sourceHandler.isNextButtonDisplayed() ){	
-			 	// make space ( reduce playhead length ) 
-				var pleft =  parseInt( $controlBar.find( '.play_head' ).css( 'left' ) ) + 28;
-				$controlBar.find('.play_head').css('left', pleft);
+			var $nextButton = $plButton.clone().attr({
+						'title' : 'Next clip'
+					})
+					.unbind('click')
+					.click(function(){
+						$( embedPlayer ).trigger( 'playlistPlayNext' );
+					})
+					.addClass( 'playlistPlayNext' )
+					.find('span')
+					.addClass('ui-icon-seek-next')
+					.parent()
+					.buttonHover();
 					
-				var $nextButton = $plButton.clone().attr({
-							'title' : 'Next clip'
-						})
-						.click(function(){
-							if(_this.enableClipSwitch &&  _this.clipIndex + 1 < _this.sourceHandler.getClipCount() ){
-								_this.clipIndex++;
-								_this.playClip( _this.clipIndex );
-								return ;
-							}
-							mw.log( "Error: mw.playlist can't next: current: " + _this.clipIndex );
-						})
-						.find('span').addClass('ui-icon-seek-next')
-						.parent()
-						.buttonHover();
-						
-				$playButton.after($nextButton);
-			}
-				
-			if(  _this.sourceHandler.isPreviousButtonDisplayed() ){
-				// make space ( reduce playhead length ) 
-				var pleft =  parseInt( $controlBar.find( '.play_head' ).css( 'left' ) ) + 28;
-				$controlBar.find('.play_head').css('left', pleft);
-				
-				var $prevButton = $plButton.clone().attr({
-							'title' : 'Previous clip'
-						})
-						.click(function(){					
-							if( _this.enableClipSwitch && _this.clipIndex - 1 >= 0 ){
-								_this.clipIndex--;
-								_this.playClip( _this.clipIndex );
-								return ;
-							}
-							mw.log("Cant prev: cur:" + _this.clipIndex );
-						})
-						.find('span').addClass('ui-icon-seek-prev')
-						.parent()
-						.buttonHover();
-						
-				$playButton.after($prevButton);
-			}
+			$playButton.after($nextButton);
+		}
+			
+		if(  _this.sourceHandler.isPreviousButtonDisplayed() ){
+			// make space ( reduce playhead length ) 
+			var pleft =  parseInt( $controlBar.find( '.play_head' ).css( 'left' ) ) + 28;
+			$controlBar.find('.play_head').css('left', pleft);
+			
+			var $prevButton = $plButton.clone().attr({
+						'title' : 'Previous clip'
+					})
+					.unbind('click')
+					.click(function(){	
+						$( embedPlayer ).trigger( 'playlistPlayPrevious' );
+					})
+					.addClass( 'playlistPlayPrevious' )
+					.find('span').addClass('ui-icon-seek-prev')
+					.parent()
+					.buttonHover();
+					
+			$playButton.after($prevButton);
 		}
 	},
 	// add bindings for playlist playback ( disable playlist item selection during ad Playback )
@@ -808,6 +860,26 @@ mw.Playlist.prototype = {
 		var embedPlayer = $('#' + this.getVideoPlayerId() )[0];
 		embedPlayer.play();
 	},
+	
+	playNext: function() {
+		var _this = this;
+		if( _this.enableClipSwitch &&  parseInt( _this.clipIndex ) + 1 < _this.sourceHandler.getClipCount() && parseInt( _this.clipIndex ) + 1 <= parseInt( mw.getConfig( 'Playlist.MaxClips' ) ) ){
+			_this.clipIndex++;
+			_this.playClip( _this.clipIndex );
+			return ;
+		}
+		mw.log( "Error: mw.playlist can't next: current: " + _this.clipIndex );		
+	},
+	
+	playPrevious: function() {
+		var _this = this;
+		if( _this.enableClipSwitch && _this.clipIndex - 1 >= 0 ){
+			_this.clipIndex--;
+			_this.playClip( _this.clipIndex );
+			return ;
+		}
+		mw.log("Cant prev: cur:" + _this.clipIndex );		
+	},
 
 	/**
 	 * Load the playlist driver from a source
@@ -841,5 +913,4 @@ mw.Playlist.prototype = {
 
 
 })( window.mw, jQuery );
-
 

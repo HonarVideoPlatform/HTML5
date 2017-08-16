@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.7/tests/test_files
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/tests/test_files
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -38,12 +38,12 @@ file
 
 
 
-2017-07-03T22:39:20.000000Z
+2017-07-03T19:15:53.000000Z
 c911a21b27e2b580c9554f4b60c2d3d6
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -72,12 +72,12 @@ file
 
 
 
-2017-07-03T22:39:20.000000Z
+2017-07-03T19:15:53.000000Z
 0161208ca791fcab367a3c2e67b359f9
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -106,12 +106,12 @@ file
 
 
 
-2017-07-03T22:39:20.000000Z
+2017-07-03T19:15:53.000000Z
 1bbe4d73c27f3da873f645a8cc52c8d1
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -140,12 +140,12 @@ file
 
 
 
-2017-07-03T22:39:20.000000Z
+2017-07-03T19:15:53.000000Z
 4bbf4d181ce49ff4ebb4a91eb2b7d028
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -174,12 +174,12 @@ file
 
 
 
-2017-07-03T22:39:20.000000Z
+2017-07-03T19:15:53.000000Z
 cd23d21971a4ba32455c399e30d80c60
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 

@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.7/libraries/mediawiki
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/libraries/mediawiki
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -26,6 +26,40 @@ aviv
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
+mediawiki.ajaxProxy.js
+file
+
+
+
+
+2017-07-03T19:19:36.000000Z
+7e8ecfbf11487f34700b02708ea758aa
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2322
+
 images
 dir
 
@@ -35,12 +69,12 @@ file
 
 
 
-2017-07-03T22:40:30.000000Z
+2017-07-03T19:19:36.000000Z
 835d7ac2ac1e439e7afe69f72dbea36e
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -69,12 +103,12 @@ file
 
 
 
-2017-07-03T22:40:30.000000Z
+2017-07-03T19:19:36.000000Z
 5d0f5034ea4b8ed6f789e1a0d0b12c9a
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -103,11 +137,12 @@ file
 
 
 
-2017-07-03T22:40:30.000000Z
-2ffbe17fe042d335775d35fb4468a9e5
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2017-07-03T19:19:36.000000Z
+4c50b6c96921c3a4db3278221872bb0a
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -128,8 +163,7 @@ aviv
 
 
 
-
-8036
+8050
 
 mediawiki.absoluteUrl.js
 file
@@ -137,12 +171,12 @@ file
 
 
 
-2017-07-03T22:40:30.000000Z
+2017-07-03T19:19:36.000000Z
 857c254e8e7e189059fafa38c6a17ee7
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 

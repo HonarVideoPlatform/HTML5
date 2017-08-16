@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.7/tests/qunit
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/tests/qunit
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -32,12 +32,12 @@ file
 
 
 
-2017-07-03T22:39:19.000000Z
+2017-07-03T19:15:22.000000Z
 bdb1d5c37011f9547da6c0d6042a8186
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -66,12 +66,12 @@ file
 
 
 
-2017-07-03T22:39:19.000000Z
+2017-07-03T19:15:22.000000Z
 fc5104b595ebc8e09b4a9d7aad2a4539
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -103,11 +103,12 @@ file
 
 
 
-2017-07-03T22:39:19.000000Z
-ac7294d5ee37e7260e71bc9fefe628f3
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2017-07-03T19:15:22.000000Z
+6d4e0f6fbe72b0f762fddf82d74c9269
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -128,8 +129,7 @@ aviv
 
 
 
-
-2954
+3081
 
 EmbedSourcesCopy.html
 file
@@ -137,12 +137,12 @@ file
 
 
 
-2017-07-03T22:39:19.000000Z
+2017-07-03T19:15:22.000000Z
 fc5104b595ebc8e09b4a9d7aad2a4539
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 

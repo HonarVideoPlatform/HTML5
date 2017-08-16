@@ -19,15 +19,20 @@ $loaderComment = "'video audio source track'.replace(/\w+/g, function(n){ docume
 * 
 */\n";
 
-
 // Append ResourceLoder path to loader.js
 $loaderJs = "window['SCRIPT_LOADER_URL'] = '". addslashes( $wgResourceLoaderUrl ) . "';\n";
 
 // Add the library version: 
 $loaderJs .= "window['KALTURA_LOADER_VERSION'] = '$wgMwEmbedVersion';\n";
 
-// Get resource (  kWidgetLoader.js )
-$loaderJs .= file_get_contents( 'kWidgetLoader.js' );
+// Get resource (  kWidget.js )
+$loaderJs .= file_get_contents( 'kWidget.js' );
+
+// By default include deprecated globals ( could be optional in the future )
+$loaderJs .= file_get_contents( 'kWidget.deprecatedGlobals.js' );
+
+// Get resource ( domReady.js )
+$loaderJs .= file_get_contents( 'kWidget.domReady.js' );
 
 // Get resource (  mwEmbedLoader.js )
 $loaderJs .= file_get_contents( 'mwEmbedLoader.js' );
@@ -39,6 +44,7 @@ $loaderJs .= file_get_contents( 'modules/KalturaSupport/kdpPageJs/checkUserAgent
 $exportedJsConfig= array(
 	'debug' => $wgEnableScriptDebug,
 	'Kaltura.UseManifestUrls' => $wgKalturaUseManifestUrls,
+	'Kaltura.Protocol'	=>	$wgHTTPProtocol,
 	'Kaltura.ServiceUrl' => $wgKalturaServiceUrl,
 	'Kaltura.ServiceBase' => $wgKalturaServiceBase,
 	'Kaltura.CdnUrl' => $wgKalturaCDNUrl,
@@ -52,6 +58,9 @@ $exportedJsConfig= array(
 	'Kaltura.UseAppleAdaptive' => $wgKalturaUseAppleAdaptive,
 	'Kaltura.EnableEmbedUiConfJs' => $wgKalturaEnableEmbedUiConfJs
 );
+if( isset( $wgXmlProxyUrl )){
+	$exportedJsConfig['Mw.XmlProxyUrl'] = $wgXmlProxyUrl;
+}
 
 // Append Custom config: 
 foreach( $exportedJsConfig as $key => $val ){
@@ -86,7 +95,7 @@ if( isset( $_GET['debug'] ) || $wgEnableScriptDebug ){
 
 	// Create cache directory if not exists
 	if( ! file_exists( $wgScriptCacheDirectory ) ) {
-		$created = mkdir( $wgScriptCacheDirectory );
+		$created = @mkdir( $wgScriptCacheDirectory );
 		if( ! $created ) {
 			echo "if( console ){ console.log('Error in creating cache directory: ". $wgScriptCacheDirectory . "'); }";
 		}
@@ -102,7 +111,9 @@ if( isset( $_GET['debug'] ) || $wgEnableScriptDebug ){
 		echo $loaderComment . file_get_contents( $loaderCacheFile );
 	} else {
 		$loaderMin = JSMin::minify( $loaderJs );
-		file_put_contents( $loaderCacheFile, $loaderMin );
+		if( !@file_put_contents( $loaderCacheFile, $loaderMin ) ){
+			echo "if( console ){ console.log('Error in creating loader cache: ". $wgScriptCacheDirectory . "'); }";
+		}
 		echo $loaderComment . $loaderMin;
 	}
 }

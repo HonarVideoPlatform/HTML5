@@ -12,7 +12,7 @@
  */
 mw.includeAllModuleMessages();
 
-( function( mw, $ ) {
+( function( mw, $ ) {"use strict";
 
 	// Merge in timed text related attributes:
 	mw.mergeConfig( 'EmbedPlayer.SourceAttributes', [
@@ -46,6 +46,13 @@ mw.includeAllModuleMessages();
 			//Set the default kind of timedText to display ( un-categorized timed-text is by default "subtitles" )
 			'userKind' : 'subtitles'
 		},
+		
+		// The default display mode is 'ontop'
+		defaultDisplayMode : 'ontop',
+		
+		// Save last layout mode
+		lastLayout : 'ontop',
+		
 		// The bind prefix:
 		bindPostFix: '.timedText',
 		
@@ -105,7 +112,7 @@ mw.includeAllModuleMessages();
 				this.config = JSON.parse(  preferenceConfig );
 			}
 			// remove any old bindings on change media: 
-			$( this.embedPlayer ).bind('onChangeMedia', function(){
+			$( this.embedPlayer ).bind( 'onChangeMedia', function(){
 				_this.destroy();
 			});
 			// Remove any old bindings before we add the current bindings: 
@@ -140,15 +147,23 @@ mw.includeAllModuleMessages();
 				// Will load and setup timedText sources (if not loaded already loaded )
 				_this.setupTextSources();
 				// Hide the caption menu if presently displayed
-				$( '#textMenuContainer_' + embedPlayer.id ).parent().remove();
+				$( '#textMenuContainer_' + embedPlayer.id ).hide();
 			} );
 			
+			// Re-Initialize when changing media
+			$( embedPlayer ).bind( 'onChangeMedia' + this.bindPostFix, function() {
+				_this.destroy();
+				_this.updateLayout();
+				_this.setupTextSources();
+				$( '#textMenuContainer_' + embedPlayer.id ).hide();
+			} );
+
 			// Resize the timed text font size per window width
 			$( embedPlayer ).bind( 'onCloseFullScreen'+ this.bindPostFix + ' onOpenFullScreen'+ this.bindPostFix, function() {
 				// Check if we are in fullscreen or not, if so add an additional bottom offset of 
 				// double the default bottom padding. 
 				var textOffset = _this.embedPlayer.controlBuilder.inFullScreen ? 
-						mw.getConfig("TimedText.BottomPadding") *2 : 
+						mw.getConfig("TimedText.BottomPadding") * 2 : 
 						mw.getConfig("TimedText.BottomPadding");
 						
 				var textCss = _this.getInterfaceSizeTextCss({
@@ -157,12 +172,14 @@ mw.includeAllModuleMessages();
 				});
 				
 				mw.log( 'TimedText::set text size for: : ' + embedPlayer.$interface.width() + ' = ' + textCss['font-size'] );
-				
+				if ( embedPlayer.controlBuilder.isOverlayControls() && !embedPlayer.$interface.find( '.control-bar' ).is( ':hidden' ) ) {
+					textOffset += _this.embedPlayer.controlBuilder.getHeight();
+				}
 				embedPlayer.$interface.find( '.track' )
 				.css( textCss )
 				.css({
 					// Get the text size scale then set it to control bar height + TimedText.BottomPadding; 
-					'bottom': ( _this.embedPlayer.controlBuilder.getHeight() + textOffset ) + 'px'
+					'bottom': textOffset + 'px'
 				});
 			});
 			
@@ -193,18 +210,43 @@ mw.includeAllModuleMessages();
 
 			// Setup display binding
 			$( embedPlayer ).bind( 'onShowControlBar'+ this.bindPostFix, function(event, layout ){
-				// Move the text track if present
-				embedPlayer.$interface.find( '.track' )
-				.stop()
-				.animate( layout, 'fast' );
+				if ( embedPlayer.controlBuilder.isOverlayControls() ) {
+					// Move the text track if present
+					embedPlayer.$interface.find( '.track' )
+					.stop()
+					.animate( layout, 'fast' );
+				}
 			});
 			
 			$( embedPlayer ).bind( 'onHideControlBar'+ this.bindPostFix, function(event, layout ){
-				// Move the text track down if present
-				embedPlayer.$interface.find( '.track' )
-				.stop()
-				.animate( layout, 'fast' );
+				if ( embedPlayer.controlBuilder.isOverlayControls() ) {
+					// Move the text track down if present
+					embedPlayer.$interface.find( '.track' )
+					.stop()
+					.animate( layout, 'fast' );
+				}
 			});
+			
+			$( embedPlayer ).bind( 'AdSupport_StartAdPlayback' + this.bindPostFix, function() {
+				if ( $( '#textMenuContainer_' + embedPlayer.id ).length ) {
+					$( '#textMenuContainer_' + embedPlayer.id ).hide();
+				}
+				var $textButton = embedPlayer.$interface.find( '.timed-text' );
+				if ( $textButton.length ) {
+					$textButton.unbind( 'click' );
+				}
+				_this.lastLayout = _this.getLayoutMode();
+				_this.setLayoutMode( 'off' );
+			} );
+			
+			$( embedPlayer ).bind( 'AdSupport_EndAdPlayback' + this.bindPostFix, function() {
+				var $textButton = embedPlayer.$interface.find( '.timed-text' );
+				if ( $textButton.length ) {
+					_this.bindTextButton( $textButton );
+				}
+				_this.setLayoutMode( _this.lastLayout );
+			} );
+			
 		},
 		addInterface: function(){
 			var _this = this;
@@ -255,7 +297,7 @@ mw.includeAllModuleMessages();
 			};
 		},
 		
-		bindTextButton: function($textButton){
+		bindTextButton: function( $textButton ){
 			var _this = this;
 			$textButton.unbind('click.textMenu').bind('click.textMenu', function() {
                 _this.showTextMenu();
@@ -279,18 +321,13 @@ mw.includeAllModuleMessages();
 		showTextMenu: function() {
 			var embedPlayer = this.embedPlayer;
 			var loc = embedPlayer.$interface.find( '.rButton.timed-text' ).offset();
-			mw.log('showTextInterface::' + embedPlayer.id + ' t' + loc.top + ' r' + loc.right);
-
-			var $menu = $( '#timedTextMenu_' + embedPlayer.id );
-			if ( $menu.length != 0 ) {
-				// Hide show the menu:
-				if( $menu.is( ':visible' ) ) {
-					$menu.hide( "fast" );
-				}else{
-					// move the menu to proper location
-					$menu.show("fast");
-				}
-			}else{				
+			mw.log('TimedText::showTextMenu:: ' + embedPlayer.id + ' location: ', loc);
+			// TODO: Fix menu animation
+			var $menuButton = this.embedPlayer.$interface.find( '.timed-text' );
+			// Check if a menu has already been built out for the menu button: 
+			if ( $menuButton[0].m ) {
+				$menuButton.menu('show');
+			} else {
 				// Bind the text menu:
 				this.buildMenu( true );
 			}
@@ -299,7 +336,7 @@ mw.includeAllModuleMessages();
 			var textMenuId = 'textMenuContainer_' + this.embedPlayer.id;
 			if( !$( '#' + textMenuId ).length ){
 				//Setup the menu:
-				$('body').append(
+				$( this.embedPlayer ).append(
 					$('<div>')
 						.addClass('ui-widget ui-widget-content ui-corner-all')
 						.attr( 'id', textMenuId )
@@ -371,23 +408,28 @@ mw.includeAllModuleMessages();
 		*/
 		buildMenu: function( autoShow ) {
 			var _this = this;
-			var $menuButton = this.embedPlayer.$interface.find( '.timed-text' );
-			var positionOpts = { };
-			if( this.embedPlayer.supports[ 'overlays' ] ){
-				var positionOpts = {
-					'directionV' : 'up',
-					'offsetY' : this.embedPlayer.controlBuilder.getHeight(),
-					'directionH' : 'left',
-					'offsetX' : -28
-				};
-			}
-
-			// Else bind and show the menu
-			// We already have a loader in embedPlayer so the delay of
-			// setupTextSources is already taken into account
+			var embedPlayer = this.embedPlayer;
+			// Setup text sources ( will callback inline if already loaded )
 			_this.setupTextSources( function() {
+				var $menuButton = _this.embedPlayer.$interface.find( '.timed-text' );
+				
+				var positionOpts = { };
+				if( _this.embedPlayer.supports[ 'overlays' ] ){
+					var positionOpts = {
+						'directionV' : 'up',
+						'offsetY' : _this.embedPlayer.controlBuilder.getHeight(),
+						'directionH' : 'left',
+						'offsetX' : -28
+					};
+				}
+				
+				if( !_this.embedPlayer.$interface ){
+					mw.log("TimedText:: interface called before interface ready, just wait for interface");
+					return ;
+				}
+				var $menuButton = _this.embedPlayer.$interface.find( '.timed-text' );
 				// NOTE: Button target should be an option or config
-				$menuButton.unbind().menu( {
+				$menuButton.menu( {
 					'content'	: _this.getMainMenu(),
 					'zindex' : mw.getConfig( 'EmbedPlayer.FullScreenZIndex' ) + 2,
 					'crumbDefaultText' : ' ',
@@ -429,8 +471,8 @@ mw.includeAllModuleMessages();
 		 */
 		loadTextSources: function( callback ) {
 			var _this = this;
-			// check if text sources are already loaded ( not null )
-			if( this.textSources !== null ){
+			// check if text sources are already loaded ( not em )
+			if( this.textSources.length ){
 				callback( this.textSources );
 				return ;
 			}
@@ -466,7 +508,26 @@ mw.includeAllModuleMessages();
 		*/
 		autoSelectSource: function() {
 			var _this = this;
+			// If a source is enabled then don't auto select
+			if ( this.enabledSources.length ) {
+				return false;
+			}
 			this.enabledSources = [];
+
+			var setDefault = false;
+			// Check if any source is marked default:
+			$.each( this.textSources, function(inx, source){
+				if( source['default'] ){
+					_this.enableSource( source );
+					setDefault = true;
+					return false;
+				}
+			});
+			if ( setDefault ) {
+				return true;
+			}
+
+			var setLocalPref = false;
 			// Check if any source matches our "local" pref
 			$.each( this.textSources, function(inx, source){
 				if(	_this.config.userLanguage == source.srclang.toLowerCase() 
@@ -474,35 +535,45 @@ mw.includeAllModuleMessages();
 					_this.config.userKind == source.kind
 				) {
 					_this.enableSource( source );
-					return ;
+					setLocalPref = true;
+					return false;
 				}
 			});
-			// Check if any source is marked default:
-			$.each( this.textSources, function(inx, source){
-				if( source['default'] ){
-					_this.enableSource( source );
-					return ;
-				}
-			});
+			if ( setLocalPref ) {
+				return true;
+			}
 					
+			var setEnglish = false;
 			// If no userLang, source try enabling English:
 			if( this.enabledSources.length == 0 ) {
 				for( var i=0; i < this.textSources.length; i++ ) {
 					var source = this.textSources[ i ];
 					if( source.srclang.toLowerCase() == 'en' ) {
 						_this.enableSource( source );
-						return ;
+						setEnglish = true;
+						return false;
 					}
 				}
 			}
+			if ( setEnglish ) {
+				return true;
+			}
+			
+			var setFirst = false;
 			// If still no source try the first source we get;
 			if( this.enabledSources.length == 0 ) {
 				for( var i=0; i < this.textSources.length; i++ ) {
 					var source = this.textSources[ i ];
 					_this.enableSource( source );
-					return ;
+					setFirst = true;
+					return false;
 				}
 			}
+			if ( setFirst ) {
+				return true;
+			}
+			
+			return false;
 		},
 		/**
 		 * Enable a source and update the currentLangKey 
@@ -517,13 +588,17 @@ mw.includeAllModuleMessages();
 				_this.currentLangKey = source.srclang;
 				return ;
 			}
+			var sourceEnabled = false;
 			// Make sure the source is not already enabled
 			$.each( this.enabledSources, function( inx, enabledSource ){
-				if( source.id != enabledSource.id ){
-					_this.enabledSources.push( source );
-					_this.currentLangKey = source.srclang;
+				if( source.id == enabledSource.id ){
+					sourceEnabled = true;
 				}
 			});
+			if ( !sourceEnabled ) {
+				_this.enabledSources.push( source );
+				_this.currentLangKey = source.srclang;
+			}
 		},
 
 		/**
@@ -579,21 +654,56 @@ mw.includeAllModuleMessages();
 		* 	false if source is off
 		*/
 		isSourceEnabled: function( source ) {
+			var isEnabled = false;
 			$.each( this.enabledSources, function( inx, enabledSource ) {
 				if( source.id ) {
 					if( source.id === enabledSource.id ){
-						return true;
+						isEnabled = true;
 					}
 				}
-				if( source.srclang ) {
+				/*if( source.srclang ) {
 					if( source.srclang === enabledSource.srclang ){
 						return true;
 					}
-				}
+				}*/
 			});
-			return false;
+			return isEnabled;
 		},
-
+		
+		/**
+		 * Marks the active captions in the menu
+		 */
+		markActive: function( source ) {
+			var $menu = $( '#textMenuContainer_' + this.embedPlayer.id );
+			if ( $menu.length ) {
+				var $captionRows = $menu.find( '.captionRow' );
+				if ( $captionRows.length ) {
+					$captionRows.each( function() { 
+						$( this ).removeClass( 'ui-icon-bullet ui-icon-radio-on' );
+						var iconClass = ( $( this ).data( 'caption-id' ) === source.id ) ? 'ui-icon-bullet' : 'ui-icon-radio-on';
+						$( this ).addClass( iconClass );
+					} );
+				}
+			}			
+		},
+		
+		/**
+		 * Marks the active layout mode in the menu
+		 */
+		markLayoutActive: function ( layoutMode ) {
+			var $menu = $( '#textMenuContainer_' + this.embedPlayer.id );
+			if ( $menu.length ) {
+				var $layoutRows = $menu.find( '.layoutRow' );
+				if ( $layoutRows.length ) {
+					$layoutRows.each( function() {
+						$( this ).removeClass( 'ui-icon-bullet ui-icon-radio-on' );
+						var iconClass = ( $( this ).data( 'layoutMode' ) === layoutMode ) ? 'ui-icon-bullet' : 'ui-icon-radio-on';
+						$( this ).addClass( iconClass );
+					} );
+				}
+			}
+		},
+		
 		/**
 		* Get a source object by language, returns "false" if not found
 		* @param {string} langKey The language key filter for selected source
@@ -704,7 +814,7 @@ mw.includeAllModuleMessages();
 			if( source.title ) {
 				return $.getLineItem( source.title, source_icon, function() {
 					_this.selectTextSource( source );
-				});
+				}, 'captionRow', { 'caption-id' : source.id } );
 			}	
 			if( source.srclang ) {
 				var langKey = source.srclang.toLowerCase();
@@ -713,7 +823,9 @@ mw.includeAllModuleMessages();
 					source_icon,
 					function() {
 						_this.selectTextSource( source );
-					}
+					},
+					'captionRow',
+					{ 'caption-id' : source.id }
 				);
 			}
 		},
@@ -737,26 +849,28 @@ mw.includeAllModuleMessages();
 		getLayoutMenu: function() {
 			var _this = this;
 			mw.log( 'TimedText:: getLayoutMenu layout: ' + _this.config.layout );
-
 			var layoutOptions = [];
 			//Only display the "ontop" option if the player supports it:
 			if( this.embedPlayer.supports[ 'overlays' ] ){
 				layoutOptions.push( 'ontop' );
 			}
 			// Support below player display: 
-			layoutOptions.push( 'below', 'off'  );
+			layoutOptions.push( 'off'  );
 
-			$ul = $('<ul>');
+			var $ul = $('<ul>');
 			$.each( layoutOptions, function( na, layoutMode ) {
 				var icon = ( _this.config.layout == layoutMode ) ? 'bullet' : 'radio-on';
 				$ul.append(
 					$.getLineItem(
 						gM( 'mwe-timedtext-layout-' + layoutMode),
 						icon,
-						function(){
+						function() {
 							_this.setLayoutMode( layoutMode );
-						})
-					);
+						},
+						'layoutRow',
+						{ 'layoutMode' : layoutMode }
+					)
+				);
 			});
 			return $ul;
 		},
@@ -770,16 +884,17 @@ mw.includeAllModuleMessages();
 			mw.log("TimedText:: setLayoutMode: " + layoutMode + ' ( old mode: ' + _this.config.layout + ' )' );
 			if( layoutMode != _this.config.layout ) {
 				// Update the config and redraw layout
-				_this.config.layout = layoutMode;						
-				
+				_this.config.layout = layoutMode;
 				// Update the display:
 				_this.updateLayout();
 			}
+			_this.markLayoutActive( layoutMode );
 		},
+		
 		toggleCaptions: function(){
 			mw.log( "TimedText:: toggleCaptions was:" + this.config.layout );
 			if( this.config.layout == 'off' ){
-				this.setLayoutMode( 'below' );
+				this.setLayoutMode( this.defaultDisplayMode );
 			} else {
 				this.setLayoutMode( 'off' );
 			}
@@ -832,13 +947,15 @@ mw.includeAllModuleMessages();
 				var $playerTarget = this.embedPlayer.$interface;
 				$playerTarget.find('.track').text( gM('mwe-timedtext-loading-text') );
 				// Load the text:
-				source.load( function() {
+				source.load( function(){
 					// Refresh the interface:
 					_this.refreshDisplay();
 				});
 			} else {
 				_this.refreshDisplay();
 			}
+			
+			_this.markActive( source );
 
 			// Trigger the event
 			$( this.embedPlayer ).trigger( 'TimedText_ChangeSource' );
@@ -858,9 +975,9 @@ mw.includeAllModuleMessages();
 			this.prevText = [];
 			
 			// Refresh the Menu (if it has a target to refresh)
-			mw.log( 'TimedText:: bind menu refresh display' );
-			this.buildMenu( this.menuTarget, false );
-            
+			mw.log( 'TimedText:: bind menu refresh display' );			
+			this.buildMenu();
+			
             this.resizeInterface();
 			
             // add an empty catption: 
@@ -895,7 +1012,7 @@ mw.includeAllModuleMessages();
 					// Init Category menu item if it does not already exist:
 					if( !categorySourceList[ categoryKey ] ) {
 						// Set up catList pointer:
-						categorySourceList[ categoryKey ] = [ ];
+						categorySourceList[ categoryKey ] = [];
 						sourcesWithCategoryCount++;
 					}
 					// Append to the source kind key menu item:
@@ -996,6 +1113,7 @@ mw.includeAllModuleMessages();
 			// TOOD we should scrub this for non-formating html
 			$textTarget.append( 
 				$('<span />')
+					.addClass( 'ttmlStyled' )
 					.css( this.getCaptionCss() )
 					.html( caption.content )
 			);
@@ -1028,14 +1146,16 @@ mw.includeAllModuleMessages();
 			// Update the style of the text object if set
 			if( caption.styleId ){
 				var capCss = source.getStyleCssById( caption.styleId );
-				$textTarget.find('span').css(
+				$textTarget.find('span.ttmlStyled').css(
 					capCss
 				);
 			}
-		
 			$textTarget.fadeIn('fast');
 		},
 		displayTextTarget: function( $textTarget ){
+			if( this.getLayoutMode() == 'off' ){
+				return;
+			}
 			if( this.getLayoutMode() == 'ontop' ){
 				this.addTextOverlay(
 					$textTarget	
@@ -1046,10 +1166,14 @@ mw.includeAllModuleMessages();
 				mw.log("Possible Error, layout mode not recognized: " + this.getLayoutMode() );
 			}
 		},
-		getDefaultStyle: function(){ 
+		getDefaultStyle: function(){
+			var defaultBottom = 15;
+			if( this.embedPlayer.controlBuilder.isOverlayControls() && !this.embedPlayer.$interface.find( '.control-bar' ).is( ':hidden' ) ) {
+				defaultBottom += this.embedPlayer.controlBuilder.getHeight();
+			}				
 			var baseCss =  {
 					'position':'absolute',
-					'bottom': 10,
+					'bottom': defaultBottom,
 					'width': '100%',
 					'display': 'block',
 					'opacity': .8,
@@ -1084,8 +1208,8 @@ mw.includeAllModuleMessages();
 				$captionsOverlayTarget = $( '<div />' )
 				 	.addClass( 'captionsOverlay' )
 					.css( layoutCss )
-				this.embedPlayer.$interface.append( $captionsOverlayTarget );
-                
+					.css('pointer-events', 'none');
+				this.embedPlayer.$interface.append( $captionsOverlayTarget );					
                 this.resizeInterface();
 			}
 			// Append the text:
@@ -1134,17 +1258,20 @@ mw.includeAllModuleMessages();
 			} else {
 				// give the dom time to resize. 
 				setTimeout(function(){
-					var height = ( mw.getConfig('TimedText.BelowVideoBlackBoxHeight') + 8 ) +
-									parseInt( $( _this.embedPlayer ).height() ) + parseInt( _this.embedPlayer.controlBuilder.getHeight() );
-					
 					// get the orginal player height
-					_this.originalPlayerHeight = _this.embedPlayer.$interface.css('height');
+					_this.originalPlayerHeight = _this.embedPlayer.$interface.css( 'height' );			
 					
-					_this.embedPlayer.$interface.css({
-						'height': height
-					});
+					var height = parseInt( _this.originalPlayerHeight ) + ( mw.getConfig('TimedText.BelowVideoBlackBoxHeight') + 8 );
+					var newCss = {
+						'height' : height + 'px'
+					};
+						
+					_this.embedPlayer.$interface.css( newCss );
+					$( _this.embedPlayer ).css( newCss );
+					$( _this.embedPlayer.getPlayerElement() ).css( newCss );
+					
 					// Trigger an event to resize the iframe: 
-					_this.embedPlayer.triggerHelper( 'resizeIframeContainer', [{'height' : height}] );					
+					_this.embedPlayer.triggerHelper( 'resizeIframeContainer', [{'height' : height}] );
 				}, 50);
 			}
 		},
@@ -1157,40 +1284,21 @@ mw.includeAllModuleMessages();
             	// too soon
             	return ;
             }
-            
             if( !_this.embedPlayer.controlBuilder.inFullScreen && _this.originalPlayerHeight ){
                 _this.embedPlayer.$interface.css({
                     'height': _this.originalPlayerHeight
                 });
                 _this.embedPlayer.triggerHelper( 'resizeIframeContainer', [{'height' : _this.originalPlayerHeight}] );
             } else {
-                var cBarHeight =  ( _this.embedPlayer.controlBuilder.isOverlayControls() ) ?
-                        0 :
-                        _this.embedPlayer.controlBuilder.getHeight();
-                var newCss = {
-                    'height': _this.embedPlayer.$interface.height() -cBarHeight
-                }
-                if( parseInt( $( _this.embedPlayer ).css('top') ) < 0 ){
-                    newCss.top = 0;
-                }
-                $( _this.embedPlayer ).css( newCss );
-                $( _this.embedPlayer.getPlayerElement() ).css( newCss );
+            	// removed resize on container content, since syncPlayerSize calls now handle keeping player aspect. 
             }
         },
 		positionCaptionContainer: function(){
 			var _this = this;
 			var $belowContainer = _this.embedPlayer.$interface.find('.captionContainer');
 			if( $belowContainer.length ){
-				
-				var cBarHeight =  ( _this.embedPlayer.controlBuilder.isOverlayControls() ) ?
-						0 :
-						_this.embedPlayer.controlBuilder.getHeight();
-							
 				var newCss = {};
-				newCss.top = parseInt( $( _this.embedPlayer ).css( 'top' ) ) - ( mw.getConfig('TimedText.BelowVideoBlackBoxHeight') * .5 );
-				if( newCss.top < 0 ){
-					newCss.top = 0;
-				}
+				newCss.top = 0;
 				if( _this.embedPlayer.controlBuilder.inFullScreen 
 						&&
 					$( _this.embedPlayer ).height() > _this.embedPlayer.$interface.height() - mw.getConfig('TimedText.BelowVideoBlackBoxHeight')
@@ -1200,10 +1308,15 @@ mw.includeAllModuleMessages();
 					if( $( _this.embedPlayer ).height() > _this.embedPlayer.getHeight() ){
 						newCss.height = _this.embedPlayer.getHeight();
 					}
+					else {
+						newCss.height = _this.embedPlayer.$interface.height() - _this.embedPlayer.controlBuilder.getHeight() - mw.getConfig('TimedText.BelowVideoBlackBoxHeight') - 8;
+					}
 				}
 				$( _this.embedPlayer ).css( newCss );
 				$( _this.embedPlayer.getPlayerElement() ).css( newCss );
 				$belowContainer.css( 'top', newCss.top + $( _this.embedPlayer.getPlayerElement() ).height() );
+				var newPlayBtnTop = parseInt( _this.embedPlayer.$interface.find( '.play-btn-large' ).css( 'top' ) ) - ( mw.getConfig( 'TimedText.BelowVideoBlackBoxHeight' ) * .5 ) - 4;
+				_this.embedPlayer.$interface.find( '.play-btn-large' ).css( 'top', newPlayBtnTop + 'px' );
 			}
 		},
 		/**

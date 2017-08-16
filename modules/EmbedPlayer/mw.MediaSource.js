@@ -11,7 +11,7 @@
  * http://dev.w3.org/html5/spec/Overview.html#the-source-element
  */
 
-( function( mw, $ ) {
+( function( mw, $ ) { "use strict";
 	
 mw.mergeConfig( 'EmbedPlayer.SourceAttributes', [
 	// source id
@@ -46,10 +46,11 @@ mw.mergeConfig( 'EmbedPlayer.SourceAttributes', [
 	'data-shorttitle', // short title for stream ( useful for stream switching control bar widget) 
 	'data-width', // the width of the stream
 	'data-height', // the height of the stream
-	'data-bandwidth', // the overall bitrate of the stream
+	'data-bandwidth', // the overall bitrate of the stream in bytes
 	'data-sizebytes', // the size of the stream in bytes
 	'data-framerate', // the framereate of the stream
 	'data-flavorid', // a source flavor id ( useful for targeting devices )
+	'data-aspect', // the aspect ratio, useful for adaptive protocal urls that don't have a strict height / width
 	
 	// Media start time
 	'start',
@@ -240,7 +241,15 @@ mw.MediaSource.prototype = {
 		this.mimeType = this.detectType( this.src );
 		return this.mimeType;
 	},
-
+	/**
+	 * Update the local src
+	 * @param {String} 
+	 * 		src The URL to the media asset
+	 */
+	setSrc: function( src ){
+		this.src = src;
+	},
+	
 	/**
 	 * URI function.
 	 *

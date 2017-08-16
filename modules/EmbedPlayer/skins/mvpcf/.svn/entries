@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.7/modules/EmbedPlayer/skins/mvpcf
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/modules/EmbedPlayer/skins/mvpcf
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -35,12 +35,12 @@ file
 
 
 
-2017-07-03T22:39:27.000000Z
+2017-07-03T19:16:16.000000Z
 618239aa3714e967f822599ee246823d
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -69,12 +69,12 @@ file
 
 
 
-2017-07-03T22:39:27.000000Z
+2017-07-03T19:16:16.000000Z
 adcb923cd0d0f1e75ca82a661be8cf0b
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 

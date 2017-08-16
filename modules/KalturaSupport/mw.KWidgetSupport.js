@@ -1,5 +1,12 @@
-( function( mw, $ ) {
+( function( mw, $ ) { "use strict";
 	
+/**
+ * Add the messages text:
+ *  TODO remove once we switch to RL17 
+ */
+mw.includeAllModuleMessages();
+
+
 mw.KWidgetSupport = function( options ) {
 	// Create KWidgetSupport instance
 	return this.init( options );
@@ -47,7 +54,7 @@ mw.KWidgetSupport.prototype = {
 		
 		// Do special binding for iframe
 		$( mw ).bind( 'newIframePlayerClientSide', function( event, playerProxy ){
-			// once the player is "ready" add kWidget methods: 
+			// Once the player is "ready" add kWidget methods: 
 			$( playerProxy ).bind('KalturaSupport_RawUiConfReady', function(event, rawUiConf ){
 				// Store the parsed uiConf in the playerProxy object:
 				playerProxy.$uiConf = $( rawUiConf );
@@ -61,15 +68,19 @@ mw.KWidgetSupport.prototype = {
 	 */
 	bindPlayer: function( embedPlayer ){
 		var _this = this;
+		// Add player methods: 
+		this.addPlayerMethods( embedPlayer );
+		
 		// Add hook for check player sources to use local kEntry ID source check:
 		$( embedPlayer ).bind( 'checkPlayerSourcesEvent', function( event, callback ) {
 			_this.loadAndUpdatePlayerData( embedPlayer, callback );
 		});
+		
 		// Add black sources: 
 		$( embedPlayer ).bind( 'AddEmptyBlackSources', function( event, vid ){
-			$.each( mw.getConfig('Kaltura.BlackVideoSources'), function(inx, sourceAttr ){
+			$.each( mw.getConfig( 'Kaltura.BlackVideoSources' ), function(inx, sourceAttr ){
 				$(vid).append(
-					$('<source />').attr( sourceAttr )
+					$( '<source />' ).attr( sourceAttr )
 				)	
 			});
 		});
@@ -174,49 +185,9 @@ mw.KWidgetSupport.prototype = {
 			}
 		}
 		
-		// Check access controls ( this is kind of silly and needs to be done on the server ) 
-		if( playerData.accessControl ){
-			var acStatus = _this.getAccessControlStatus( playerData.accessControl );
-			if( acStatus !== true ){
-				embedPlayer.hidePlayerSpinner();
-				embedPlayer.showErrorMsg( acStatus );
-				return ;
-			}
-			// Check for preview access control and add special onEnd binding:
-			if( playerData.accessControl.previewLength && playerData.accessControl.previewLength != -1 ){
-				$( embedPlayer ).bind('postEnded.acpreview', function(){
-					mw.log( 'KWidgetSupport:: postEnded.acpreview>' );
-					$( embedPlayer ).trigger( 'KalturaSupport_FreePreviewEnd' );
-					// Don't run normal onend action: 
-					mw.log( 'KWidgetSupport:: KalturaSupport_FreePreviewEnd set onDoneInterfaceFlag = false' );
-					embedPlayer.onDoneInterfaceFlag = false;
-					var closeAcMessage = function(){
-						$( embedPlayer ).unbind('postEnded.acpreview');
-						embedPlayer.controlBuilder.closeMenuOverlay();
-						embedPlayer.onClipDone();
-					};
-					// Display player dialog 
-					// TODO i8ln!!
-					embedPlayer.controlBuilder.displayMenuOverlay(
-						$('<div />').append( 
-							$('<h3 />').append( 'Free preview completed, need to purchase'),
-							$('<span />').text( 'Access to the rest of the content is restricted' ),
-							$('<br />'),$('<br />'),
-							$('<button />').attr({'type' : "button"})
-							.addClass( "ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" )
-							.append( 
-								$('<span />').addClass( "ui-button-text" )
-								.text( 'Ok' )
-								.css('margin', '10')
-							).click( closeAcMessage )
-						), closeAcMessage
-					);
-				});
-			}
-		}
 		// Apply player Sources
 		if( playerData.flavors ){
-			_this.addFlavorSources( embedPlayer, playerData.flavors );
+			_this.addFlavorSources( embedPlayer, playerData );
 		}
 		
 		// Check for "image" mediaType ( 2 ) 
@@ -225,7 +196,7 @@ mw.KWidgetSupport.prototype = {
 			embedPlayer.mediaElement.tryAddSource(
 				$('<source />')
 				.attr( {
-					'src' : mw.getKalturaThumbUrl({
+					'src' : kWidget.getKalturaThumbUrl({
 						'partner_id' : this.kClient.getPartnerId(),
 						'entry_id' : embedPlayer.kentryid,
 						'width' : embedPlayer.getWidth(),
@@ -257,8 +228,6 @@ mw.KWidgetSupport.prototype = {
 				embedPlayer.kCuePoints = new mw.KCuePoints( embedPlayer );
 			}
 		}
-		// Add player methods: 
-		this.addPlayerMethods( embedPlayer );
 		
 		// Check for payload based uiConf xml ( as loaded in the case of playlist with uiConf ) 
 		if( $(embedPlayer).data( 'uiConfXml' ) ){
@@ -268,15 +237,12 @@ mw.KWidgetSupport.prototype = {
 		if( playerData.playlistData ){
 			embedPlayer.kalturaPlaylistData = playerData.playlistData;
 		}
+
+		// Check access controls ( must come after addPlayerMethods for custom messages )
+		if( playerData.accessControl ){
+			embedPlayer.kalturaAccessControl = playerData.accessControl;
+		}
 		_this.handleUiConf( embedPlayer, callback );
-		
-		// Trigger the early player events ( after uiConf handling has a chance to setup bindings 
-		if( embedPlayer.kalturaPlayerMetaData ){
-			$( embedPlayer ).trigger( 'KalturaSupport_EntryDataReady', embedPlayer.kalturaPlayerMetaData );
-		}
-		if( embedPlayer.kalturaEntryMetaData ){
-			$( embedPlayer ).trigger( 'KalturaSupport_MetadataReceived', embedPlayer.kalturaEntryMetaData );
-		}
 	},
 	addPlayerMethods: function( embedPlayer ){
 		var _this = this;
@@ -289,24 +255,63 @@ mw.KWidgetSupport.prototype = {
 			return _this.getPluginConfig( embedPlayer, confPrefix, attr );
 		};
 		
-		// Add an exported plugin value: 
-		embedPlayer.addExportedObject = function( pluginName, objectSet ){
-			if( !embedPlayer.playerConfig ){
+		// Extend plugin configuration
+		embedPlayer.setKalturaConfig = function( pluginName, key, value ) {
+			// no plugin/key - exit
+			if ( ! pluginName || ! key ) {
+				return false;
+			} 
+			
+			// Always create obj with plugin properties
+			var objectSet = {};
+			if( typeof key === "string" ) {
+				objectSet[ key ] = value;
+			}
+			// The key could be an object with all plugin properties
+			if( typeof key === "object" ) {
+				objectSet = key;
+			}
+			
+			// No player config, create the object
+			if( ! embedPlayer.playerConfig ) {
 				embedPlayer.playerConfig = {};
 			}
-			if( !embedPlayer.playerConfig[ pluginName ] ){
-				embedPlayer.playerConfig[ pluginName ] = objectSet;
+			// Plugin doesn't exists -> create it
+			if( ! embedPlayer.playerConfig[ 'plugins' ][ pluginName ] ){
+				embedPlayer.playerConfig[ 'plugins' ][ pluginName ] = objectSet;
 			} else {
-				$.extend( embedPlayer.playerConfig[ pluginName ], objectSet);
+				// If our key is an object, and the plugin already exists, merge the two objects together
+				if( typeof key === 'object' ) {
+					$.extend( embedPlayer.playerConfig[ 'plugins' ][ pluginName ], objectSet);
+					return false;
+				}
+				// If the old value is an object and the new value is an object merge them
+				if( typeof embedPlayer.playerConfig[ 'plugins' ][ pluginName ][ key ] === 'object' && typeof value === 'object' ) {
+					$.extend( embedPlayer.playerConfig[ 'plugins' ][ pluginName ][ key ], value );
+				} else {
+					embedPlayer.playerConfig[ 'plugins' ][ pluginName ][ key ] = value;
+				}
 			}
 			// Sync iframe with attribute data updates:
-			$( embedPlayer ).trigger( 'updateIframeData' );
-		}
+			$( embedPlayer ).trigger( 'updateIframeData' );			
+		};
+		
+		// Add an exported plugin value: 
+		embedPlayer.addExportedObject = function( pluginName, objectSet ){
+			// TODO we should support log levels in 1.7 
+			// https://github.com/kaltura/mwEmbed/issues/80
+			if( console && console.log ){
+				console.log( "KwidgetSupport:: addExportedObject is deprecated, please use standard setKalturaConfig" );
+			}
+			for( var key in objectSet ){
+				embedPlayer.setKalturaConfig( pluginName, key, objectSet[key] );
+			}
+		};
 
 		// Add isPluginEnabled to embed player:
 		embedPlayer.isPluginEnabled = function( pluginName ) {
 			// Always check with lower case first letter of plugin name: 
-			var pluginName = pluginName[0].toLowerCase() + pluginName.substr(1);
+			pluginName = pluginName[0].toLowerCase() + pluginName.substr(1);
 			if( _this.getPluginConfig( embedPlayer, pluginName , 'plugin' ) ){
 				// check for the disableHTML5 attribute
 				if( _this.getPluginConfig( embedPlayer, pluginName , 'disableHTML5' ) ){
@@ -318,18 +323,29 @@ mw.KWidgetSupport.prototype = {
 		};
 		
 		// Add getFlashvars to embed player:
-		embedPlayer.getFlashvars = function() {
-			var fv = $( embedPlayer ).data( 'flashvars' );
-			if( !fv
-					&& 
-				mw.getConfig( 'KalturaSupport.PlayerConfig' )
-					&& 
-				mw.getConfig( 'KalturaSupport.PlayerConfig' )['vars']
-			){
-				fv = mw.getConfig( 'KalturaSupport.PlayerConfig' )['vars'] || {};
+		embedPlayer.getFlashvars = function( param ) {
+			var fv = embedPlayer.playerConfig['vars'] || {};
+			if ( param ) {
+				if ( param in fv ) {
+					return fv[ param ];
+				}
+				else {
+					return undefined;
+				}
 			}
 			return fv;
 		}
+		
+		// Adds support for custom message strings
+		embedPlayer.getKalturaMsg = function ( msgKey ){
+			// Check for uiConf configured msgs: 
+			if( _this.getPluginConfig( embedPlayer, 'strings', msgKey ) ){
+				return _this.getPluginConfig( embedPlayer, 'strings', msgKey );
+			} 
+			// If not found in the "strings" mapping then fallback to mwEmbed hosted default string:
+			// XXX should be mw.getMsg in 1.7
+			return gM('ks-' + msgKey );
+		};
 	},
 	/**
 	 * Handle the ui conf 
@@ -344,6 +360,15 @@ mw.KWidgetSupport.prototype = {
 				// Allow other plugins to subscribe to cuePoint ready event:
 				$( embedPlayer ).trigger( 'KalturaSupport_CuePointsReady', embedPlayer.rawCuePoints );
 			};
+			
+			// Trigger the early player events ( after uiConf handling has a chance to setup bindings 
+			if( embedPlayer.kalturaPlayerMetaData ){
+				$( embedPlayer ).trigger( 'KalturaSupport_EntryDataReady', embedPlayer.kalturaPlayerMetaData );
+			}
+			if( embedPlayer.kalturaEntryMetaData ){
+				$( embedPlayer ).trigger( 'KalturaSupport_MetadataReceived', embedPlayer.kalturaEntryMetaData );
+			}
+			
 			// Run the DoneWithUiConf trigger 
 			// Allows modules that depend on other modules initialization to do what they need to do. 
 			mw.log("KWidgetSupport:: trigger KalturaSupport_DoneWithUiConf");
@@ -375,30 +400,45 @@ mw.KWidgetSupport.prototype = {
 		}		
 	},
 	/**
-	 * Run base ui conf / flashvars checks
+	 * Run base ui conf / flashvars check
 	 * @param embedPlayer
 	 * @return
 	 */
 	baseUiConfChecks: function( embedPlayer ){
+		var _this = this;
+		var getAttr = function( attrName ){
+			return _this.getPluginConfig( embedPlayer, '', attrName );
+		}
 		// Check for autoplay:
-		var autoPlay = this.getPluginConfig( embedPlayer, '', 'autoPlay');
+		var autoPlay = getAttr( 'autoPlay' );
 		if( autoPlay ){
-			embedPlayer.autoplay = true;
+			embedPlayer.autoplay = true;    
 		}
 		
+		// Check for loop:
+		var loop = getAttr( 'loop' );
+		if( loop ){
+			embedPlayer.loop = true;
+		}
+
+		// Check for dissable bit rate cookie and overide default bandwidth cookie
+		if( getAttr( 'disableBitrateCookie' ) && getAttr( 'mediaProxy.preferedFlavorBR') ){
+			$.cookie('EmbedPlayer.UserBandwidth', getAttr( 'mediaProxy.preferedFlavorBR') * 1000 );
+		}
+
 		// Check for imageDefaultDuration
-		var imageDuration = this.getPluginConfig( embedPlayer, '', 'imageDefaultDuration');
+		var imageDuration = getAttr( 'imageDefaultDuration' );
 		if( imageDuration ){
 			embedPlayer.imageDuration = imageDuration;
 		}
 		
 		// Check for mediaPlayFrom
-		var mediaPlayFrom = this.getPluginConfig( embedPlayer, '', 'mediaProxy.mediaPlayFrom');		
+		var mediaPlayFrom = embedPlayer.evaluate('{mediaProxy.mediaPlayFrom}');	
 		if( mediaPlayFrom ) {
 			embedPlayer.startTime = parseFloat( mediaPlayFrom );
 		}
 		// Check for mediaPlayTo
-		var mediaPlayTo = this.getPluginConfig( embedPlayer, '', 'mediaProxy.mediaPlayTo');
+		var mediaPlayTo = embedPlayer.evaluate('{mediaProxy.mediaPlayTo}');
 		if( mediaPlayTo ) {
 			embedPlayer.pauseTime = parseFloat( mediaPlayTo );
 		}
@@ -458,7 +498,7 @@ mw.KWidgetSupport.prototype = {
 			if( !attr ){
 				return plugins[ confPrefix ];
 			}
-			if( attr && typeof plugins[ confPrefix ][ attr ] != 'undefined' ){
+			if( attr && typeof plugins[ confPrefix ][ attr ] !== 'undefined' ){
 				returnConfig[ attr ] = plugins[ confPrefix ][ attr ];
 			}
             if ( attr && typeof attr == 'object' ) {
@@ -572,15 +612,14 @@ mw.KWidgetSupport.prototype = {
 		}
 		return config;
 	},
-	postProcessConfig: function(embedPlayer, config ){
+	postProcessConfig: function( embedPlayer, config ){
 		var _this = this;
 		var returnSet = $.extend( {}, config ); 
 		$.each( returnSet, function( attrName, value ) {
 			// Unescape values that would come in from flashvars
-			if( value ){
+			if( value && ( typeof value === 'string' ) ){
 				returnSet[ attrName ] = unescape( value );
 			}
-			
 			// Do any value handling  ... myPlugin.cat = {video.currentTime}
 			// If JS Api disabled, evaluate is undefined
 			if( embedPlayer.evaluate ){
@@ -615,7 +654,7 @@ mw.KWidgetSupport.prototype = {
 			// see if we are dealing with an image asset ( no flavor sources )
 			if( playerData.meta && playerData.meta.mediaType == 2 ){ 
 				sources = [{
-						'src' : mw.getKalturaThumbUrl({
+						'src' : kWidget.getKalturaThumbUrl({
 							'widget_id' : widgetId,
 							'entry_id' : entryId,
 							'width' : size.width,
@@ -625,18 +664,7 @@ mw.KWidgetSupport.prototype = {
 					}];
 			} else {
 				// Get device sources 
-				sources = _this.getEntryIdSourcesFromFlavorData( _this.kClient.getPartnerId(), playerData.flavors );
-			}
-			// Apple adaptive streaming is sometimes broken for short videos
-			// remove adaptive sources if duration is less then 10 seconds, 
-			if( playerData.meta.duration < 10 ) {
-				for( var i =0 ; i < sources.length; i++ ){
-					if( sources[i].type == 'application/vnd.apple.mpegurl' ){
-						// Remove the current source:
-						sources.splice( i, 1 );
-						i--;
-					}
-				}
+				sources = _this.getEntryIdSourcesFromPlayerData( _this.kClient.getPartnerId(), playerData );
 			}
 			// Return the valid source set
 			callback( sources );
@@ -675,11 +703,6 @@ mw.KWidgetSupport.prototype = {
 		// Add the flashvars
 		playerRequest.flashvars = $( embedPlayer ).data( 'flashvars' ); 
 
-		if( mw.getConfig( 'KalturaSupport.PlayerConfig' ) ){
-			embedPlayer.playerConfig =  mw.getConfig( 'KalturaSupport.PlayerConfig' );
-			mw.setConfig('KalturaSupport.PlayerConfig', null );
-		}
-		
 		// Check if we have the player data bootstrap from the iframe
 		var bootstrapData = mw.getConfig("KalturaSupport.IFramePresetPlayerData");
 		// Insure the bootStrap data has all the required info: 
@@ -696,21 +719,24 @@ mw.KWidgetSupport.prototype = {
 		} else {
 			// Run the request: ( run async to avoid function call stack overflow )
 			_this.kClient = mw.KApiPlayerLoader( playerRequest, function( playerData ){
-				
-				if( playerData.flavors &&  playerData.flavors.code == "INVALID_KS" ){
-					$('.loadingSpinner').remove();
-					$(embedPlayer).replaceWith( "Error invalid KS" );
-					return ;
-				}
 				if( playerData.meta && playerData.meta.id ) {
 					embedPlayer.kentryid = playerData.meta.id;
 					
 					var poster = playerData.meta.thumbnailUrl;
-					// Include width and height info if avaliable: 
-					poster += '/width/' + embedPlayer.getWidth();
-					poster += '/height/' + embedPlayer.getHeight();
+					// Include width and height info if avaliable:
+					if( poster.indexOf( "thumbnail/entry_id" ) != -1 ){
+						poster += '/width/' + embedPlayer.getWidth();
+						poster += '/height/' + embedPlayer.getHeight();
+					}
 					embedPlayer.updatePosterSrc( poster );
 				}
+				
+				// Check for flavors error code: ( INVALID_KS )
+				if( playerData.flavors &&  playerData.flavors.code == "INVALID_KS" ){
+					$('.loadingSpinner').remove();
+					embedPlayer['data-playerError'] = embedPlayer.getKalturaMsg( "NO_KS" );
+				}
+				
 				callback( playerData );
 			});
 		}
@@ -727,7 +753,7 @@ mw.KWidgetSupport.prototype = {
 	 * 		true if the media can be played
 	 * 		false if the media should not be played. 
 	 */
-	getAccessControlStatus: function( ac ){
+	getAccessControlStatus: function( ac, embedPlayer ){
 		if( ac.isAdmin ){
 			return true;
 		}
@@ -746,9 +772,33 @@ mw.KWidgetSupport.prototype = {
 		if( ac.isSiteRestricted ){
 			return 'site restricted';
 		}
+		// This is normally handled at the iframe level, but check is included here for completeness
+		if( ac.isUserAgentRestricted ){
+			return embedPlayer.getKalturaMsg( 'USER_AGENT_RESTRICTED' );
+		}
+		
+		// New AC API
+		if( ac.accessControlActions && ac.accessControlActions.length ) {
+			var message = false;
+			$.each( ac.accessControlActions, function() {
+				if( this.type == 1 ) {
+					message = '';
+					if( ac.accessControlMessages && ac.accessControlMessages.length ) {
+						$.each( ac.accessControlMessages, function() {
+							message += this.value + '\n';
+						});
+					} else {
+						message = 'Access denied';
+					}
+				}
+			});
+			
+			if( message ) {
+				return message;
+			}
+		}
 		return true;
 	},
-	
 	/**
 	 * Get the uiconf id
 	 */
@@ -783,12 +833,12 @@ mw.KWidgetSupport.prototype = {
 	* @param {Object} embedPlayer Player object to apply sources to
 	* @param {Object} flavorData Function to be called once sources are ready 
 	*/ 
-	addFlavorSources: function( embedPlayer, flavorData ) {
+	addFlavorSources: function( embedPlayer, playerData ) {
 		var _this = this;
 		mw.log( 'KWidgetSupport::addEntryIdSources:');
 		// Set the poster ( if not already set ) 
 		if( !embedPlayer.poster && embedPlayer.kentryid ){
-			embedPlayer.poster = mw.getKalturaThumbUrl({
+			embedPlayer.poster = kWidget.getKalturaThumbUrl({
 				'partner_id' : this.kClient.getPartnerId(),
 				'entry_id' : embedPlayer.kentryid,
 				'width' : embedPlayer.getWidth(),
@@ -801,13 +851,25 @@ mw.KWidgetSupport.prototype = {
 			return ;
 		}
 		// Else get sources from flavor data :
-		var flavorSources = _this.getEntryIdSourcesFromFlavorData( _this.kClient.getPartnerId(), flavorData );
+		var flavorSources = _this.getEntryIdSourcesFromPlayerData( _this.kClient.getPartnerId(), playerData );
+		
+		// Check for prefered bitrate info
+		var preferedBitRate = embedPlayer.evaluate('{mediaProxy.preferedFlavorBR}' );
+		
 		// Add all the sources to the player element: 
 		for( var i=0; i < flavorSources.length; i++) {
-			mw.log( 'KWidgetSupport:: addSource::' + embedPlayer.id + ' : ' +  flavorSources[i].src + ' type: ' +  flavorSources[i].type);
+			var source = flavorSources[i];
+			// if we have a prefred bitrate and source type is adaptive append it to the requets url:
+			if( preferedBitRate && source.type == 'application/vnd.apple.mpegurl' ){
+				var qp = ( source.src.indexOf('?') === -1) ? '?' : '&';
+				source.src = source.src + qp +  'preferredBitrate=' + preferedBitRate;
+			}
+			
+			mw.log( 'KWidgetSupport:: addSource::' + embedPlayer.id + ' : ' +  source.src + ' type: ' +  source.type);
 			var sourceElm = $('<source />')
-				.attr( flavorSources[i] )
+				.attr( source )
 				.get( 0 );
+			// Add it to the embedPlayer
 			embedPlayer.mediaElement.tryAddSource( sourceElm );
 		}
 	},
@@ -824,20 +886,28 @@ mw.KWidgetSupport.prototype = {
 		if( hostUrl.indexOf("#") !== -1 ) {
 			hostUrl = hostUrl.substr(0, hostUrl.indexOf("#"));
 		}
+		
+		// Only domain is needed, so removing everything (incl.) after the third slash, resulting in shorter referrer not breaking the 1024 chars limit (iOS)
+		hostUrl = hostUrl.substr( 0, hostUrl.indexOf( "/", 8 ) );
 		return hostUrl;
 	},
 	/**
 	 * Get client entry id sources: 
+	 * @param {string} partnerId Used to build asset urls
+	 * @param {object} playerData The flavor data object
 	 */
-	getEntryIdSourcesFromFlavorData: function( partnerId, flavorData ){
+	getEntryIdSourcesFromPlayerData: function( partnerId, playerData ){
 		var _this = this;
+		var flavorData = playerData.flavors;
 		if( !flavorData ){
 			mw.log("Error: KWidgetSupport: flavorData is not defined ");
 			return ;
 		}
-		// Remove the ':' from the protocol
-		var protocol = location.protocol.substr(0, location.protocol.length-1); 
 
+		var protocol = mw.getConfig('Kaltura.Protocol');
+		if( !protocol ){
+			protocol = window.location.protocol.replace(':','');
+		}
 		// Setup the deviceSources array
 		var deviceSources = [];
 		
@@ -853,48 +923,50 @@ mw.KWidgetSupport.prototype = {
 			var flavorUrl = mw.getConfig('Kaltura.CdnUrl') + '/p/' + partnerId +
 				   '/sp/' +  partnerId + '00/flvclipper';
 		}
-
+		
 		// Add all avaliable sources: 
 		for( var i = 0 ; i < flavorData.length; i ++ ) {
 			var asset = flavorData[i];
-			var entryId = asset.entryId;
+			
+			var sourceAspect = Math.round( ( asset.width / asset.height )  * 100 )  / 100
 			// Setup a source object:
 			var source = {
 				'data-sizebytes' : asset.size * 1024,
 				'data-bandwidth' : asset.bitrate * 1024,
 				'data-width' : asset.width,
-				'data-height' : asset.height
+				'data-height' : asset.height,
+				'data-aspect' : sourceAspect // not all sources have valid aspect ratios
 			};
+			// setup tags array: 
+			var tags = asset.tags.toLowerCase().split(',');
+
 			// Continue if clip is not ready (2) and not in a transcoding state (4 )
 			if( asset.status != 2  ) {
 				// if an asset is transcoding and no other source is found bind an error callback: 
 				if( asset.status == 4 ){
 					source.error = 'not-ready-transcoding';
+					mw.log("KWidgetSupport:: Skip sources that are not ready: " +  asset.id + ' ' +  asset.tags );
+					
 					// don't add sources that are not ready ( for now ) 
-					//deviceSources.push( source );
+					// deviceSources.push( source );
 				}
 				continue;
-			}
-			
-			// Add iPad Akamai flavor to iPad flavor Ids list id list
-			if( asset.tags.toLowerCase().indexOf('ipadnew') != -1 ){
-				ipadAdaptiveFlavors.push( asset.id );
-				// We don't need to continue, the ipadnew/iphonenew flavor are used also for progressive download
-				//continue;
-			}
-			
-			// Add iPhone Akamai flavor to iPad&iPhone flavor Ids list
-			if( asset.tags.toLowerCase().indexOf('iphonenew') != -1 ){
-				ipadAdaptiveFlavors.push( asset.id );
-				iphoneAdaptiveFlavors.push( asset.id );
 			}
 			
 			// Check playManifest conditional
 			if( mw.getConfig( 'Kaltura.UseManifestUrls' ) ){
 				var src  = flavorUrl + '/entryId/' + asset.entryId;
 				// Check if Apple http streaming is enabled and the tags include applembr
-				if( asset.tags.indexOf('applembr') != -1 ) {
+				if( mw.getConfig('Kaltura.UseAppleAdaptive') && $.inArray( 'applembr', tags ) != -1 ) {
 					src += '/format/applehttp/protocol/' + protocol + '/a.m3u8';
+					
+					deviceSources.push({
+						'data-aspect' : sourceAspect,
+						'data-flavorid' : 'AppleMBR',
+						'type' : 'application/vnd.apple.mpegurl',
+						'src' : src
+					});
+					
 					continue;
 				} else {
 					src += '/flavorId/' + asset.id + '/format/url/protocol/' + protocol;
@@ -905,25 +977,28 @@ mw.KWidgetSupport.prototype = {
 			}
 			
 			// Check the tags to read what type of mp4 source
-			if( asset.tags.toLowerCase().indexOf('ipad') != -1 ){
+			if( $.inArray( 'ipad', tags ) != -1 ){
 				source['src'] = src + '/a.mp4';
 				source['data-flavorid'] = 'iPad';
 				source['type'] = 'video/h264';
 			}
 
 			// Check for iPhone src
-			if( asset.tags.toLowerCase().indexOf('iphone') != -1 ){
+			if( $.inArray( 'iphone', tags ) != -1 ){
 				source['src'] = src + '/a.mp4';
 				source['data-flavorid'] = 'iPhone';
 				source['type'] = 'video/h264';
 			}
 
 			// Check for ogg source
-			if( asset.fileExt && ( asset.fileExt.toLowerCase() == 'ogg' 
+			if( asset.fileExt && 
+				( 
+				asset.fileExt.toLowerCase() == 'ogg' 
 				|| 
 				asset.fileExt.toLowerCase() == 'ogv'
 				||
-				asset.containerFormat.toLowerCase() == 'ogg' )
+				( asset.containerFormat && asset.containerFormat.toLowerCase() == 'ogg' )
+				)
 			){
 				source['src'] = src + '/a.ogg';
 				source['data-flavorid'] = 'ogg';
@@ -931,13 +1006,14 @@ mw.KWidgetSupport.prototype = {
 			}
 
 			// Check for webm source
-			if( asset.fileExt && ( asset.fileExt == 'webm' 
-				|| 
-				asset.tags.indexOf('webm') != -1 
-				|| // Kaltura transcodes give: 'matroska'
-				asset.containerFormat.toLowerCase() == 'matroska'
-				|| // some ingestion systems give "webm" 
-				asset.containerFormat.toLowerCase() == 'webm' )
+			if( asset.fileExt && asset.containerFormat && ( asset.fileExt == 'webm' 
+					|| 
+					$.inArray( 'webm' , tags) != -1 
+					|| // Kaltura transcodes give: 'matroska'
+					asset.containerFormat.toLowerCase() == 'matroska'
+					|| // some ingestion systems give "webm" 
+					( asset.containerFormat.toLowerCase() == 'webm' )
+				)
 			){
 				source['src'] = src + '/a.webm';
 				source['data-flavorid'] = 'webm';
@@ -954,23 +1030,70 @@ mw.KWidgetSupport.prototype = {
 			if( source['src'] ){
 				deviceSources.push( source );
 			}
+			
+			/**
+			 * Add Adaptive flavors:
+			 */
+			
+			// Android does not support audio flavors in the adaptive stream set:
+			if(  navigator.userAgent.indexOf( 'Android' ) !== -1 && 
+					asset.width == 0  && asset.height == 0  ){
+				continue;
+			}
+			
+			// Add iPad Akamai flavor to iPad flavor Ids list id list
+			if( $.inArray( 'ipadnew', tags ) != -1 ){
+				ipadAdaptiveFlavors.push( asset.id );
+			}
+			
+			// Add iPhone Akamai flavor to iPad&iPhone flavor Ids list
+			if( $.inArray( 'iphonenew', tags ) != -1 ){
+				ipadAdaptiveFlavors.push( asset.id );
+				iphoneAdaptiveFlavors.push( asset.id );
+			}
+		} // end source loop
+
+		// Make sure all the sources have valid aspect ratios ( if not get from other sources )
+		for( var i=0; i < deviceSources.length; i++ ){
+			var source = deviceSources[i];
+			
+			if( ! this.isValidAspect( source['data-aspect'] ) ){
+				source['data-aspect'] = this.getValidAspect( deviceSources );
+			}
+			mw.log( "KWidgetSupport:: set aspect for: " + source['data-flavorid'] + ' = ' + source['data-aspect'] );
 		}
 		
-		// Create iPad flavor for Akamai HTTP
-		if( ipadAdaptiveFlavors.length != 0 && mw.getConfig('Kaltura.UseAppleAdaptive') ) {
-			deviceSources.push({
-				'data-flavorid' : 'iPadNew',
-				'type' : 'application/vnd.apple.mpegurl',
-				'src' : flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + ipadAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/' + protocol + '/a.m3u8'
-			});
+		// Only add flavor sources if no appleMBR flavor exists and Kaltura.UseFlavorIdsUrls
+		if( mw.getConfig('Kaltura.UseFlavorIdsUrls') && $.grep(deviceSources, function( a ){ 
+				if( a['data-flavorid'] == 'AppleMBR' ){ 
+					return true;
+				}
+			}).length  == 0
+		) {
+			var validClipAspect = this.getValidAspect( deviceSources );
+			// Create iPad flavor for Akamai HTTP if we have more than one flavor
+			if( ipadAdaptiveFlavors.length > 1 && mw.getConfig('Kaltura.UseAppleAdaptive') ) {
+				deviceSources.push({
+					'data-aspect' : validClipAspect,
+					'data-flavorid' : 'iPadNew',
+					'type' : 'application/vnd.apple.mpegurl',
+					'src' : flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + ipadAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/' + protocol + '/a.m3u8'
+				});
+			}
+			// Create iPhone flavor for Akamai HTTP
+			if( iphoneAdaptiveFlavors.length > 1 && mw.getConfig('Kaltura.UseAppleAdaptive') ) {
+				deviceSources.push({
+					'data-aspect' : validClipAspect,
+					'data-flavorid' : 'iPhoneNew',
+					'type' : 'application/vnd.apple.mpegurl',
+					'src' : flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + iphoneAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/' + protocol + '/a.m3u8'
+				});
+			}
 		}
-		// Create iPhone flavor for Akamai HTTP
-		if(iphoneAdaptiveFlavors.length != 0 && mw.getConfig('Kaltura.UseAppleAdaptive') ) {
-			deviceSources.push({
-				'data-flavorid' : 'iPhoneNew',
-				'type' : 'application/vnd.apple.mpegurl',
-				'src' : flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + iphoneAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/' + protocol + '/a.m3u8'
-			});
+		// Apple adaptive streaming is broken for short videos
+		// remove adaptive sources if duration is less then 10 seconds, 
+		if( playerData.meta.duration < 10 ) {
+			deviceSources = this.removeAdaptiveFlavors( deviceSources );
 		}
 		
 		// Append KS to all source if available 
@@ -988,7 +1111,33 @@ mw.KWidgetSupport.prototype = {
 		
 		return deviceSources;
 	},
-
+	removeAdaptiveFlavors: function( sources ){
+		for( var i =0 ; i < sources.length; i++ ){
+			if( sources[i].type == 'application/vnd.apple.mpegurl' ){
+				// Remove the current source:
+				sources.splice( i, 1 );
+				i--;
+			}
+		}
+		return sources;
+	},
+	getValidAspect: function( sources ){
+		var _this = this;
+		for( var i=0; i < sources.length; i++ ){
+			var source = sources[i];
+			var aspect = source['data-aspect'];
+			if( this.isValidAspect( aspect ) ){
+				// return valid aspect and exit out of the loop:
+				return aspect;
+			}
+		};
+		// Always return a valid apsect ( assume default aspect if none is found ) 
+		var aspectParts = mw.getConfig( 'EmbedPlayer.DefaultSize' ).split( 'x' );
+		return  Math.round( ( aspectParts[0] / aspectParts[1]) * 100 ) / 100;;
+	},
+	isValidAspect: function( aspect ){
+		return  ! isNaN( aspect) && isFinite( aspect );
+	},
 	generateGUID: function() {
 		var S4 = function() {
 		   return (((1+Math.random())*0x10000)|0).toString(16).substring(1);

@@ -4,7 +4,7 @@
  * http://www.kaltura.org/demos/kdp3/docs.html#jsapi
  */
 // scope in mw
-( function( mw, $ ) {
+( function( mw, $ ) { "use strict";
 	mw.KDPMapping = function( ) {
 		return this.init();
 	};
@@ -82,9 +82,9 @@
 							var winPrefix = ( globalFuncName.indexOf( 'window.' ) === 0 )?'':'window.';
 							var evalFunction = eval( winPrefix + globalFuncName );
 							// try to get the parent 
-							try{
+							try {
 								var evalFunctionParent =  eval( globalFuncName.split('.').slice(0,-1).join('.') );
-							} catch (e ){
+							} catch ( e ){
 								// can't get the parent just pass the function scope: 
 								var evalFunctionParent = evalFunction;
 							}
@@ -101,31 +101,42 @@
 						if( notificationName == 'doSeek' ){
 							playerProxy.kPreSeekTime = playerProxy.currentTime;
 						}
+						// Reach into the player and issue the play call ( if in iOS to capture the user gesture click event if present )
+						if( notificationName == 'doPlay' &&  mw.isIOS() ){
+							$( '#' + playerProxy.id + '_ifp' )
+								.get(0).contentWindow
+								.$( '#' + playerProxy.id ).get(0).sendNotification( 'doPlay' );
+							// Do not also issue iframe postMessage ( so we avoid sending two play requests ) 
+							return false;
+						}
+						// By default do issue the postMessage api call for the given sendNotification. 
+						return true;
 					}
 					// @@TODO if we split kaltura playlist into its own folder with own loader we can move that there. 
 					playerMethods[ 'setKDPAttribute' ] = function( componentName, property, value ){
 						// Check for playlist change media call and issue a play directly on the video element
 						// gets around iOS restriction on async playback
 						if( componentName == 'playlistAPI.dataProvider' && property == 'selectedIndex' ){
-							// only iOS devices have the autoPlay restriction 
-							if( mw.isIOS() ){
-								$( '#' + playerProxy.id + '_ifp' )
-									.get(0).contentWindow
-									.$( '#' + playerProxy.id ).get(0).play();
-							}
+							// iOS devices have a autoPlay restriction, we issue a raw play call on 
+							// the video tag to "capture the user gesture" so that future 
+							// javascript play calls can work. 
+							$( '#' + playerProxy.id + '_ifp' )
+								.get(0).contentWindow
+								.$( '#' + playerProxy.id ).get(0).play();
 						}
+						// always send postMessage on setKDPAttribute
+						return true;
 					};
 				});
 				
 				// Directly build out the evaluate call on the playerProxy
 				playerProxy.evaluate = function( objectString ){
-					return _this.evaluate( playerProxy, objectString);			
+					return _this.evaluate( playerProxy, objectString);
 				};
 				// Listen for the proxyReady event from the server: 
 				$( playerProxy ).bind( 'proxyReady', function(){
-					if( window.KalturaKDPCallbackReady ){
-						window.KalturaKDPCallbackReady( playerProxy.id );
-					}
+					// Issue the jsReadyCallback for the html5 player:
+					kWidget.jsCallbackReady( playerProxy.id );
 				});
 			});			
 		},
@@ -137,11 +148,11 @@
 			var _this = this;
 			mw.log("KDPMapping::addIframePlayerServerBindings");
 			$( mw ).bind( 'AddIframePlayerBindings', function( event, exportedBindings ){
-				exportedBindings.push( 'jsListenerEvent', 'Kaltura.SendAnalyticEvent' );
+				exportedBindings.push( 'jsListenerEvent', 'KalturaSendAnalyticEvent' );
 			});
-			
-			$( mw ).bind( 'newIframePlayerServerSide', function( event, embedPlayer ){
 
+			$( mw ).bind( 'newIframePlayerServerSide', function( event, embedPlayer ){
+				
 				embedPlayer.addJsListener = function( eventName, globalFuncName){
 					// Check for function based binding ( and do  internal event bind ) 
 					if( typeof globalFuncName == 'function' ){
@@ -209,17 +220,55 @@
 				case 'mediaPlayTo':
 					embedPlayer.pauseTime = parseFloat(value);
 				break;
-				default: 
-					if( !embedPlayer.playerConfig['plugins'][ componentName ] ){
-						embedPlayer.playerConfig['plugins'][ componentName ] = {}; 
+				default:
+					var subComponent = null;
+					var pConf = embedPlayer.playerConfig['plugins'];
+					// support decedent properties
+					if( componentName.indexOf('.') != -1 ){
+						var cparts = componentName.split('.');
+						componentName = cparts[0];
+						subComponent = cparts[1];
 					}
-					embedPlayer.playerConfig['plugins'][ componentName ][ property ] = value; 
+					if( !pConf[ componentName ] ){
+						pConf[ componentName ] = {}; 
+					}
+					if( subComponent ){
+						if( !pConf[ componentName ][subComponent] ){
+							pConf[ componentName ][ subComponent ] = {};
+						}
+						pConf[ componentName ][subComponent][property] = value;
+					} else {
+						pConf[ componentName ][ property ] = value;
+					}
 				break;
 			}
+			// TODO move to a "ServicesProxy" plugin
+			if( componentName == 'servicesProxy' 
+				&& subComponent && subComponent == 'kalturaClient' 
+				&& property == 'ks' 
+			){
+				this.updateKS( embedPlayer, value );
+			}
 			// Give kdp plugins a chance to take attribute actions 
-			$( embedPlayer ).trigger( 'Kaltura_SetKDPAttribute', [componentName, property, value] );
+			$( embedPlayer ).trigger( 'Kaltura_SetKDPAttribute', [ componentName, property, value ] );
 		},
-		
+		updateKS: function ( embedPlayer, ks){
+			var client = mw.kApiGetPartnerClient( embedPlayer.kwidgetid );
+			// clear out any old player data cache:
+			client.clearCache();
+			// update the new ks:
+			client.setKS( ks );
+			// TODO confirm flash KDP issues a changeMedia internally for ks updates
+			embedPlayer.sendNotification( 'changeMedia', {'entryId': embedPlayer.kentryid });
+			
+			// add a loading spinner: 
+			//embedPlayer.addPlayerSpinner();
+			// reload the player:
+			//kWidgetSupport.loadAndUpdatePlayerData( embedPlayer, function(){
+				// ks should now be updated
+			//	embedPlayer.hideSpinner();
+			//});
+		},
 		/**
 		 * Emulates kaltura evaluate function
 		 * 
@@ -229,7 +278,7 @@
 		evaluate: function( embedPlayer, objectString ){
 			var _this = this;
 			var result;
-			if( typeof objectString != 'string'){
+			if( typeof objectString !== 'string'){
 				return objectString;
 			}
 			// Check if a simple direct evaluation: 
@@ -284,8 +333,6 @@
 			
 			// Split the uiConf expression into parts separated by '.'
 			var objectPath = expression.split('.');
-			
-			
 			// Check the exported kaltura object ( for manual overrides of any mapping ) 
 			if( embedPlayer.playerConfig
 					&&
@@ -356,7 +403,7 @@
 					}
 				break;
 				case 'duration':
-					return embedPlayer.duration;
+					return embedPlayer.getDuration();
 					break;
 				case 'mediaProxy':
 					switch( objectPath[1] ){
@@ -398,14 +445,16 @@
 					}
 				break;
 				case 'configProxy':
+					// get flashvars from playerConfig where possible
+					// TODO deprecate $( embedPlayer ).data('flashvars');
+					var fv;
+					if( embedPlayer.playerConfig && embedPlayer.playerConfig['vars'] ){
+						fv = embedPlayer.playerConfig['vars'];
+					} else {
+						fv = $( embedPlayer ).data('flashvars');
+					}
 					switch( objectPath[1] ){
 						case 'flashvars':
-							var fv;
-							if( embedPlayer.playerConfig && embedPlayer.playerConfig['vars'] ){
-								fv = embedPlayer.playerConfig['vars'];
-							} else {
-								fv = $( embedPlayer ).data('flashvars');
-							}
 							if( objectPath[2] ) {
 								switch( objectPath[2] ) {
 									case 'autoPlay':
@@ -436,8 +485,12 @@
 							return window.kWidgetSupport.getGUID();
 						break;
 					}
-					// no objectPath[1] match return the full configProx object: 
-					return {'flashvars' : $( embedPlayer ).data( 'flashvars' )}
+					// No objectPath[1] match return the full configProx object: 
+					// TODO I don't think this is supported in KDP ( we might want to return null instead )
+					return { 
+							'flashvars' : fv,
+							'sessionId' : window.kWidgetSupport.getGUID()
+						};
 				break;	
 				case 'playerStatusProxy':
 					switch( objectPath[1] ){
@@ -476,11 +529,18 @@
 					}
 				break;
 			}
-			// Look for a plugin based config: 
-			var pluginConfigValue = embedPlayer.getKalturaConfig( objectPath[0], objectPath[1]);
-			if( $.isEmptyObject( pluginConfigValue ) ){
-				return ;
-			} 
+			// Look for a plugin based config: typeof
+			var pluginConfigValue = null;
+			// See if we are looking for a top level property
+			if( !objectPath[1] && $.isEmptyObject( embedPlayer.getKalturaConfig( objectPath[0] ) ) ){
+				// Return the top level property directly ( {loop} {autoPlay} etc. ) 
+				pluginConfigValue = embedPlayer.getKalturaConfig( '', objectPath[0] );
+			} else {
+				pluginConfigValue = embedPlayer.getKalturaConfig( objectPath[0], objectPath[1]);
+				if( $.isEmptyObject( pluginConfigValue ) ){
+					return ;
+				} 
+			}
 			return pluginConfigValue;
 		},
 		evaluateStringFunction: function( functionName, value ){
@@ -499,7 +559,7 @@
 		 */
 		addJsListener: function( embedPlayer, eventName, callbackName ){
 			var _this = this;
-			//mw.log("KDPMapping::addJsListener: " + eventName + ' cb:' + callbackName );
+			// mw.log("KDPMapping::addJsListener: " + eventName + ' cb:' + callbackName );
 
 			// We can pass [eventName.namespace] as event name, we need it in order to remove listeners with their namespace
 			if( typeof eventName == 'string' ) {
@@ -522,7 +582,7 @@
 				// passing a callback by function ref
 				var callback = callbackName;
 			} else {
-				mw.log( "Error: KDPMapping : bad callback type" );
+				mw.log( "Error: KDPMapping : bad callback type: " + callbackName );
 				return ;
 			}
 			
@@ -542,7 +602,7 @@
 			};
 			switch( eventName ){
 				case 'mediaLoadError':
-					b( 'mediaLoadError');
+					b( 'mediaLoadError' );
 					break;
 				case 'mediaError':
 					b( 'mediaError' );
@@ -563,7 +623,7 @@
 						if( ! embedPlayer[ 'data-playerError' ] ){
 							embedPlayer.kdpEmptyFlag = false;
 						}
-						callback( {}, embedPlayer.id );
+						callback( embedPlayer.id );
 					});
 					break;
 				case 'playerReady':
@@ -572,7 +632,7 @@
 				case 'changeVolume':
 				case 'volumeChanged':
 					b( 'volumeChanged', function(event, percent){
-						callback( {'newVolume' : percent}, embedPlayer.id );
+						callback( { 'newVolume' : percent }, embedPlayer.id );
 					});
 					break;
 				case 'playerStateChange':
@@ -600,8 +660,9 @@
 				case 'doPause':
 					b( "onpause" );
 					break;
-					
 				case 'playerPlayed':
+					b( "firstPlay" );
+					break;
 				case 'play':
 				case 'doPlay':
 					b( "onplay" );
@@ -621,7 +682,20 @@
 					b( "seeked" );
 					break;
 				case 'playerPlayEnd':
-					b( "onEndedDone" );
+					// Player Play end should subscribe to postEnded which is fired at the end
+					// of ads and between clips in a playlist. 
+					b( "postEnded" );
+					break;
+				case 'playbackComplete':
+					// Signifies the end of a media in the player (can be either ad or content)
+					b( "playbackComplete" );
+					b( "AdSupport_EndAdPlayback", function( e, slotType){
+						// do not trigger the end adplayback event for postroll ( will already be
+						// triggred by the content end 
+						if( slotType != 'postroll' ){
+							callback();
+						}
+					});
 					break;
 				case 'durationChange':
 					b( "durationchange", function(){
@@ -657,7 +731,7 @@
 				case 'mediaReady':
 					// Check for "media ready" ( namespace to kdpMapping )
 					b( 'playerReady',function( event ){
-						// only issue the media ready callback if entry is actually ready.
+						// Only issue the media ready callback if entry is actually ready.
 						if( embedPlayer.kentryid ){
 							callback( embedPlayer.id )
 						}
@@ -726,39 +800,68 @@
 					break;
 					
 				
-				/**
-				 * Ad support listeneres
-				 *  TODO move to AdTimeline.js ( not in core KDPMapping )
-				 */
-				case 'adStart':
-					b('AdSupport_StartAdPlayback');	
-					break;
-				case 'adEnd':
-					b('AdSupport_EndAdPlayback');
-					break;
-				// Pre sequences: 
+				// Pre Sequence:
 				case 'preSequenceStart':
-				case 'pre1start':
-					b( 'AdSupport_PreSequence');
+				case 'prerollStarted':
+					b('AdSupport_prerollStarted', function( e, slotType ){
+						callback( { 'timeSlot': slotType }, embedPlayer.id );
+					});	
 					break;
 				case 'preSequenceComplete':
-					b( 'AdSupport_PreSequenceComplete');
+					b('AdSupport_preSequenceComplete', function( e, slotType ){
+						callback( { 'timeSlot': slotType }, embedPlayer.id );
+					});	
 					break;
-				
-				// Post sequences:
-				case 'post1start':
-				case 'postSequenceStart':
-					b( 'AdSupport_PostSequence');
+					
+				// mid Sequence: 
+				case 'midrollStarted':
+					b('AdSupport_midrollStarted', function( e, slotType ){
+						callback( { 'timeSlot': slotType }, embedPlayer.id );
+					});	
+					break;
+				case 'midSequenceComplete':
+					b('AdSupport_midSequenceComplete', function( e, slotType ){
+						callback( { 'timeSlot': slotType }, embedPlayer.id );
+					});	
+					break;
+					
+				// post roll Sequence: 
+				case 'postRollStarted':
+					b('AdSupport_midrollStarted', function( e, slotType ){
+						callback( { 'timeSlot': slotType }, embedPlayer.id );
+					});	
 					break;
 				case 'postSequenceComplete':
-					b( 'AdSupport_PostSequenceComplete' );
+					b('AdSupport_postSequenceComplete', function( e, slotType ){
+						callback( { 'timeSlot': slotType }, embedPlayer.id );
+					});	
 					break;
+					
+				// generic events: 
+				case 'adStart':
+					b('AdSupport_StartAdPlayback', function( e, slotType ){
+						callback( { 'timeSlot': slotType }, embedPlayer.id );
+					});	
+					break;
+				case 'adEnd':
+					b('AdSupport_EndAdPlayback', function( e, slotType){
+						callback( { 'timeSlot': slotType }, embedPlayer.id )
+					});
+					break;
+				// Generic ad time update
 				case 'adUpdatePlayhead': 
 					b( 'AdSupport_AdUpdatePlayhead', function( event, adTime) {
 						callback( adTime, embedPlayer.id );
 					});
 					break;
-					
+				/**OLD NUMERIC SEQUENCE EVENTS */
+				case 'pre1start':
+					b( 'AdSupport_PreSequence');
+					break;
+				// Post sequences:
+				case 'post1start':
+					b( 'AdSupport_PostSequence');
+					break;
 				/**
 				 * Cue point listeners TODO ( move to mw.kCuepoints.js )
 				 */
@@ -862,7 +965,7 @@
 		 * Master send action list: 
 		 */
 		sendNotification: function( embedPlayer, notificationName, notificationData ){
-			mw.log('KDPMapping:: sendNotification > '+ notificationName );
+			mw.log('KDPMapping:: sendNotification > '+ notificationName,  notificationData );
 			switch( notificationName ){
 				case 'doPlay':
 					embedPlayer.play();
@@ -889,9 +992,11 @@
 					embedPlayer.emptySources();
 					break;
 				case 'changeMedia':
-					// Check if we don't have entryId and referenceId and they both not -1 - Empty sources
+					// Check changeMediak if we don't have entryId and referenceId and they both not -1 - Empty sources
 					if( ( ! notificationData.entryId || notificationData.entryId == "" || notificationData.entryId == -1 )
-						&& ( ! notificationData.referenceId || notificationData.referenceId == "" || notificationData.referenceId == -1 ) ) {
+						&& ( ! notificationData.referenceId || notificationData.referenceId == "" || notificationData.referenceId == -1 ) ) 
+					{
+						mw.log( "KDPMapping:: ChangeMedia missing entryId or refrenceid, empty sources.")
 					    embedPlayer.emptySources();
 					    break;
 					}
@@ -918,10 +1023,17 @@
 						// clear ad data ..
 						embedPlayer.kAds = null;
 
-						// Update the poster
-						embedPlayer.updatePosterSrc();
+						// Update the poster 
+						embedPlayer.updatePosterSrc(
+								kWidget.getKalturaThumbUrl({
+									'entry_id' : embedPlayer.kentryid,
+									'partner_id' : embedPlayer.kwidgetid.replace('_', ''),
+									'width' : parseInt( embedPlayer.width),
+									'height' : parseInt( embedPlayer.height)
+								})
+						);
 						
-						// run the embedPlayer changeMedia function
+						// Run the embedPlayer changeMedia function
 						embedPlayer.changeMedia();
 						break;
 					}

@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.7/modules/SwarmTransport
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/modules/SwarmTransport
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -32,12 +32,12 @@ file
 
 
 
-2017-07-03T22:40:28.000000Z
+2017-07-03T19:19:21.000000Z
 df44619c000365052488d48a632e8cc2
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -69,12 +69,12 @@ file
 
 
 
-2017-07-03T22:40:28.000000Z
+2017-07-03T19:19:21.000000Z
 b050a279f225f42555793a19cf3d936d
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -103,12 +103,12 @@ file
 
 
 
-2017-07-03T22:40:28.000000Z
+2017-07-03T19:19:21.000000Z
 c3ea3ccfb43b248da1ececb8821afe3a
-2012-03-19T10:48:02.037253Z
-7353
-aviv
-
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+has-props
 
 
 
@@ -137,11 +137,11 @@ file
 
 
 
-2017-07-03T22:40:28.000000Z
+2017-07-03T19:19:21.000000Z
 26963ddb3c906e4445fe58082f42726d
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 

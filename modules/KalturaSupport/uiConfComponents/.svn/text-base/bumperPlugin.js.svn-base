@@ -1,7 +1,7 @@
 /**
 * Adds bumper support
 */
-( function( mw, $ ) {
+( function( mw, $ ) { "use strict";
 
 // xxx removed once we move to the new resource loader
 window.bumperPlugin = true;
@@ -55,6 +55,13 @@ window.bumperPlugin = function( embedPlayer, callback ){
 			'height': embedPlayer.getHeight()	
 		}
 		mw.getEntryIdSourcesFromApi( embedPlayer.kwidgetid, bumperConfig.bumperEntryID, size, function( sources ){
+			if( ! sources ){
+				// no sources error:
+				mw.log("Error: bumperPlugin: No sources for: " + embedPlayer.kwidgetid + ' entry: ' +  bumperConfig.bumperEntryID );
+				callback();
+				return ;
+			}
+
 			// Load adSupport for player timeline:
 			var adConf =  {
 				'ads': [
@@ -63,13 +70,14 @@ window.bumperPlugin = function( embedPlayer, callback ){
 						'clickThrough' : bumperConfig.clickUrl
 					}
 				],
-				'lockUI': bumperConfig.lockUi,
+				'lockUI': bumperConfig.lockUI,
 				'playOnce': bumperConfig.playOnce
 			};
 			// handle prerolls
 			if( bumperConfig.preSequence ){
 				$( embedPlayer ).bind( 'AdSupport_bumper' + bumpPostfix, function( event, sequenceProxy ){
 					adConf.type = 'bumper';
+					embedPlayer.adTimeline.updateUiForAdPlayback( adConf.type );
 					sequenceProxy[ bumperConfig.preSequence ] = function( doneCallback ){
 						// bumper triggers play event: 
 						$( embedPlayer ).trigger( 'onplay' );
@@ -81,6 +89,7 @@ window.bumperPlugin = function( embedPlayer, callback ){
 			if( bumperConfig.postSequence ){
 				$( embedPlayer ).bind( 'AdSupport_postroll' + bumpPostfix, function(event, sequenceProxy){
 					adConf.type = 'postroll';
+					embedPlayer.adTimeline.updateUiForAdPlayback( adConf.type );
 					sequenceProxy[ bumperConfig.postSequence ] = function( doneCallback ){
 						// bumper triggers play event: 
 						$( embedPlayer ).trigger( 'onplay' );

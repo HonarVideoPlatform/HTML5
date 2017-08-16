@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.7/includes
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.12.8/includes
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-03-22T15:26:05.177568Z
-7375
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -26,11 +26,42 @@ aviv
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-cache
-dir
-
 library
 dir
+
+.gitignore
+file
+
+
+
+
+2017-07-03T19:15:59.000000Z
+b551d1269ee014a6157c6dd52ff66722
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+7
 
 NamedResourceLoader.php
 file
@@ -38,11 +69,11 @@ file
 
 
 
-2017-07-03T22:39:20.000000Z
+2017-07-03T19:15:59.000000Z
 aec8802fe1b93271e282d8303ae0fbd4
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -72,11 +103,11 @@ file
 
 
 
-2017-07-03T22:39:20.000000Z
-6e4e39df83a64b6396ab12397f6cfd57
-2012-03-22T15:26:05.177568Z
-7375
-aviv
+2017-07-03T19:15:59.000000Z
+c53d666158431907c94e172cd68519c8
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 
@@ -98,7 +129,7 @@ aviv
 
 
 
-4732
+5036
 
 noMediaWikiConfig.php
 file
@@ -106,11 +137,11 @@ file
 
 
 
-2017-07-03T22:39:20.000000Z
+2017-07-03T19:15:59.000000Z
 9f269c6c5180300b73d849d73bef8767
-2012-03-19T10:48:02.037253Z
-7353
-aviv
+2012-06-05T08:16:57.286925Z
+7625
+hagaio
 
 
 

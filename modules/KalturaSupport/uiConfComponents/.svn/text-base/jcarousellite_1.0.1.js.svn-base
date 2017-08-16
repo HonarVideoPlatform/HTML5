@@ -199,8 +199,12 @@
  * @cat Plugins/Image Gallery
  * @author Ganeshji Marwaha/ganeshread@gmail.com
  */
-
+	
 (function($) {                                          // Compliant with jquery.noConflict()
+// export the class name for Resource Loader, 
+// TODO can be removed with New Resource Loader
+window.jCarousel = true;
+
 $.fn.jCarouselLite = function(o) {
     o = $.extend({
         btnPrev: null,
@@ -223,7 +227,6 @@ $.fn.jCarouselLite = function(o) {
     }, o || {});
 
     return this.each(function() {                           // Returns the element collection. Chainable.
-
         var running = false, animCss=o.vertical?"top":"left", sizeCss=o.vertical?"height":"width";
         var div = $(this), ul = $("ul", div), tLi = $("li", ul), tl = tLi.size(), v = o.visible;
 
@@ -250,10 +253,12 @@ $.fn.jCarouselLite = function(o) {
         div.css(sizeCss, divSize+"px");                     // Width of the DIV. length of visible images
 
         if(o.btnPrev) {
+			$(o.btnPrev).show();
 			if ( !curr ) {
 				$(o.btnPrev).hide();
 			}
-            $(o.btnPrev).click(function() {
+			$(o.btnPrev).unbind('click.jcarousel');
+            $(o.btnPrev).bind( 'click.jcarousel', function() {
 				if ( !(curr-o.scroll) ) {
 					$(o.btnPrev).hide();
 				}
@@ -265,10 +270,12 @@ $.fn.jCarouselLite = function(o) {
 		}
 		
         if(o.btnNext) {
+			$(o.btnNext).show();
 			if ( v >= itemLength ) {
 				$( o.btnNext ).hide();
 			}
-            $(o.btnNext).click(function() {
+			$(o.btnNext).unbind('click.jcarousel');
+            $(o.btnNext).bind( 'click.jcarousel', function() {
 				if ( curr+o.scroll ) {
 					$(o.btnPrev).show();
 				}

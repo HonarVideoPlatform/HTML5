@@ -1,4 +1,4 @@
-( function( mw, $ ) {
+( function( mw, $ ) {"use strict";
 
 mw.PlaylistHandlerKaltura = function( playlist, options ){
 	return this.init( playlist, options );
@@ -79,7 +79,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 		mw.log( "mw.PlaylistHandlerKaltura:: loadPlaylist > ");
 		// Get the kaltura client:
 		_this.getPlaylistUiConf( function( $uiConf ){
-			mw.log("PlaylistHandlerKaltura:: loadPlaylist: got playerData" );
+			mw.log("PlaylistHandlerKaltura:: loadPlaylist: got playerData" );			
 			_this.playlistSet = [];
 			// @@TODO clean up with getConf option
 			// Add in flashvars playlist id if present:
@@ -125,7 +125,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 			
 			// Find all the playlists by number  
 			for( var i=0; i < 50 ; i ++ ){
-				var playlist_id = playlistName = null;
+				var playlist_id = null, playlistName = null;
 				// Try and get the playlist id and name: 
 				var kplUrl = _this.playlist.embedPlayer.getKalturaConfig( 'playlistAPI', 'kpl' + i + 'Url' );
 				playlistName =_this.playlist.embedPlayer.getKalturaConfig( 'playlistAPI', 'kpl' + i + 'Name' ); 
@@ -202,6 +202,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 		// Update the player data ( if we can ) 
 		if( embedPlayer.kalturaPlaylistData ){
 			embedPlayer.kalturaPlaylistData.currentPlaylistId = this.playlist_id;
+			embedPlayer.setKalturaConfig( 'playlistAPI', 'dataProvider', {'selectedIndex' : playlistIndex} );
 		}
 		// Make sure the iframe contains this currentPlaylistId update: 
 		$( embedPlayer ).trigger( 'updateIframeData' );
@@ -209,10 +210,27 @@ mw.PlaylistHandlerKaltura.prototype = {
 	loadCurrentPlaylist: function( callback ){
 		this.loadPlaylistById( this.playlist_id, callback );
 	},
-	loadPlaylistById: function( playlist_id, callback ){
+	loadPlaylistById: function( playlist_id, loadedCallback ){
 		var _this = this;
 		mw.log("PlaylistHandlerKaltura::loadPlaylistById> " + playlist_id );
 		var embedPlayer = this.playlist.embedPlayer;
+		
+		// Local ready callback  to trigger playlistReady
+		var callback = function(){
+			// Check if player is ready before issuing playlist ready event
+			if( embedPlayer.playerReadyFlag ) {
+				embedPlayer.triggerHelper( 'playlistReady' );
+			} else {
+				embedPlayer.bindHelper('playerReady.playlistReady', function(){
+					$( embedPlayer ).unbind( 'playerReady.playlistReady' );
+					embedPlayer.triggerHelper( 'playlistReady' );
+				});
+			}
+			// Issue the callback if set: 
+			if( $.isFunction( loadedCallback ) ){
+				loadedCallback();
+			}
+		};
 		
 		// Check if the playlist is mrss url ( and use the mrss handler )
 		if( mw.isUrl( playlist_id ) ){
@@ -224,9 +242,11 @@ mw.PlaylistHandlerKaltura.prototype = {
 			});
 			return ;
 		}
+		
 		// Check for playlist cache
 		if( embedPlayer.kalturaPlaylistData && embedPlayer.kalturaPlaylistData[ playlist_id ] ){
 			_this.clipList = embedPlayer.kalturaPlaylistData[ playlist_id ];
+			embedPlayer.setKalturaConfig( 'playlistAPI', 'dataProvider', {'content' : _this.clipList} );
 			callback();
 			return ;
 		}
@@ -257,6 +277,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 			}
 			// Add it to the cache:
 			embedPlayer.kalturaPlaylistData[ playlist_id ] = playlistData;
+			embedPlayer.setKalturaConfig( 'playlistAPI', 'dataProvider', {'content' : playlistData} );
 			$( embedPlayer ).trigger('updateIframeData');
 			// update the clipList:
 			_this.clipList = playlistData;
@@ -286,44 +307,64 @@ mw.PlaylistHandlerKaltura.prototype = {
 		return this.clipList;
 	},
 	playClip: function( embedPlayer, clipIndex, callback ){
-		var _this = this;
+		var _this = this
 		if( !embedPlayer ){
 			mw.log("Error:: PlaylistHandlerKaltura:playClip > no embed player");
-			callback();
+			if( $.isFunction( callback ) ){
+				callback();
+			}
 			return ;
 		}
+		// Send notifications per play request
+		if( clipIndex == 0 ) {
+			embedPlayer.triggerHelper( 'playlistFirstEntry' );
+		} else if( clipIndex == (_this.getClipCount()-1) ) {
+			embedPlayer.triggerHelper( 'playlistLastEntry' );
+		} else {
+			embedPlayer.triggerHelper( 'playlistMiddleEntry' );
+		}
+		
 		// Check if entry id already matches ( and is loaded ) 
 		if( embedPlayer.kentryid == this.getClip( clipIndex ).id ){
 			if( this.loadingEntry ){
-				mw.log("Error: PlaylistHandlerKaltura possible double playClip request");
+				mw.log("Error: PlaylistHandlerKaltura is loading Entry, possible double playClip request");
 			}else {
 				embedPlayer.play();
 			}
+			if( $.isFunction( callback ) ){
+				callback();
+			}			
 			return ;
 		}	
-		// update the loadingEntry flag:
+		// Update the loadingEntry flag:
 		this.loadingEntry = this.getClip( clipIndex ).id;
+		
 		
 		// Listen for change media done
 		var bindName = 'onChangeMediaDone' + this.bindPostFix;
 		$( embedPlayer).unbind( bindName ).bind( bindName, function(){
 			mw.log( 'mw.PlaylistHandlerKaltura:: onChangeMediaDone' );
 			_this.loadingEntry = false;
+			// Sync player size
+			embedPlayer.bindHelper( 'loadeddata', function() {
+				embedPlayer.controlBuilder.syncPlayerSize();									
+			});
 			embedPlayer.play();
-			if( callback ){
+			if( $.isFunction( callback ) ){
 				callback();
 			}
 		});
 		mw.log("PlaylistHandlerKaltura::playClip::changeMedia entryId: " + this.getClip( clipIndex ).id);
-		
 		// Use internal changeMedia call to issue all relevant events
-		embedPlayer.sendNotification( "changeMedia", { 'entryId' : this.getClip( clipIndex ).id } );
+		embedPlayer.sendNotification( "changeMedia", {'entryId' : this.getClip( clipIndex ).id} );
+
 		// Update the playlist data selectedIndex
 		embedPlayer.kalturaPlaylistData.selectedIndex = clipIndex;
 	},
 	drawEmbedPlayer: function( clipIndex, callback){
 		var _this = this;
 		var $target = _this.playlist.getVideoPlayerTarget();
+		mw.log( "PlaylistHandlerKaltura::drawEmbedPlayer:" + clipIndex );
 		// Check for the embedPlayer at the target
 		if( ! $('#' + _this.playlist.getVideoPlayerId() ).length ){
 			mw.log("Warning: Playlist Handler works best with video pre-loaded in the DOM");
@@ -339,16 +380,23 @@ mw.PlaylistHandlerKaltura.prototype = {
 
 		// Hide our player if not needed
 		var $playerHolder = embedPlayer.getKalturaConfig('PlayerHolder', ["visible", "includeInLayout"]);
-		if( $playerHolder.visible === false  || $playerHolder.includeInLayout === false ) {
+		if( ( $playerHolder.visible === false  || $playerHolder.includeInLayout === false ) && !embedPlayer.useNativePlayerControls() ) {
 			embedPlayer.displayPlayer = false;
 		}
 
 		// update the selected index: 
 		embedPlayer.kalturaPlaylistData.selectedIndex = clipIndex;
-		// Set up ready binding (for ready )
-		$( embedPlayer ).bind('playerReady' + this.bindPostFix, function(){
+
+		// check if player already ready: 
+		if( embedPlayer.playerReady ){
 			callback();
-		});
+		} else {
+			// Set up ready binding (for ready )
+			$( embedPlayer ).bind('playerReady' + this.bindPostFix, function(){
+				callback();
+			});
+		}
+		
 	},	
 	updatePlayerUi: function( clipIndex ){
 		// no updates need since kaltura player interface components are managed by the player
@@ -383,13 +431,31 @@ mw.PlaylistHandlerKaltura.prototype = {
 				case "playlistAPI.dataProvider":
 					_this.doDataProviderAction( property, value );
 				break;
+				case 'tabBar':
+					_this.switchTab( property, value )
+				break;
 			}
 		});
+		
+		$( embedPlayer ).bind( 'Kaltura_SendNotification'+ this.bindPostFix , function( event, notificationName, notificationData){
+			switch( notificationName ){
+				case 'playlistPlayNext':
+				case 'playlistPlayPrevious':
+					mw.log( "PlaylistHandlerKaltura:: trigger: " + notificationName );
+					$( embedPlayer ).trigger( notificationName );
+					break;
+			}
+		});		
+	},
+	switchTab:function( property, value ){
+		if( property == 'selectedIndex' ){
+			this.playlist.switchTab( value );
+		}
 	},
 	doDataProviderAction: function ( property, value ){
 		 switch( property ){
 		 	case 'selectedIndex':
-		 		// Update the selected clip ( and actually play it apparently ) 
+		 		// Update the selected clip ( and actually play it ) 
 		 		this.playlist.playClip( parseInt( value ) );
 			break;
 		 }
@@ -402,10 +468,10 @@ mw.PlaylistHandlerKaltura.prototype = {
 			return this.mrssHandler.getClipPoster( clipIndex, size );
 		}
 		var clip = this.getClip( clipIndex );
-		if(!size){
+		if( !size ){
 			return clip.thumbnailUrl;
 		}
-		return mw.getKalturaThumbUrl({
+		return kWidget.getKalturaThumbUrl({
 			'width': size.width,
 			'height': size.height,
 			'entry_id' : clip.id,
@@ -565,7 +631,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 					$target.data('id', idName);
 					$target.addClass(idName);
 					break;
-				case 'stylename': 
+				case 'stylename':
 					styleName = attr.nodeValue;
 					$target.addClass(styleName);
 					break;
@@ -618,6 +684,9 @@ mw.PlaylistHandlerKaltura.prototype = {
 				} else{
 					$target.text( _this.playlist.formatTitle( $target.text() ) );
 				}
+				if( $target.text() == 'null' ){
+					$target.text( '' );
+				}
 				break;
 		}
 	},
@@ -626,7 +695,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 		var objectPath = parsedString.split('.');
 		//mw.log("mw.Playlist:: uiConfValueLookup >: " + objectPath[0]);
 		switch( objectPath[0] ){
-			case 'div10002(this': 
+			case 'div10002(this':
 				return this.uiConfValueLookup(clipIndex, 'this.' + objectPath[1].replace( /\)/, '' ) );
 				break;
 			// XXX todo a more complete parser and ui-conf evaluate property / text emulator

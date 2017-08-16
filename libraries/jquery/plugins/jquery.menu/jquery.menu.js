@@ -29,17 +29,27 @@ var allUIMenus = [];
 * @param {String} string Text to display for the menu item
 * @param {String} icon jQuery UI icon key displayed to the left of the menu item
 * @param {Function} callback Function called once the line item is selected
+* @param (String) optional class to add to the line
+* @param (Object) optional data to add to the line
 */
-$.getLineItem = function( string, icon , callback) {		
+$.getLineItem = function( string, icon , callback, opt_class, opt_data) {
 	var $li = $( '<li>' ).append(		
 		$('<a>')
 			.attr('href', '#')
 			.click( callback )
 	);
+	if ( !opt_class ) {
+		opt_class = '';
+	}
+	if ( !opt_data ) {
+		opt_data = [];
+	}
 	if( icon ) {
 		$li.find( 'a' ).append(	
 			$('<span style="float:left;"></span>')
 				.addClass( 'ui-icon ui-icon-' + icon ) 
+				.addClass( opt_class )
+				.data( opt_data )
 		);
 	}		
 	$li.find( 'a' ).append( $('<span>').text( string ) );
@@ -90,7 +100,7 @@ function Menu(caller, options) {
 	var menu = this;
 	var caller = $(caller);
 	
-	mw.log( 'jQuery.Menu:: target container: ' + options.targetMenuContainer );
+	mw.log( 'jquery.Menu:: target container: ' + options.targetMenuContainer );
 	 
 	var callerClassList = 'fg-menu-container ui-widget ui-widget-content ui-corner-all'; 
 	if( options.targetMenuContainer ) {		
@@ -185,11 +195,11 @@ function Menu(caller, options) {
 	};
 
 	this.showMenu = function() {
-		mw.log('$j.menu:: show menu' );					
+		mw.log( 'jquery.menu:: show menu' );
 		killAllMenus();
 		// always create the menu to ensure it has correct layout
 		menu.create() 
-		mw.log('jquery.menu:: menu.create' );		
+		mw.log( 'jquery.menu:: menu.create' );		
 		caller
 			.addClass('fg-menu-open')
 			.addClass(options.callerOnState);
@@ -312,10 +322,10 @@ function Menu(caller, options) {
 		// when there are multiple levels of hierarchy, create flyout or drilldown menu
 		if ( container.find( 'ul' ).size() > 1 ) {
 			if ( options.flyOut ) {
-				mw.log(" call menu.flyout "); 
+				mw.log("jquery.menu:: call menu.flyout "); 
 				menu.flyout(container, options); 
 			} else {
-				mw.log(" call menu.drilldown "); 
+				mw.log("jquery.menu:: call menu.drilldown "); 
 				menu.drilldown(container, options); 
 			}	
 		} else {
@@ -593,7 +603,7 @@ Menu.prototype.drilldown = function(container, options) {
 		- linkToFront: copy the menu link and place it on top of the menu (visual effect to make it look like it overlaps the object) */
 
 Menu.prototype.setPosition = function(widget, caller, options) {	
-	mw.log( 'setPosition' );
+	mw.log( 'jquery.menu::setPosition' );
 	
 	var el = widget;
 	var referrer = caller;
@@ -616,8 +626,6 @@ Menu.prototype.setPosition = function(widget, caller, options) {
 	var helper = $( '<div class="menuPositionHelper">' );	
 	helper.css( 'z-index', options.zindex );
 	
-	mw.log("set z-index");
-	
 	// Hard code width height of button if unset ( crazy IE )
 	if(  isNaN( dims.refW ) ||  isNaN( dims.refH ) ) {
 		dims.refH = 16;
@@ -631,11 +639,7 @@ Menu.prototype.setPosition = function(widget, caller, options) {
 		'height': dims.refH 
 	});
 	
-	mw.log("set helper.css ");
-	
 	el.wrap( helper );
-	
-	mw.log("wrap helper");
 	
 	xVal = yVal = 0;
 	// get X pos			
@@ -662,7 +666,6 @@ Menu.prototype.setPosition = function(widget, caller, options) {
 	xVal += ( options.positionOpts.offsetX )? options.positionOpts.offsetX : 0;
 	yVal += ( options.positionOpts.offsetY )? options.positionOpts.offsetY : 0;
 	
-	mw.log(" about to position: " + yVal );
 	// position the object vertically
 	if (options.positionOpts.directionV == 'up') {
 		el.css( { 
@@ -688,8 +691,6 @@ Menu.prototype.setPosition = function(widget, caller, options) {
 		}
 	};
 	
-	mw.log(" done with add the offsets && position the object vertically");
-	
 	// and horizontally
 	if (options.positionOpts.directionH == 'left') {
 		el.css({ left: 'auto', right: xVal });
@@ -704,8 +705,6 @@ Menu.prototype.setPosition = function(widget, caller, options) {
 		}
 	};
 	
-	mw.log(" done with position the object horizontally");
-	
 	// if specified, clone the referring element and position it so that it appears on top of the menu
 	if (options.positionOpts.linkToFront) {
 		referrer.clone().addClass('linkClone').css({
@@ -718,7 +717,6 @@ Menu.prototype.setPosition = function(widget, caller, options) {
 			height: referrer.height()
 		}).insertAfter(el);
 	};
-	mw.log('done with all');
 };
 
 

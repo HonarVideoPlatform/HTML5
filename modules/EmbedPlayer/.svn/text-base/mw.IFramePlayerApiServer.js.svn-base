@@ -14,7 +14,7 @@
 *  fallback iframe cross domain hack will target IE6/7
 */
 
-( function( mw, $ ) {
+( function( mw, $ ) { "use strict";
 	
 
 // Bind apiServer to newEmbedPlayers:
@@ -68,21 +68,22 @@ mw.IFramePlayerApiServer.prototype = {
 		// Block until we receive prePlayerProxyListnersDone event. When we have a parent url 
 		// and we are not in fullscreen iframe ( no parent ) 
 		if( this.getParentUrl() && !mw.getConfig('EmbedPlayer.IsFullscreenIframe') ){
-			$( embedPlayer ).bind( 'startPlayerBuildOut', function(event, callback ){
+			$( embedPlayer ).bind( 'startPlayerBuildOut', function( event, callback ){
 				var proxyHandShakeComplete = false;
 				// Once the iframe client is done adding its pre-player listeners the client calls:
 				// proxyAcknowledgment
 				embedPlayer.proxyAcknowledgment = function(){
+					mw.log( "IframePlayerApiServer:: proxyAcknowledgment > proxyHandShake complete for: " + embedPlayer.id );
 					proxyHandShakeComplete = true;
 					callback();
 				};
 				// Only wait 250ms for the handshake to come through otherwise continue: 
 				setTimeout(function(){
 					if( !proxyHandShakeComplete ){
-						mw.log("Error: could not establish iframe postMessage handshake")
+						mw.log( "Error: could not establish iframe postMessage handshake" );
 						callback();
 					}
-				}, 250);
+				}, 500); // 250ms sometimes runs into a race condition, give the script 500ms to handshake
 				// Trigger the proxyReady event ( will add all the prePlayerProxy listeners 
 				mw.log( "IframePlayerApiServer::trigger: proxyReady :: for playerID: " + embedPlayer.id );
 				$( embedPlayer ).trigger( 'proxyReady' );
@@ -111,7 +112,7 @@ mw.IFramePlayerApiServer.prototype = {
 	/**
 	 * Add iframe sender bindings:
 	 */
-	'addIframeSender': function(){		
+	'addIframeSender': function(){
 		var _this = this;		
 		// Get the parent page URL as it was passed in, for browsers that don't support
 		// window.postMessage (this URL could be hard-coded).
