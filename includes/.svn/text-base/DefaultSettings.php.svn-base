@@ -18,6 +18,9 @@ $wgMwEmbedPathUrl = str_replace(
 	$_SERVER['SCRIPT_NAME']
 );
 
+// The version of the library ( should match the mwEmbedLoader KALTURA_LOADER_VERSION
+$wgMwEmbedVersion = '1.3q';
+
 // Url to the resource loader php script: 
 $wgResourceLoaderUrl = $wgMwEmbedPathUrl . 'ResourceLoader.php';
 
@@ -49,15 +52,28 @@ $wgKalturaCDNUrl = 'http://cdn.kaltura.com';
 // Default Kaltura service url:
 $wgKalturaServiceBase = '/api_v3/index.php?service=';
 
+// Default api request timeout in seconds 
+$wgKalturaServiceTimeout = 20;
+
+// If the iframe will accept 3rd party domain remote service requests 
+// should be left "off" in production. 
+$wgAllowRemoteKalturaService = false;
+
 // Default expire time for ui conf api queries in seconds 
 $wgKalturaUiConfCacheTime = 600;
 
-$wgKalturaIframeRewrite = 'false';
+// By default enable the iframe rewrite
+$wgKalturaIframeRewrite = true;
 
-$wgEnableIframeApi = false;
+// If the iframe embed should include the kaltura javascript api: 
+$wgEnableIframeApi = true;
+
 $wgEnableIpadHTMLControls = false;
 
-$wgKalturaUseManifestUrls = 'true';
+$wgKalturaUseManifestUrls = true;
+
+// By default do not allow custom resource includes. 
+$wgAllowCustomResourceIncludes = false;
 
 /*********************************************************
  * Include local settings override:

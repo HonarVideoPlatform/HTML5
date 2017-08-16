@@ -13,7 +13,7 @@ $loaderJs .= file_get_contents( 'mwEmbedLoader.js' );
 
 // Append ResourceLoder path to loader.js
 $loaderJs .= "\n" . "SCRIPT_LOADER_URL = '". addslashes( $wgResourceLoaderUrl ) . "';\n";
-
+	
 // Set up globals to be exported as mwEmbed config: 
 $exportedJsConfig= array(
 	'Kaltura.UseManifestUrls' => $wgKalturaUseManifestUrls,
@@ -23,20 +23,23 @@ $exportedJsConfig= array(
 	'Kaltura.IframeRewrite' => $wgKalturaIframeRewrite,
 	'EmbedPlayer.EnableIframeApi'  => $wgEnableIframeApi,
 	'EmbedPlayer.EnableIpadHTMLControls' => $wgEnableIpadHTMLControls,
-	'EmbedPlayer.UseFlashOnAndroid' => 'true'
+	'EmbedPlayer.UseFlashOnAndroid' => true,
+	'Kaltura.LoadScriptForVideoTags' => true
 );
 // Append Custom config: 
 foreach( $exportedJsConfig as $key => $val ){
-	$val = 
-	$loaderJs .= "mw.setConfig('". addslashes( $key )."', '" . addslashes( $val ) . "');\n";
+	// @@TODO use a library Boolean conversion routine: 
+	$val = ( $val === true )? $val = 'true' : $val;
+	$val = ( $val === false )? $val = 'false' : $val;
+	$val = ( $val != 'true' && $val != 'false' )? "'" . addslashes( $val ) . "'": $val;
+	$loaderJs .= "mw.setConfig('". addslashes( $key ). "', $val );\n";
 }
 
-if($wgEnableScriptDebug) {
+if($wgEnableScriptDebug === true) {
     $loaderJs .= 'SCRIPT_FORCE_DEBUG = true;';
 }
 
 // TODO Minify via php_min
-
 // ob_gzhandler automatically checks for browser gzip support and gzips
 ob_start("ob_gzhandler");
 

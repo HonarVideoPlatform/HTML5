@@ -14,9 +14,10 @@
 		// The preferred media format order 
 		'EmbedPlayer.CodecPreference': [ 'webm', 'h264', 'ogg' ],
 		
-		// If the iPad should use html controls ( can't use fullscreen or control volume, 
-		// but lets you support overlays ie html controls ads etc. )
-		'EmbedPlayer.EnableIpadHTMLControls': false, 
+		// If the iPad should use html controls 
+		// With html controls you can't access native fullscreen 
+		// With html controls you can support html themed controls, overlays, ads etc. )
+		'EmbedPlayer.EnableIpadHTMLControls': false,
 		
 		'EmbedPlayer.LibraryPage': 'http://www.kaltura.org/project/HTML5_Video_Media_JavaScript_Library',
 
@@ -40,13 +41,30 @@
 		 	'href' : 'http://www.kaltura.org/project/HTML5_Video_Media_JavaScript_Library',
 			// Style icon to be applied
 			'class' : 'kaltura-icon',
-			// An icon image url ( should be a 12x12 image or data url )
+			// Style to be applied to the outer attribution button container div
+			'style' : {},
+			// An icon image url 16x16 image url or data url )
 			'iconurl' : false
 		},
 		
 		// If the options control bar menu item should be enabled: 
 		'EmbedPlayer.EnableOptionsMenu' : true,
 
+		// Default supported menu items is merged with skin menu items
+		'EmbedPlayer.EnabledOptionsMenuItems' : [
+			// Player Select
+			'playerSelect',
+
+			// Download the file menu
+			'download',
+
+			// Share the video menu
+			'share',
+
+			// Player library link
+			'aboutPlayerLibrary'
+		],
+		
 		// If the player should wait for metadata like video size and duration, before trying to draw
 		// the player interface. 
 		'EmbedPlayer.WaitForMeta' : true,
@@ -54,8 +72,15 @@
 		// Set the browser player warning flag displays warning for non optimal playback
 		"EmbedPlayer.ShowNativeWarning" : true,
 
+		// If a fullscreen tip to press f11 should be displayed when entering fullscreen 
+		"EmbedPlayer.FullscreenTip" : true,
+		
 		// If fullscreen is global enabled.
 		"EmbedPlayer.EnableFullscreen" : true,
+		
+		// If fullscreen should pop-open a new window 
+		//( instead of trying to expand the video player to browser fullscreen ) 
+		"EmbedPlayer.NewWindowFullscreen" : false,
 
 		// If mwEmbed should use the Native player controls
 		// this will prevent video tag rewriting and skinning
@@ -66,8 +91,10 @@
 
 		// If mwEmbed should use native controls on mobile safari
 		"EmbedPlayer.NativeControlsMobileSafari" : true,
-
-
+		
+		// A link to download the latest firefox:
+		"EmbedPlayer.FirefoxLink" : 'http://www.mozilla.com/en-US/firefox/upgrade.html?from=mwEmbed',
+		
 		// The z-index given to the player interface during full screen ( high z-index )
 		"EmbedPlayer.fullScreenZIndex" : 999998,
 
@@ -87,9 +114,6 @@
 
 		// Number of milliseconds between interface updates
 		'EmbedPlayer.MonitorRate' : 250,
-
-		// If the embedPlayer should accept arguments passed in from iframe postMessages calls
-		'EmbedPlayer.EnalbeIFramePlayerServer' : false,
 		
 		// If on Android should use html5 ( even if flash is installed on the machine )
 		'EmbedPlayer.UseFlashOnAndroid' : false,
@@ -118,6 +142,9 @@
 
 		// Title string for the source asset
 		'title',
+		
+		// The html5 spec uses label instead of 'title' for naming sources
+		'label',
 
 		// boolean if we support temporal url requests on the source media
 		'URLTimeEncoding',
@@ -325,9 +352,9 @@
 		mw.log( 'Loader::EmbedPlayer:rewritePagePlayerTags:' + mw.documentHasPlayerTags() );
 		
 		// Allow modules to do tag rewrites as well: 
-		var doModuleTagRewrites = function(){			
-			$j(mw).triggerQueueCallback( 'LoadeRewritePlayerTags', callback);
-		}	
+		var doModuleTagRewrites = function(){
+			$j( mw ).triggerQueueCallback( 'LoadeRewritePlayerTags', callback);
+		};
 		
 		if( mw.documentHasPlayerTags() ) {
 			var rewriteElementCount = 0;
@@ -383,7 +410,7 @@
 				'mw.style.EmbedPlayer',
 				'$j.cookie',
 				// Add JSON lib if browsers does not define "JSON" natively
-				'JSON',
+				'JSON'
 			]			
 		];
 
@@ -452,24 +479,23 @@
 		// Allow extension to extend the request.
 		$j( mw ).trigger( 'LoaderEmbedPlayerUpdateRequest',
 				[ playerElement, dependencyRequest ] );
-	}
+	};
 	
 	/**
 	 * Utility loader function to grab configuration for passing into an iframe as a hash target
 	 */
-	mw.getIframeHash = function(){
+	mw.getIframeHash = function( playerId ){
 		// Append the configuration and request domain to the iframe hash: 
 		var iframeMwConfig =  mw.getNonDefaultConfigObject();
-		
 		// Add the parentUrl to the iframe config: 
 		iframeMwConfig['EmbedPlayer.IframeParentUrl'] = document.URL;
 
 		return '#' + encodeURIComponent( 
 				JSON.stringify({
-					'mwConfig' :iframeMwConfig
+					'mwConfig' :iframeMwConfig,
+					'playerId' : playerId
 				})
 		);
-	}
+	};
 	
-
 } )( window.mw );

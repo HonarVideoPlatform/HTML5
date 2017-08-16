@@ -35,21 +35,6 @@ mw.PlayerControlBuilder.prototype = {
 		'options': true
 	},
 
-	// Default supported menu items is merged with skin menu items
-	supportedMenuItems: {
-		// Player Select
-		'playerSelect' : true,
-
-		// Download the file menu
-		'download' : true,
-
-		// Share the video menu
-		'share' : true,
-
-		// Player library link
-		'aboutPlayerLibrary': true
-	},
-
 	// Flag to store the current fullscreen mode
 	fullscreenMode: false,
 
@@ -70,7 +55,7 @@ mw.PlayerControlBuilder.prototype = {
 
 		// Check for skin overrides for controlBuilder
 		var skinClass = embedPlayer.skinName.substr(0,1).toUpperCase() + embedPlayer.skinName.substr( 1 );
-		if ( mw['PlayerSkin' + skinClass ]) {
+		if ( mw['PlayerSkin' + skinClass ] ) {
 
 			// Clone as to not override prototype with the skin config
 			var _this = $j.extend( true, { }, this, mw['PlayerSkin' + skinClass ] );
@@ -108,7 +93,7 @@ mw.PlayerControlBuilder.prototype = {
 		// Setup the controlBar container ( starts hidden ) 
 		var $controlBar = $j('<div />')
 			.addClass( 'ui-state-default ui-widget-header ui-helper-clearfix control-bar' )
-			.css( 'height', this.height )
+			.css( 'height', this.height );
 
 		// Controls are hidden by default if overlaying controls: 
 		if( _this.checkOverlayControls() ){
@@ -180,7 +165,6 @@ mw.PlayerControlBuilder.prototype = {
 			this.supportedComponets[ 'options'] = false;
 		}
 		
-		
 		var addComponent = function( component_id ){
 			if ( _this.supportedComponets[ component_id ] ) {
 				if ( _this.available_width > _this.components[ component_id ].w ) {
@@ -193,7 +177,7 @@ mw.PlayerControlBuilder.prototype = {
 					mw.log( 'Not enough space for control component:' + component_id );
 				}
 			}
-		}
+		};
 		
 		// Output components
 		for ( var component_id in this.components ) {
@@ -211,7 +195,7 @@ mw.PlayerControlBuilder.prototype = {
 			if( component_id == 'fullscreen' && this.embedPlayer.height == 0 ){
 				continue;
 			}
-			addComponent( component_id )
+			addComponent( component_id );
 		}
 		// Add special case remaining components: 
 		addComponent( 'timeDisplay' );
@@ -257,13 +241,13 @@ mw.PlayerControlBuilder.prototype = {
 			offsetTop = offsetTop - this.height;
 			if( offsetTop < 0 ) offsetTop = 0;
 		}
-		//mw.log("left: " + offsetLeft + " targetWidth: " + targetWidth + ' windowSize.width: ' + windowSize.width + ' :: ' + ( windowSize.width- targetWidth ) / 2 );
+		//mw.log( 'PlayerControlBuilder::getAspectPlayerWindowCss: ' + ' h:' + targetHeight + ' w:' + targetWidth + ' t:' + offsetTop + ' l:' + offsetLeft );
 		return {
 			'position' : 'absolute',
-			'height': targetHeight,
-			'width' : targetWidth,
-			'top' : offsetTop,
-			'left': offsetLeft
+			'height': parseInt( targetHeight ),
+			'width' : parseInt( targetWidth ),
+			'top' : parseInt( offsetTop ),
+			'left': parseInt( offsetLeft) 
 		};
 	},
 
@@ -289,9 +273,10 @@ mw.PlayerControlBuilder.prototype = {
 	 */
 	toggleFullscreen: function( forceClose ) {
 		var _this = this;
-
+		
 		// Check if iFrame mode ( fullscreen is handled by the iframe parent dom )
 		if( mw.getConfig('EmbedPlayer.IsIframePlayer' ) ){
+			mw.log("PlayerControl::toggleFullscreen: iframe server");
 			if( this.fullscreenMode ){
 				mw.log("iframeServer:: trigger onCloseFullScreen()");
 				$j( _this.embedPlayer ).trigger( 'onCloseFullScreen' );
@@ -388,7 +373,10 @@ mw.PlayerControlBuilder.prototype = {
 		var leftOffset = '0px';
 
 		// Check if we have an offsetParent
-		if( $interface.offsetParent().get(0).tagName.toLowerCase() != 'body' ) {
+		if( $interface.offsetParent().get(0).tagName 
+				&& 
+			$interface.offsetParent().get(0).tagName.toLowerCase() != 'body' ) 
+		{
 			topOffset = -this.windowOffset.top + 'px';
 			leftOffset = -this.windowOffset.left + 'px';
 		}
@@ -409,6 +397,7 @@ mw.PlayerControlBuilder.prototype = {
 			'width' : $j( window ).width(),
 			'height' : $j( window ).height()
 		}, true, function(){
+			_this.displayFullscreenTip();
 			// Trigger the enter fullscreen event 
 			$j( _this.embedPlayer ).trigger( 'onOpenFullScreen' );
 		});
@@ -458,7 +447,7 @@ mw.PlayerControlBuilder.prototype = {
 				embedPlayer.resizePlayer({
 					'width' : $j( window ).width(),
 					'height' : $j( window ).height()
-				})
+				});
 			}
 		});
 
@@ -469,6 +458,50 @@ mw.PlayerControlBuilder.prototype = {
 				_this.restoreWindowPlayer();
 			}
 		} );
+	},
+	// Display a fullscreen tip if configured to do and the browser supports it. 
+	displayFullscreenTip: function(){
+		var _this = this;
+		// Mobile devices don't have f11 key 
+		if( mw.isMobileDevice() ){
+			return ;
+		}
+		// Safari does not have a DOM fullscreen ( no subtitles, no controls )
+		if( $j.browser.safari && ! /chrome/.test( navigator.userAgent.toLowerCase() ) ){
+			return ;
+		}
+		
+		// OSX has a different short cut than windows and liux
+		var toolTipMsg = ( navigator.userAgent.indexOf('Mac OS X') != -1 )?
+				gM( 'mwe-embedplayer-fullscreen-tip-osx') : 
+				gM( 'mwe-embedplayer-fullscreen-tip');
+		
+		var $targetTip = this.doWarningBindinng( 'EmbedPlayer.FullscreenTip', 
+			$j('<h3/>').html( 
+				toolTipMsg
+			)
+		);
+		
+		// Display the target warning: 
+		$targetTip.show(); 
+		
+		var hideTip = function(){ 
+			mw.setConfig('EmbedPlayer.FullscreenTip', false );
+			$targetTip.fadeOut('fast'); 
+		};
+		
+		// Hide fullscreen tip if:
+		// We leave fullscreen, 
+		$j( this.embedPlayer ).bind( 'onCloseFullScreen', hideTip );
+		// After 5 seconds,
+		setTimeout( hideTip, 5000 );
+		// or if we catch an f11 button press
+		$j(document).keyup( function( event ){
+			if( event.keyCode == 122 ){
+				hideTip();
+			}
+			return true;
+		});
 	},
 
 	/**
@@ -492,6 +525,7 @@ mw.PlayerControlBuilder.prototype = {
 			$interface.animate( interfaceCss );
 			// Update player size
 			$j( embedPlayer ).animate( _this.getAspectPlayerWindowCss( size ), callback );
+			
 			// Update play button pos
 			$interface.find('.play-btn-large').animate( _this.getFullscreenPlayButtonCss( size ) );
 			
@@ -615,7 +649,7 @@ mw.PlayerControlBuilder.prototype = {
 			var lastClickTime = 0;
 			var didDblClick = false;
 			// Remove parent dbl click ( so we can handle play clicks )
-			$j( embedPlayer ).unbind("dblclick").click( function() {
+			$j( embedPlayer ).unbind("click.onplayer").bind('click.onplayer', function() {
 				// Don't bind anything if native controls displayed:
 				if( embedPlayer.getPlayerElement().controls ) {
 					return ;
@@ -651,12 +685,12 @@ mw.PlayerControlBuilder.prototype = {
 					}
 					return false;
 				}
-			})
-		}
+			});
+		};
 		
 		var bindSpaceDown = function() {
 			$j(window).unbind('keyup.mwPlayer');
-		}
+		};
 		// Add hide show bindings for control overlay (if overlay is enabled )
 		if( ! _this.checkOverlayControls() ) {
 			$interface
@@ -850,6 +884,9 @@ mw.PlayerControlBuilder.prototype = {
 			||
 			( mw.EmbedTypes.getMediaPlayers().getMIMETypePlayers( 'application/vnd.apple.mpegurl' ).length
 			&& this.embedPlayer.mediaElement.getSources( 'application/vnd.apple.mpegurl' ).length )
+			||
+			( mw.EmbedTypes.getMediaPlayers().getMIMETypePlayers( 'audio/mpeg' ).length
+			&& this.embedPlayer.mediaElement.getSources( 'audio/mpeg' ).length )
 		){
 			// No firefox link if a h.264 or flash/flv stream is present
 			return false;
@@ -865,14 +902,73 @@ mw.PlayerControlBuilder.prototype = {
 	* @param {object} warningMsg The jQuery object warning message to be displayed.
 	*
 	*/
+	/**
+	* Display a warning message on the player
+	* checks a preference Id to enable or disable it.
+	* @param {string} preferenceId The preference Id
+	* @param {object} warningMsg The jQuery object warning message to be displayed.
+	*
+	*/
 	doWarningBindinng: function( preferenceId, warningMsg ) {
 		mw.log( 'controlBuilder: doWarningBindinng: ' + preferenceId + ' wm: ' + warningMsg);
 		// Set up local pointer to the embedPlayer
 		var embedPlayer = this.embedPlayer;
 		var _this = this;
-
-		// make sure the
-
+		// make sure the player is large enough 
+		if( embedPlayer.getWidth() < 200 ){
+			return false;
+		}
+		// Add the targetWarning: 
+		var $targetWarning = $j('<div />')
+		.attr( {
+			'id': "warningOverlay_" + embedPlayer.id
+		} )
+		.addClass( 'ui-state-highlight ui-corner-all' )
+		.css({
+			'position' : 'absolute',
+			'display' : 'none',
+			'background' : '#FFF',
+			'color' : '#111',
+			'top' : '10px',
+			'left' : '10px',
+			'right' : '10px',
+			'padding' : '4px'
+		})
+		.html( warningMsg );
+	
+		$j( embedPlayer ).append(
+			$targetWarning 
+		);
+	
+		$targetWarning.append(
+			$j('<br />')
+		);
+	
+		$targetWarning.append(
+			$j( '<input />' )
+			.attr({
+				'id' : 'ffwarn_' + embedPlayer.id,
+				'type' : "checkbox",
+				'name' : 'ffwarn_' + embedPlayer.id
+			})
+			.click( function() {
+				mw.log("WarningBindinng:: set " + preferenceId + ' to hidewarning ' );
+				// Set up a cookie for 30 days:
+				$j.cookie( preferenceId, 'hidewarning', { expires: 30 } );
+				// Set the current instance
+				mw.setConfig( preferenceId, false );
+				$j( '#warningOverlay_' + embedPlayer.id ).fadeOut( 'slow' );
+				// set the local preference to false
+				_this.addWarningFlag = false;
+			} )
+		);
+		$targetWarning.append(
+			$j('<label />')
+			.text( gM( 'mwe-embedplayer-do_not_warn_again' ) )
+			.attr( 'for', 'ffwarn_' + embedPlayer.id )
+		);
+		$targetWarning.hide();
+		
 		$j( embedPlayer ).hoverIntent({
 			'timeout': 2000,
 			'over': function() {
@@ -880,67 +976,18 @@ mw.PlayerControlBuilder.prototype = {
 				if( embedPlayer.isPlaying() ){
 					return ;
 				}
-				if ( $j( '#warningOverlay_' + embedPlayer.id ).length == 0 ) {
-
-					$j( this ).append(
-						$j('<div />')
-						.attr( {
-							'id': "warningOverlay_" + embedPlayer.id
-						} )
-						.addClass( 'ui-state-highlight ui-corner-all' )
-						.css({
-							'position' : 'absolute',
-							'display' : 'none',
-							'background' : '#FFF',
-							'color' : '#111',
-							'top' : '10px',
-							'left' : '10px',
-							'right' : '10px',
-							'padding' : '4px'
-						})
-						.html( warningMsg )
-					);
-
-					$targetWarning = $j( '#warningOverlay_' + embedPlayer.id );
-
-					$targetWarning.append(
-						$j('<br />')
-					);
-
-					$targetWarning.append(
-						$j( '<input />' )
-						.attr({
-							'id' : 'ffwarn_' + embedPlayer.id,
-							'type' : "checkbox",
-							'name' : 'ffwarn_' + embedPlayer.id
-						})
-						.click( function() {
-							mw.log("WarningBindinng:: set " + preferenceId + ' to hidewarning ' );
-							// Set up a cookie for 30 days:
-							$j.cookie( preferenceId, 'hidewarning', { expires: 30 } );
-							// Set the current instance
-							mw.setConfig( preferenceId, false );
-							$j( '#warningOverlay_' + embedPlayer.id ).fadeOut( 'slow' );
-							// set the local prefrence to false
-							_this.addWarningFlag = false;
-						} )
-					);
-					$targetWarning.append(
-						$j('<label />')
-						.text( gM( 'mwe-embedplayer-do_not_warn_again' ) )
-						.attr( 'for', 'ffwarn_' + embedPlayer.id )
-					);
-				}
+				
 				// Check the global config before showing the warning
 				if ( mw.getConfig( preferenceId ) === true && $j.cookie( preferenceId ) != 'hidewarning' ){
 					mw.log("WarningBindinng:: show warning " + mw.getConfig( preferenceId ) + ' cookie: '+ $j.cookie( preferenceId ) + 'typeof:' + typeof $j.cookie( preferenceId ));
-					$j( '#warningOverlay_' + embedPlayer.id ).fadeIn( 'slow' );
+					$targetWarning.fadeIn( 'slow' );
 				};
 			},
 			'out': function() {
-				$j( '#warningOverlay_' + embedPlayer.id ).fadeOut( 'slow' );
+				$targetWarning.fadeOut( 'slow' );
 			}
 		});
+		return $targetWarning;
 	},
 
 	/**
@@ -999,7 +1046,7 @@ mw.PlayerControlBuilder.prototype = {
 					embedPlayer.$interface.find( '.volume_control span' ).removeClass( 'ui-icon-volume-off' ).addClass( 'ui-icon-volume-on' );
 				}
 				mw.log('PlayerControlBuilder::change:update volume:' + percent);
-				embedPlayer.setVolume( percent );
+				embedPlayer.setVolume( percent, true );
 			}
 		};
 
@@ -1015,15 +1062,15 @@ mw.PlayerControlBuilder.prototype = {
 	*/
 	getOptionsMenu: function( ) {
 		$optionsMenu = $j( '<ul />' );
-		for( var i in this.optionMenuItems ){
+		for( var menuItemKey in this.optionMenuItems ){
 
 			// Make sure its supported in the current controlBuilder config:
-			if( ! this.supportedMenuItems[ i ] 	) {
+			if( $j.inArray( menuItemKey, mw.getConfig( 'EmbedPlayer.EnabledOptionsMenuItems' ) ) === -1 ) {
 			 	continue;
 			}
 
 			$optionsMenu.append(
-				this.optionMenuItems[i]( this )
+				this.optionMenuItems[ menuItemKey ]( this )
 			);
 		}
 		return $optionsMenu;
@@ -1149,7 +1196,7 @@ mw.PlayerControlBuilder.prototype = {
 	*
 	* @param {String} overlayContent content to be displayed
 	*/
-	displayMenuOverlay: function( overlayContent ) {
+	displayMenuOverlay: function( overlayContent, closeCallback ) {
 		var _this = this;
 		var embedPlayer = this.embedPlayer;
 		mw.log( 'displayMenuOverlay::' );
@@ -1196,6 +1243,9 @@ mw.PlayerControlBuilder.prototype = {
 		})
 		.click( function() {
 			_this.closeMenuOverlay();
+			if( closeCallback ){
+				closeCallback();
+			}
 		} )
 		.append(
 		    	$j('<span />')
@@ -1290,8 +1340,8 @@ mw.PlayerControlBuilder.prototype = {
 		$shareList
 		.append(
 			$j('<li />').text(
-					gM( 'mwe-embedplayer-embed_site_or_blog' )
-				)
+				gM( 'mwe-embedplayer-embed_site_or_blog' )
+			)
 			/*
 			.append(
 				$j('<a />')
@@ -1364,7 +1414,7 @@ mw.PlayerControlBuilder.prototype = {
 		$j.each( embedPlayer.mediaElement.getPlayableSources(), function( sourceId, source ) {
 
 			var isPlayable = (typeof mw.EmbedTypes.getMediaPlayers().defaultPlayer( source.getMIMEType() ) == 'object' );
-			var is_selected = ( source.getSrc() == embedPlayer.mediaElement.selectedSource.getSrc() );
+			var isSelected = ( source.getSrc() == embedPlayer.mediaElement.selectedSource.getSrc() );
 
 			$playerSelect.append(
 				$j( '<h3 />' )
@@ -1378,9 +1428,8 @@ mw.PlayerControlBuilder.prototype = {
 				var supportingPlayers = mw.EmbedTypes.getMediaPlayers().getMIMETypePlayers( source.getMIMEType() );
 
 				for ( var i = 0; i < supportingPlayers.length ; i++ ) {
-
 					// Add link to select the player if not already selected )
-					if( embedPlayer.selectedPlayer.id == supportingPlayers[i].id && is_selected ) {
+					if( embedPlayer.selectedPlayer.id == supportingPlayers[i].id && isSelected ) {
 						// Active player ( no link )
 						$playerLine = $j( '<span />' )
 						.append(
@@ -1390,16 +1439,17 @@ mw.PlayerControlBuilder.prototype = {
 							})
 							.addClass( 'active')
 							.text( 
-									supportingPlayers[i].getName()
+								supportingPlayers[i].getName()
 						 	)
-						);
+						).click( function(){
+							embedPlayer.controlBuilder.closeMenuOverlay();
+						});
 						//.addClass( 'ui-state-highlight ui-corner-all' ); removed by ran
 					} else {
 						// Non active player add link to select:
 						$playerLine = $j( '<a />')
 							.attr({
 								'href' : '#',
-								'rel' : 'sel_source',
 								'id' : 'sc_' + sourceId + '_' + supportingPlayers[i].id
 							})
 							.addClass( 'ui-corner-all')
@@ -1629,8 +1679,7 @@ mw.PlayerControlBuilder.prototype = {
 				// Check for source ( by configuration convention this is a 16x16 image
 				if( buttonConfig.iconurl ){
 					var $icon =  $j('<img />')
-						.css({'width': '16px', 'height': '16px', 'margin': '-8px 5px 0px 0px'})
-						.attr('src', buttonConfig.iconurl )
+						.attr('src', buttonConfig.iconurl );
 				} else {
 					var $icon = $j('<span />')
 					.addClass( 'ui-icon' );
@@ -1638,21 +1687,31 @@ mw.PlayerControlBuilder.prototype = {
 						$icon.addClass( buttonConfig['class'] );
 					}
 				}
-
+				if( typeof buttonConfig.style != 'object'){
+					buttonConfig.style = {};
+				}
+				// update the configured size of the attribution button if we have a specific width configured
+				if( buttonConfig.style.width ){
+					this.w = parseInt( buttonConfig.style.width );
+				} else {
+					 buttonConfig.style.width =parseInt( this.w ) + 'px';
+				}
+				
 				return $j('<a />')
 					.attr({
 						'href': buttonConfig.href,
 						'title' : buttonConfig.title,
 						'target' : '_new'
 					})
-					.addClass( 'attributionButton' )
 					.append(
 						$j( '<div />' )
 						.addClass( 'rButton' )
 						.css({
-							'top' : '9px',
+							'top' : '1px',
 							'left' : '2px'
 						})
+						// Allow button config style to override
+						.css( buttonConfig.style )
 						.append(
 							$icon
 						)
@@ -1711,21 +1770,49 @@ mw.PlayerControlBuilder.prototype = {
 						.buttonHover();
 				
 				// iPad fullscreen in an iframe is very broken 
-				if( mw.getConfig('EmbedPlayer.IsIframePlayer') && mw.isIpad() ){
-					// TODO we should pass time offset or if the user has already viewed the ad	
-					// remove the fullscreen button in the "fullscreen" iframe 
+				if( ( mw.getConfig('EmbedPlayer.IsIframePlayer') && mw.isIpad() ) 
+						|| mw.getConfig( "EmbedPlayer.NewWindowFullscreen" ) 
+					){	
 					var url = document.URL.split('#')[0];
-					mw.setConfig('EmbedPlayer.EnableFullscreen', false);
+					mw.setConfig('EmbedPlayer.IsFullscreenIframe', true);
 					url += mw.getIframeHash();
-					mw.setConfig('EmbedPlayer.EnableFullscreen', true);
 					// Change button into new window ( of the same url as the iframe ) : 
 					return	$j('<a />').attr({
 							'href': url,
 							'target' : '_new'
 						})
 						.click(function(){
-							 ctrlObj.embedPlayer.pause();
-							 return true;
+							
+							// Update the url: 			
+							var url = document.URL.split('#')[0];
+							mw.setConfig('EmbedPlayer.IsFullscreenIframe', true);
+							// add a seek offset:
+							mw.setConfig('EmbedPlayer.IframeCurrentTime',  ctrlObj.embedPlayer.currentTime );
+							// add play state:
+							mw.setConfig('EmbedPlayer.IframeIsPlaying',  ctrlObj.embedPlayer.isPlaying() );
+							
+							url += mw.getIframeHash();
+							
+							ctrlObj.embedPlayer.pause();
+							// try and do a browser popup:
+							var newwin = window.open(
+								 url, 
+								 ctrlObj.embedPlayer.id, 
+								 // Fullscreen window params: 
+								'width=' + screen.width + 
+								', height=' + (screen.height-90) +
+								', top=0, left=0' + 
+								', fullscreen=yes'
+							);						
+							// if for some reason we could not open the window run the href link:
+							if( newwin === null){
+								return true;
+							}
+							if ( window.focus ) {
+								newwin.focus();
+							}
+							// Else do not follow the href link
+							return false;
 						})
 						.append($btn);
 				} else {

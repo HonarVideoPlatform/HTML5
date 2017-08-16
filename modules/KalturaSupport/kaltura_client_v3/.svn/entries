@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.3a/modules/KalturaSupport/kaltura_client_v3
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4a5/modules/KalturaSupport/kaltura_client_v3
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-03-27T09:35:08.218980Z
-5036
+2011-06-15T15:01:35.390188Z
+5647
 rany
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T22:41:04.000000Z
-b6643c3c054f2ab6b9d4312efc109066
-2011-03-27T09:35:08.218980Z
-5036
+2017-07-03T23:04:34.000000Z
+50276f1ec44c3510b777b0e6d793ea31
+2011-06-15T15:01:35.390188Z
+5647
 rany
 
 
@@ -58,7 +58,7 @@ rany
 
 
 
-11868
+13905
 
 KalturaClient.php
 file
@@ -66,10 +66,10 @@ file
 
 
 
-2017-07-03T22:41:04.000000Z
-6f0ddc4a2081a424d419c5787b2a48b1
-2011-03-27T09:35:08.218980Z
-5036
+2017-07-03T23:04:34.000000Z
+20741e5b22580842f71267a997743c0b
+2011-06-15T15:01:35.390188Z
+5647
 rany
 
 
@@ -92,5 +92,5 @@ rany
 
 
 
-106520
+462950
 

@@ -2,7 +2,7 @@
 
 	// Bind the KalturaWatermark where the uiconf includes the Kaltura Watermark 
 	$j( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
-		$j( embedPlayer ).bind( 'KalturaSupport.checkUiConf', function( event, $uiConf, callback ){
+		$j( embedPlayer ).bind( 'KalturaSupport_CheckUiConf', function( event, $uiConf, callback ){
 			// Check if the ui conf includes watermark
 			if( $uiConf.find( 'watermark' ).length ){
 				// Wait for the player to be ready 
@@ -15,7 +15,11 @@
 			callback();
 		});
 	});
-	var watermarkPlugin = function( embedPlayer ,$watermarkConf ){
+	var watermarkPlugin = function( embedPlayer, $watermarkConf ){
+		// Make sure we have a watermark url: 
+		if( !$watermarkConf.attr('watermarkPath') ){
+			return false;
+		}
 		// Draw the watermark to the player 
 		var getCss = function( $watermarkConf ){
 			var watermarkCss = {
@@ -41,7 +45,8 @@
 			}
 			watermarkCss.padding = $watermarkConf.attr('padding') + 'px';
 			return watermarkCss;
-		}
+		};
+		
 		var watermarkCss = getCss( $watermarkConf );
 		embedPlayer.$interface.append( 
 			$j('<span />')
@@ -57,6 +62,6 @@
 					})
 				)
 			)
-		)
+		);
 	};
 	

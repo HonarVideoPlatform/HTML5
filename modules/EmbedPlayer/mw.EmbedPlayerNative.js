@@ -96,7 +96,8 @@ mw.EmbedPlayerNative = {
 				this.isPersistentNativePlayer()
 			)
 			&& $j( '#' + this.pid ).length 
-			&& typeof $j( '#' + this.pid ).get(0).play != 'undefined' ) {
+			&& typeof $j( '#' + this.pid ).get(0).play != 'undefined' ) 
+		{
 			
 			// Update the player source: 
 			$j( '#' + this.pid ).attr( 'src', this.getSrc( this.currentTime ) );
@@ -128,7 +129,7 @@ mw.EmbedPlayerNative = {
 		if( !playerAttribtues['id'] ) playerAttribtues['id'] = this.pid;
 		if( !playerAttribtues['src'] ) playerAttribtues['src'] = this.getSrc( this.currentTime);
 
-		// If autoplay pass along to attribute ( needed for iPad / iPod no js autoplay support
+		// If autoplay pass along to attribute
 		if( this.autoplay ) {
 			playerAttribtues['autoplay'] = 'true';
 		}
@@ -163,6 +164,9 @@ mw.EmbedPlayerNative = {
 
 		// Setup local pointer:
 		var vid = this.getPlayerElement();
+		if(!vid){
+			return ;
+		}
 		// Apply media element bindings:
 		this.applyMediaElementBindings();
 
@@ -231,7 +235,12 @@ mw.EmbedPlayerNative = {
 	doSeek: function( percentage ) {
 		mw.log( 'Native::doSeek p: ' + percentage + ' : ' + this.supportsURLTimeEncoding() + ' dur: ' + this.getDuration() + ' sts:' + this.seek_time_sec );
 		this.seeking = true;
-
+		// Update the current time
+		this.currentTime = ( percentage * this.duration ) ;
+		// trigger the seeking event: 
+		mw.log('Native::doSeek:trigger');
+		$j( this ).trigger( 'seeking' );
+		
 		// Run the onSeeking interface update
 		this.controlBuilder.onSeek();
 
@@ -239,7 +248,7 @@ mw.EmbedPlayerNative = {
 		if ( this.supportsURLTimeEncoding() ) {
 			// Make sure we could not do a local seek instead:
 			if ( percentage < this.bufferedPercent && this.playerElement.duration && !this.didSeekJump ) {
-				mw.log( "do local seek " + percentage + ' is already buffered < ' + this.bufferedPercent );
+				mw.log( "EmbedPlayer::doSeek local seek " + percentage + ' is already buffered < ' + this.bufferedPercent );
 				this.doNativeSeek( percentage );
 			} else {
 				// We support URLTimeEncoding call parent seek:
@@ -250,7 +259,7 @@ mw.EmbedPlayerNative = {
 			this.doNativeSeek( percentage );
 		} else {
 			// try to do a play then seek:
-			this.doPlayThenSeek( percentage )
+			this.doPlayThenSeek( percentage );
 		}
 	},
 
@@ -261,11 +270,14 @@ mw.EmbedPlayerNative = {
 	*/
 	doNativeSeek: function( percentage ) {
 		var _this = this;
-		mw.log( 'native::doNativeSeek::' + percentage );
+		mw.log( 'EmbedPlayerNative::doNativeSeek::' + percentage );
 		this.seeking = true;
+		
 		this.seek_time_sec = 0;
 		this.setCurrentTime( ( percentage * this.duration ) , function(){
 			_this.seeking = false;
+			// done seeking: 
+			$j( this ).trigger( 'seeked' );
 			_this.monitor();
 		})
 	},
@@ -277,7 +289,7 @@ mw.EmbedPlayerNative = {
 	* 		Percentage of the stream to seek to between 0 and 1
 	*/
 	doPlayThenSeek: function( percentage ) {
-		mw.log( 'native::doPlayThenSeek::' );
+		mw.log( 'native::doPlayThenSeek::' + percentage );
 		var _this = this;
 		this.play();
 		var retryCount = 0;
@@ -287,16 +299,16 @@ mw.EmbedPlayerNative = {
 			if ( _this.playerElement && _this.playerElement.duration ) {
 				_this.doNativeSeek( percentage );
 			} else {
-				// Try to get player for 40 seconds:
+				// Try to get player for  30 seconds:
 				// (it would be nice if the onmetadata type callbacks where fired consistently)
 				if ( retryCount < 800 ) {
 					setTimeout( readyForSeek, 50 );
 					retryCount++;
 				} else {
-					mw.log( 'error:doPlayThenSeek failed' );
+					mw.log( 'error:doPlayThenSeek failed :' + _this.playerElement.duration);
 				}
 			}
-		}
+		};
 		readyForSeek();
 	},
 
@@ -354,6 +366,7 @@ mw.EmbedPlayerNative = {
 
 		if ( !this.playerElement ) {
 			mw.log( 'mwEmbedPlayer::getPlayerElementTime: ' + this.id + ' not in dom ( stop monitor)' );
+			this.stop();
 			return false;
 		}
 		// Return the playerElement currentTime
@@ -386,29 +399,67 @@ mw.EmbedPlayerNative = {
 		this.duration = 0;
 		this.currentTime = 0;
 		this.previousTime = 0;
-		// Setup the initial delay based on fullscreen or not
-		try {
-			var vid = this.getPlayerElement();
-			vid.pause();
-			vid.src = src;
-			setTimeout(function(){
-				vid.load();
+		var vid = this.getPlayerElement();		
+		if ( vid ) {
+			try {
+				// issue a play request on the source
+				vid.play();
 				setTimeout(function(){
-					vid.play();					
-					$j(vid).unbind('ended.switchSrc').bind('ended.switchSrc', function( event ) {
-						if(typeof doneCallback == 'function' ){
-							doneCallback();
+					// Remove all native player bindings
+					$j(vid).unbind();
+					vid.pause();
+					var orginalControlsState = vid.controls;
+					// Hide controls ( to not display native play button while switching sources ) 
+					vid.removeAttribute('controls');
+					
+					// Local scope update source and play function to work around google chrome bug
+					var updateSrcAndPlay = function() {
+						var vid = _this.getPlayerElement();
+						if (!vid){
+							mw.log( 'Error: switchPlaySrc no vid');
+							return ;
 						}
-						return false;
-					});
-					if (typeof switchCallback == 'function') {
-						switchCallback(vid);
-						return ;
+						vid.src = src;
+						// Give iOS 50ms to figure out the src got updated ( iPad OS 4.0 )
+						setTimeout(function() {
+							var vid = _this.getPlayerElement();
+							if (!vid){
+								mw.log( 'Error: switchPlaySrc no vid');
+								return ;
+							}	
+							vid.load();
+							vid.play();
+							// Wait another 100ms then bind the end event and any custom events
+							// for the switchCallback
+							setTimeout(function() {
+								var vid = _this.getPlayerElement();			
+								// restore controls 
+								vid.controls = orginalControlsState;
+								// add the end binding: 
+								$j(vid).bind('ended', function( event ) {
+									if(typeof doneCallback == 'function' ){
+										doneCallback();
+									}
+									return false;
+								});
+								if (typeof switchCallback == 'function') {
+									switchCallback(vid);
+								}
+							}, 100);
+						}, 100);
+					};
+					if (navigator.userAgent.toLowerCase().indexOf('chrome') != -1) {
+						// Null the src and wait 50ms ( helps unload video without crashing
+						// google chrome 7.x )
+						vid.src = '';
+						setTimeout(updateSrcAndPlay, 100);
+					} else {
+						updateSrcAndPlay();
 					}
-				}, 150);
-			}, 150 );
-		} catch (e) {
-			mw.log("Error: Error in swiching source playback");
+				}, 100 );
+			} catch (e) {
+				mw.log("Error: Error in swiching source playback");
+			}
 		}
 	},
 	
@@ -545,7 +596,7 @@ mw.EmbedPlayerNative = {
 	* fired when "seeking"
 	*/
 	onseeking: function() {
-		mw.log( "native:onSeeking");
+		mw.log( "native:onSeeking " + this.seeking);
 		// Trigger the html5 seeking event
 		//( if not already set from interface )
 		if( !this.seeking ) {
@@ -565,7 +616,9 @@ mw.EmbedPlayerNative = {
 	* fired when done seeking
 	*/
 	onseeked: function() {
-		mw.log("native:onSeeked");
+		mw.log("native:onSeeked " + this.seeking + ' ct:' + this.playerElement.currentTime );
+		// sync the seek checks so that we don't re-issue the seek request
+		this.previousTime = this.currentTime = this.playerElement.currentTime;
 		// Trigger the html5 action on the parent
 		if( this.seeking ){
 			this.seeking = false;
@@ -646,9 +699,11 @@ mw.EmbedPlayerNative = {
 	*/
 	onended: function() {
 		var _this = this;
-		mw.log( 'EmbedPlayer:native: onended:' + this.playerElement.currentTime + ' real dur:' + this.getDuration() + ' ended ' + this._propagateEvents );
-		if( this._propagateEvents ){
-			this.onClipDone();
+		if( this.getPlayerElement() ){
+			mw.log( 'EmbedPlayer:native: onended:' + this.playerElement.currentTime + ' real dur:' + this.getDuration() + ' ended ' + this._propagateEvents );
+			if( this._propagateEvents ){
+				this.onClipDone();
+			}
 		}
 	}
 };

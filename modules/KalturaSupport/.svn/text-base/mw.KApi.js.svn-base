@@ -17,12 +17,12 @@
 	
 mw.KApi = function( partner_id ){
 	return this.init( partner_id );	
-}
+};
 
 mw.KApi.prototype = {
 	baseParam: {
-		'apiVersion' : '3.0',
-		'clientTag' : 'html5',
+		'apiVersion' : '3.1',
+		'clientTag' : 'html5:v' + KALTURA_LOADER_VERSION,
 		'expiry' : '86400',
 		'format' : 9, // 9 = JSONP format
 		'ignoreNull' : 1
@@ -50,30 +50,6 @@ mw.KApi.prototype = {
 
 			// Kaltura api starts with index 1 for some strange reason. 
 			var mulitRequestIndex = 1;
-			
-			/**
-			 * Ideally we could do a single request to get the KS and the payload.
-			 * unfortunately that does not appear to be the case atm. 
-			 */
-			/*
-			 if( ! this.ks ){				
-				// Add the kaltura session ( if not already set ) 
-				var multiRequest = {
-					'service' : 'session',
-		        	'action' : 'startwidgetsession',
-		        	'widgetId': '_' + this.partner_id // don't ask me, I did not design the API! 
-		        }
-				for ( var  paramKey in multiRequest ){
-					param[ mulitRequestIndex + ':' + paramKey ] = multiRequest[ paramKey ];
-				}
-				mulitRequestIndex++;
-				
-				if( ! this.ks ){		
-					// For each search item append ks: 
-					param[ 'ks' ] = '{1:result:objects:0:ks}';
-				}
-			}
-			*/
 			
 			for( var i = 0 ; i < requestObject.length; i++ ){
 				var requestInx = mulitRequestIndex + i;
@@ -114,7 +90,6 @@ mw.KApi.prototype = {
 			
 			param['ks'] = ks;
 			param['kalsig'] = _this.getSignature( param );
-			//debugger;
 			var requestUrl = _this.getApiUrl() + serviceType + '&' + $j.param( param );
 			// Do the getJSON jQuery call with special callback=? parameter: 
 			$j.getJSON( requestUrl +  '&callback=?', function( data ){
@@ -136,7 +111,8 @@ mw.KApi.prototype = {
 		// Add the Kaltura session ( if not already set ) 
 		var ksParam = {
         	'action' : 'startwidgetsession',
-        	'widgetId': '_' + this.partner_id // don't ask me, I did not design the API! 
+        	'widgetId': '_' + this.partner_id, 
+        	'partnerId' : + this.partner_id // don't ask me, I did not design the API!
         }
 		// add in the base parameters:
 		var param = $j.extend( {}, this.baseParam, ksParam );
@@ -186,6 +162,7 @@ mw.KApi.prototype = {
 	 * b) Get baseEntry
 	 */
 	playerLoader: function( kProperties, callback ){
+		var _this = this;
 		var requestObject = [];
 		if( kProperties.entry_id ){ 
 			// The referring  url ( can be from the iframe if in iframe mode ) 
@@ -218,6 +195,19 @@ mw.KApi.prototype = {
 		        	 'version' : '-1',
 		        	 'entryId' : kProperties.entry_id
 		    });
+						
+		    // Get custom Metadata	
+			requestObject.push({
+	        	 'service' : 'metadata_metadata',
+	        	 'action' : 'list',
+	        	 'version' : '-1',
+	        	 // metaDataFilter
+	        	 'filter:metadataObjectTypeEqual' :1, /* KalturaMetadataObjectType::ENTRY */
+	        	 'filter:orderBy' : '+createdAt',
+	        	 'filter:objectIdEqual' : kProperties.entry_id,
+	        	 'pager:pageSize' : 1
+		    });
+			
 		}		
 		if( kProperties.uiconf_id ){
 			// Get Ui Conf if property is present
@@ -235,8 +225,10 @@ mw.KApi.prototype = {
 				namedData['accessControl'] = data[0];
 				namedData['flavors'] = data[1];
 				namedData['meta'] = data[2];
-				if( data[3] ){
-					namedData['uiConf'] = data[3]['confFile'];
+				namedData['entryMeta'] = _this.convertCustomDataXML( data[3] );
+				
+				if( data[4] ){
+					namedData['uiConf'] = data[4]['confFile'];
 				}
 			} else if( kProperties.uiconf_id ){
 				// If only loading the confFile set here: 
@@ -244,6 +236,17 @@ mw.KApi.prototype = {
 			}	
 			callback( namedData );
 		});
+	},
+	convertCustomDataXML: function( data ){
+		var result = {};
+		if( data && data.objects && data.objects[0] ){			
+			var xml = $.parseXML( data.objects[0].xml );		
+			var $xml = $( xml ).find('metadata').children();			
+			$.each( $xml, function(inx, node){
+				result[ node.nodeName ] = node.textContent;
+			});		
+		}
+		return result;
 	}
 };
 
@@ -255,6 +258,7 @@ mw.KApi.prototype = {
 // Cache api object per partner
 // ( so that multiple partner types don't conflict if used on a single page )
 mw.KApiPartnerCache = [];
+
 mw.kApiGetPartnerClient = function( partner_or_widget_id ){
 	// strip leading _ turn widget to partner
 	var partner_id = partner_or_widget_id.replace(/_/g, '');
@@ -263,10 +267,11 @@ mw.kApiGetPartnerClient = function( partner_or_widget_id ){
 		mw.KApiPartnerCache[ partner_id ] = new mw.KApi( partner_id );
 	};
 	return mw.KApiPartnerCache[ partner_id ];
-}
+};
+
 mw.KApiPlayerLoader = function( kProperties, callback ){
 	if( !kProperties.widget_id ) {
-		mw.log( "Error:: mw.KApiPlayerLoader:: cant run player loader with widget_id " );
+		mw.log( "Error:: mw.KApiPlayerLoader:: cant run player loader with widget_id "  + kProperties.widget_id );
 	}
 	// Convert widget_id to partner id
 	var partner_id = kProperties.widget_id.replace(/_/g, '');
@@ -276,4 +281,5 @@ mw.KApiPlayerLoader = function( kProperties, callback ){
 	
 	// Return the kClient api object for future requests
 	return kClient;
-}
+};
+

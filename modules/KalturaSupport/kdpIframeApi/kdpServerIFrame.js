@@ -17,8 +17,9 @@ kdpServerIframe = function(){
 		mw.log("kdpServerIframe:: Error missing EmbedPlayer.IframeParentUrl");
 		return ;
 	}	
-	return this.init( $j('#kaltura_player').get(0) );
-}
+	// get player ( can be called norewrite or kaltura_playlist )
+	return this.init( $j('#kaltura_player_iframe_no_rewrite').get(0) );
+};
 
 kdpServerIframe.prototype = {
 	// flag to work around strange kdp error: 
@@ -28,38 +29,40 @@ kdpServerIframe.prototype = {
 	listenerCallbackLookup: [],
 	'init': function( kdpPlayer ){
 		var _this = this;
-		this.kdpPlayer = kdpPlayer;
+		_this.kdpPlayer = kdpPlayer;
 		this.parentUrl = mw.getConfig( 'EmbedPlayer.IframeParentUrl' );
 		
 		// Add receive msg handler: 
-		$j.receiveMessage( function( event ) {			
+		$j.receiveMessage( function( event ) {		
+			// re assign kdpPlayer inside reciveMessage scope: 
+			_this.kdpPlayer = kdpPlayer;
 			_this.hanldeMsg( event );
 		}, this.parentUrl );
 		
 		// Set up the default attributes: 
 		this.sendPlayerAttributes();
 
-		this.monitorAttributeChanges()
+		this.monitorAttributeChanges();
 		
 		// Fire the "ready"
-		_this.postMessage({
+		_this.postMessage( {
 			'callbackName' : 'jsCallbackReady'
-		});
+		} );
 	},
 	monitorAttributeChanges: function(){
 		var _this = this;	
 		// Sends attributes across the iframe at a set interval ( for now 250ms / monitor rate )
-		setTimeout(function(){	
+		setTimeout( function(){	
 			_this.sendPlayerAttributes();
 			_this.monitorAttributeChanges();
-		}, 250);
+		}, 250 );
 	},
 	/**
 	 * Handle a message 
 	 * 
 	 * @param {string} event
 	 */
-	'hanldeMsg': function( event ){		
+	'hanldeMsg': function( event ){
 		var _this = this;
 		if( !this.eventDomainCheck( event.origin ) ){
 			mw.log( 'Error: ' + event.origin + ' domain origin not allowed to send player events');
@@ -70,8 +73,7 @@ kdpServerIframe.prototype = {
 		
 		// Call a method:
 		var lname = ( msgObject.method == 'addJsListener' )? ': ' + msgObject.args[0]:'' ;
-		
-		mw.log("kdpIframeServer hanldeMsg::" + msgObject.method + lname  );
+		mw.log("kdpIframeServer hanldeMsg::" + msgObject.method + lname + ' kdp:' + this.kdpPlayer );
 		
 		if( msgObject.method && this.kdpPlayer[ msgObject.method ] ){
 			
@@ -126,7 +128,7 @@ kdpServerIframe.prototype = {
 		var _this = this;
 		_this.kdpPlayer = $j('#kaltura_player').get(0);
 		// top level "evaluate" components: 
-		var attrSet = ['video', ['mediaProxy', 'entry'], 'configProxy', 'playerStatusProxy'];
+		var attrSet = ['video', 'duration', ['mediaProxy', 'entry'], 'configProxy', 'playerStatusProxy'];
 		var evaluateData =  {};
 		for(var i in attrSet){
 			var attrName = attrSet[i];

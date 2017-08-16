@@ -2,22 +2,13 @@
 <head>
 <title> MediaRss player </title>
 
-<script type="text/javascript" src="../../../ResourceLoader.php?class=window.jQuery,mwEmbed&&debug=true>"></script>
-
-<!--
-<script type="text/javascript" src="http://html5.kaltura.org/js"></script>
-<script type="text/javascript" src="../../../mwEmbedLoader.js"></script>
-<script type="text/javascript" src="../mwEmbed/mwEmbedLoader.js"></script>
-<script type="text/javascript" src="../mwEmbed/ResourceLoader.php?class=window.jQuery,mwEmbed&&debug=true>"></script>
-<script type="text/javascript" src="../../../ResourceLoader.php?class=window.jQuery,mwEmbed&debug=true"></script>
--->
+<script type="text/javascript" src="../../../mwEmbedLoader.php"></script>
 
 <script type="text/javascript">
 	// For testing safari in chrome /
 	if( document.URL.indexOf('forceMobileHTML5') != -1 ){
 		mw.setConfig( 'forceMobileHTML5' , true );
 	}
-
 	mw.ready( function(){
 		$j('#mediaRssTarget').playlist({
 			'src' : "kalturaInterviewPlaylist.xml",
@@ -36,6 +27,27 @@
 			'type' : 'application/rss+xml',
 			'theme' : 'mobile'
 		});
+
+		$j('#mediaRssMobileExternal').playlist({
+			'src' : "kalturaInterviewPlaylist.xml",
+			'type' : 'application/rss+xml',
+			'layout' : 'noClipList'
+		}, function( playlist ){
+			var $cl = $j('#externalClipList');
+			var clipList = playlist.getClipList();
+			$j.each( clipList, function ( inx, clip ) {
+				$cl.append( 
+					$j('<a />').text( 'clip ' + inx )
+					.attr('href', '#')
+					.click(function(){
+						playlist.playClip( inx );
+						return false;
+					}),
+					$j('<span />').text(' ')
+				);
+			});
+		});
+		
 	});
 </script>
 </head>
@@ -45,6 +57,11 @@
 iPad / Android style mobile interface:
  <div style="width:320px;height:356px" id="mediaRssMobile"> </div>
 <br />
+
+External interface play: <span id="externalClipList"></span>
+ <div style="width:320px;height:240px" id="mediaRssMobileExternal"> </div>
+<br />
+
 
 Sample Media Rss ( <a href="kalturaInterviewPlaylist.xml">kalturaInterviewPlay.xml</a> ) Vertical
 

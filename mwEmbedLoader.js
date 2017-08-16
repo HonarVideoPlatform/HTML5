@@ -36,8 +36,7 @@
 *	'EmbedPlayer.EnableIframeApi' : true
 */
 // The version of this script
-KALTURA_LOADER_VERSION = '1.3a';
-
+KALTURA_LOADER_VERSION = '1.4a5';
 // Static script loader url: 
 var SCRIPT_LOADER_URL = 'http://www.kaltura.org/apis/html5lib/mwEmbed/ResourceLoader.php';
 var SCRIPT_FORCE_DEBUG = false;
@@ -45,7 +44,7 @@ var FORCE_LOAD_JQUERY = false;
 
 // These Lines are for local testing: 
 // SCRIPT_FORCE_DEBUG = true;
-// SCRIPT_LOADER_URL = 'http://192.168.193.133/html5.kaltura/mwEmbed/ResourceLoader.php'
+// SCRIPT_LOADER_URL = 'http://192.168.1.69/html5.kaltura/mwEmbed/ResourceLoader.php';
 
 if( typeof console != 'undefined' && console.log ) {
 	console.log( 'Kaltura MwEmbed Loader Version: ' + KALTURA_LOADER_VERSION );
@@ -61,25 +60,25 @@ if( document.URL.indexOf('debugKalturaPlayer=true') != -1 ){
 	SCRIPT_FORCE_DEBUG = true;
 }
 if( document.URL.indexOf('debugKalturaForceJquery=true') != -1 ){
-	FORCE_LOAD_JQUERY = true
+	FORCE_LOAD_JQUERY = true;
 }
 
 // Define the DOM ready flag
 var kAlreadyRunDomReadyFlag = false;
 
 // Try and override the swfObject at runtime
-// In case it was included before mwEmbedLoader and the embedSWF call is inline 
-kOverideSwfObject();
+// In case it was included before mwEmbedLoader and the embedSWF call is inline ( so we can't wait for dom ready )
+kOverideJsFlashEmbed();
 
 // Setup preMwEmbedReady queue
-if( !preMwEmbedReady ){
-	var preMwEmbedReady = [];
+if( !window.preMwEmbedReady ){
+	window.preMwEmbedReady = [];
 }
 // Setup a preMwEmbedConfig var
 if( ! preMwEmbedConfig ) {
 	var preMwEmbedConfig = {};
 }
-if( !mw.setConfig ){
+if( ! mw.setConfig ){
 	mw.setConfig = function( set, value ){
 		var valueQueue = {};
 		if( typeof value != 'undefined'  ) {
@@ -89,39 +88,31 @@ if( !mw.setConfig ){
 				preMwEmbedConfig[ i ] = set[i];
 			}
 		}
-	}
+	};
 }
 
 if( ! mw.getConfig ){
 	mw.getConfig = function ( name, defaultValue ){
-		if( !preMwEmbedConfig[ name ] ){
+		if( typeof preMwEmbedConfig[ name ] == 'undefined' ){
 			if( typeof defaultValue != 'undefined' ){
 				return defaultValue;
 			}
-			return false;
+			return null;
 		} else {
 			return preMwEmbedConfig[ name ];
 		}
 	};
-};
+}
 
 
 // Wrap mw.ready to preMwEmbedReady values
 if( !mw.ready){
-	mw.ready = function( fn ){		
-		// if running an iframe rewrite without code update we should just run the ready function directly: 
-		if( mw.getConfig('Kaltura.IframeRewrite') && ! mw.getConfig('EmbedPlayer.EnableIframeApi') ){
-			fn();
-			return ;
-		}		
-		preMwEmbedReady.push( fn );		
-	}
-}
-
-
-// Set kaltura api to true by default: 
-if( !mw.getConfig('EmbedPlayer.EnableIframeApi') ){
-	mw.setConfig( 'EmbedPlayer.EnableIframeApi', true ) ; 
+	mw.ready = function( fn ){	
+		window.preMwEmbedReady.push( fn );
+		kAddReadyHook(function(){
+			kAddScript();
+		});
+	};
 }
 
 // Set url based config:
@@ -130,36 +121,48 @@ if( document.URL.indexOf('forceMobileHTML5') != -1 ){
 }
 function kDoIframeRewriteList( rewriteObjects ){
 	for( var i=0; i < rewriteObjects.length; i++ ){
-		var options = { width: rewriteObjects[i].width, height: rewriteObjects[i].height }		
-		kalturaIframeEmbed( rewriteObjects[i].id, rewriteObjects[i].kSettings, options );
+		var options = { 'width': rewriteObjects[i].width, 'height': rewriteObjects[i].height };
+		// If we have no flash &  no html5 fallback and don't care about about player rewrite 
+		if( ! kSupportsFlash() && ! kSupportsHTML5() ) {
+			kDirectDownloadFallback( rewriteObjects[i].id, rewriteObjects[i].kSettings, options );
+		} else {
+			kalturaIframeEmbed( rewriteObjects[i].id, rewriteObjects[i].kSettings, options );
+		}
 	}
 }
 function kalturaIframeEmbed( replaceTargetId, kEmbedSettings , options ){
 	if( !options )
 		options = {};
-	
 	// Empty the replace target:
-	var elm = document.getElementById(replaceTargetId);
+	var elm = document.getElementById( replaceTargetId );
 	if( ! elm ){
-		if( console.log )
-			console.log("Error could not find iframe target: " + replaceTargetId);
+		// No target found ( probably already done ) 
+		return false;
 	}
 	replaceTargetId.innerHTML = '';
+	
+	// Don't rewrite special key kaltura_player_iframe_no_rewrite
+	if( replaceTargetId == 'kaltura_player_iframe_no_rewrite' ){
+		return ;
+	}
 	
 	// Check if the iframe API is enabled in which case we have to load client code and use that 
 	// to rewrite the frame
 	if( mw.getConfig( 'EmbedPlayer.EnableIframeApi' ) && ( kSupportsFlash() || kSupportsHTML5() ) ){
 		if( kIsHTML5FallForward() ){
-			kAddScript(function(){
+			kAddScript( function(){
 				// Options include 'width' and 'height'
-				$j('#' + replaceTargetId ).css(options);
+				$j('#' + replaceTargetId ).css({
+					'width': options.width + 'px',
+					'height' : options.height + 'px'
+				});
 				// Do kaltura iframe player
 				$j('#' + replaceTargetId ).kalturaIframePlayer( kEmbedSettings );
-			});
+			});	
 		} else {
 			var jsRequestSet = [];
 			if( typeof window.jQuery == 'undefined' || FORCE_LOAD_JQUERY ) {
-				jsRequestSet.push( ['window.jQuery'] )
+				jsRequestSet.push( ['window.jQuery'] );
 			}
 			jsRequestSet.push('mwEmbed',  'mw.style.mwCommon', '$j.cookie', 'mw.EmbedPlayerNative', '$j.postMessage',  'kdpClientIframe', 'JSON' );
 			// Load just the files needed for flash iframe bindings			
@@ -168,22 +171,26 @@ function kalturaIframeEmbed( replaceTargetId, kEmbedSettings , options ){
 			});
 		}			
 		return ;
-	}	
-	
+	}		
 	// Else we can avoid loading mwEmbed all together and just rewrite the iframe 
 	// ( no javascript api needed )
 	
 	var iframeSrc = SCRIPT_LOADER_URL.replace( 'ResourceLoader.php', 'mwEmbedFrame.php' );
-	var kalturaAttributeList = { 'uiconf_id':1, 'entry_id':1, 'wid':1, 'p':1};
+	var kalturaAttributeList = ['uiconf_id', 'entry_id', 'wid', 'p', 'cache_st'];
 	for(var attrKey in kEmbedSettings ){
-		if( attrKey in kalturaAttributeList ){
-			iframeSrc += '/' + attrKey + '/' + encodeURIComponent( kEmbedSettings[attrKey] );  
+		// Check if the attrKey is in the kalturaAttributeList:
+		for( var i =0 ; i < kalturaAttributeList.length; i++){
+			if( kalturaAttributeList[i] == attrKey ){
+				iframeSrc += '/' + attrKey + '/' + encodeURIComponent( kEmbedSettings[attrKey] );  
+			}
 		}
 	}
+	// add the flashvars:
+	iframeSrc += '?' + kFlashVarsToUrl( kEmbedSettings.flashvars );
 	
 	// add the forceMobileHTML5 to the iframe if present on the client: 
 	if( mw.getConfig( 'forceMobileHTML5' ) ){
-		iframeSrc += '?forceMobileHTML5=true';
+		iframeSrc += '&forceMobileHTML5=true';
 	}
 	
 	var targetNode = document.getElementById( replaceTargetId );
@@ -194,37 +201,100 @@ function kalturaIframeEmbed( replaceTargetId, kEmbedSettings , options ){
 	iframe.width = (options.width) ? options.width : '100%';
 	iframe.height = (options.height) ? options.height : '100%';
 	iframe.style.border = '0px';
+	iframe.style.overflow = 'hidden';
 		
 	parentNode.replaceChild(iframe, targetNode );
 
 }
 
+// Fallback handling for older devices
+function kDirectDownloadFallback( replaceTargetId, kEmbedSettings , options ) {
+
+	// Empty the replace target:
+	var targetNode = document.getElementById( replaceTargetId );
+	if( ! targetNode ){
+		if( console && console.log )
+			console.log( "Error could not find object target: " + replaceTargetId );
+	}
+	// remove all object children
+	targetNode.innerHTML = '';
+	//while ( targetNode.hasChildNodes() ) {
+	//   targetNode.removeChild( targetNode.lastChild );
+	//}
+	if(!options)
+		options = {};
+
+	// look some other places for sizes:
+	if( !options.width && kEmbedSettings.width )
+		options.width = kEmbedSettings.width;
+	if( !options.height && kEmbedSettings.height )
+		options.height = kEmbedSettings.height;
+	if( !options.width && targetNode.style.width )
+		options.width = targetNode.style.width;
+	if( !options.height && targetNode.style.height )
+		options.height = targetNode.style.height;
+	if( !options.height )
+		options.height = 300;
+	if( !options.width )
+		options.width = 400;	
+
+	// TODO: Add playEventUrl for stats
+	var downloadUrl = SCRIPT_LOADER_URL.replace( 'ResourceLoader.php', 'modules/KalturaSupport/download.php' ) +
+			'/wid/' + kEmbedSettings.wid + '/entry_id/'+ kEmbedSettings.entry_id;
+	var thumbSrc = kGetEntryThumbUrl({
+		'entry_id' : kEmbedSettings.entry_id,
+		'partner_id' : kEmbedSettings.p,
+		'width' : parseInt( options.width),
+		'height' : parseInt( options.height)
+	});
+	var playButtonUrl = SCRIPT_LOADER_URL.replace( 'ResourceLoader.php', 'skins/common/images/player_big_play_button.png' );
+	var playButtonCss = 'background: url(\'' + playButtonUrl + '\'); width: 70px; height: 53px; position: absolute; top:50%; left:50%; margin: -26px 0 0 -35px;';
+	var ddId = 'dd_' + Math.random();
+
+	var ddHTML = '<div id="' + ddId + '" style="width: ' + options.width + ';height:' + options.height + ';position:relative">' +
+			'<img style="width:100%;height:100%" src="' + thumbSrc + '" >' +
+			'<a href="' + downloadUrl + '" target="_blank" style="' + playButtonCss + '"></a>' +
+		     '</div>';
+
+	var parentNode = targetNode.parentNode;
+	var div = document.createElement('div');
+	div.style.width = options.width + 'px';
+	div.style.height = options.height + 'px';
+
+	div.innerHTML = ddHTML;
+	parentNode.replaceChild( div, targetNode );
+
+	// if failed, try appending after the node:
+	if( ! document.getElementById( ddId ) ){
+		parentNode.insertBefore( div, targetNode );
+	}
+}
+
 // Test if swfObject exists, try and override its embed method to wrap html5 rewrite calls. 
-function kOverideSwfObject(){
-	var doEmbedSettingsWrite = function ( kEmbedSettings, replaceTargetId, widthStr, heightStr ){
-		
+function kOverideJsFlashEmbed(){
+	var doEmbedSettingsWrite = function ( kEmbedSettings, replaceTargetId, widthStr, heightStr ){	
 		// Add a ready event to re-write: 
-		mw.ready(function(){
-			// Setup the embedPlayer attributes
-			var embedPlayerAttributes = {
-				'kwidgetid' : kEmbedSettings.wid,
-				'kuiconfid' : kEmbedSettings.uiconf_id
-			}
-			var width = ( widthStr )? parseInt( widthStr ) : $j('#' + replaceTargetId ).width();
-			var height = ( heightStr)? parseInt( heightStr ) : $j('#' + replaceTargetId ).height();
-			
-			if( kEmbedSettings.entry_id ){
-				embedPlayerAttributes.kentryid = kEmbedSettings.entry_id;				
-				embedPlayerAttributes.poster = kGetEntryThumbUrl( {
-					'width' : width,
-					'height' : height,
-					'entry_id' :  kEmbedSettings.entry_id,
-					'partner_id': kEmbedSettings.p 
-				})
-			}
-			if( mw.getConfig( 'Kaltura.IframeRewrite' ) ){
-				kalturaIframeEmbed( replaceTargetId, kEmbedSettings , { 'width': width, 'height': height } );
-			} else {
+		// Setup the embedPlayer attributes
+		var embedPlayerAttributes = {
+			'kwidgetid' : kEmbedSettings.wid,
+			'kuiconfid' : kEmbedSettings.uiconf_id
+		};
+		var width = ( widthStr )? parseInt( widthStr ) : $j('#' + replaceTargetId ).width();
+		var height = ( heightStr)? parseInt( heightStr ) : $j('#' + replaceTargetId ).height();
+		
+		if( kEmbedSettings.entry_id ){
+			embedPlayerAttributes.kentryid = kEmbedSettings.entry_id;				
+			embedPlayerAttributes.poster = kGetEntryThumbUrl( {
+				'width' : width,
+				'height' : height,
+				'entry_id' :  kEmbedSettings.entry_id,
+				'partner_id': kEmbedSettings.p 
+			});
+		}
+		if( mw.getConfig( 'Kaltura.IframeRewrite' ) ){
+			kalturaIframeEmbed( replaceTargetId, kEmbedSettings , { 'width': width, 'height': height } );
+		} else {
+			mw.ready(function(){
 				$j('#' + replaceTargetId ).empty()
 				.css({
 					'width' : width,
@@ -232,16 +302,42 @@ function kOverideSwfObject(){
 				})
 				// Issue the embedPlayer call with embed attributes and the KDP ready callback
 				.embedPlayer( embedPlayerAttributes );
-			}
-		});
+			});
+		}
+	};
+	// flashobject
+	if( window['flashembed'] && !window['originalFlashembed'] ){
+		window['originalFlashembed'] = window['flashembed'];
+		window['flashembed'] = function( targetId, attributes, flashvars ){
+			kAddReadyHook(function(){
+				var kEmbedSettings = kGetKalturaEmbedSettings( attributes.src, flashvars);
+				if( ! kSupportsFlash() && ! kSupportsHTML5() && ! mw.getConfig( 'Kaltura.ForceFlashOnDesktop' ) ){
+					kDirectDownloadFallback( targetId, kEmbedSettings, {'width':attributes.width, 'height':attributes.height}   );
+					return ;
+				}
+				if( kEmbedSettings.uiconf_id && kIsHTML5FallForward() && kEmbedSettings.uiconf_id ){
+					doEmbedSettingsWrite( kEmbedSettings, targetId, attributes.width, attributes.height);
+				} else {
+					// Use the original flash player embed:  
+					originalFlashembed( targetId, attributes, flashvars );
+				}
+			});
+		};
 	}
+	
 	// SWFObject v 1.5 
 	if( window['SWFObject']  && !window['SWFObject'].prototype['originalWrite']){
 		window['SWFObject'].prototype['originalWrite'] = window['SWFObject'].prototype.write;
 		window['SWFObject'].prototype['write'] = function( targetId ){
 			var _this = this;
-			mw.ready(function(){				
+			kAddReadyHook(function(){			
 				var kEmbedSettings = kGetKalturaEmbedSettings( _this.attributes.swf, _this.params.flashVars);
+		
+				if( kEmbedSettings.uiconf_id && ! kSupportsFlash() && ! kSupportsHTML5() && ! mw.getConfig( 'Kaltura.ForceFlashOnDesktop' ) ){
+					kDirectDownloadFallback( targetId, kEmbedSettings );
+					return ;
+				}
+
 				if( kIsHTML5FallForward() && kEmbedSettings.uiconf_id ){
 					doEmbedSettingsWrite( kEmbedSettings, targetId, _this.attributes.width, _this.attributes.height);
 				} else {
@@ -249,8 +345,9 @@ function kOverideSwfObject(){
 					_this.originalWrite( targetId );
 				}
 			});
-		}
+		};
 	}
+
 	// SWFObject v 2.0
 	if( window['swfobject'] && !window['swfobject']['originalEmbedSWF'] ){
 		window['swfobject']['originalEmbedSWF'] = window['swfobject']['embedSWF'];
@@ -259,81 +356,103 @@ function kOverideSwfObject(){
 				heightStr, swfVersionStr, xiSwfUrlStr, flashvarsObj, parObj, attObj, callbackFn)
 		{
 			kAddReadyHook(function(){
-				var kEmbedSettings = kGetKalturaEmbedSettings( swfUrlStr, flashvarsObj);	
-				// Check if mobile safari:
-				if( kIsHTML5FallForward() && kEmbedSettings.wid ){
+				var kEmbedSettings = kGetKalturaEmbedSettings( swfUrlStr, flashvarsObj);
+
+
+				if( kEmbedSettings.uiconf_id && ! kSupportsFlash() && ! kSupportsHTML5() && ! mw.getConfig( 'Kaltura.ForceFlashOnDesktop' ) ){
+					kDirectDownloadFallback( targetId, kEmbedSettings, {'width' : widthStr, 'height' :  heightStr} );
+					return ;
+				}
+
+				// Check if kIsHTML5FallForward
+				if( kIsHTML5FallForward() && kEmbedSettings.uiconf_id ){
 					doEmbedSettingsWrite( kEmbedSettings, replaceElemIdStr, widthStr,  heightStr);
 				} else {
 					// Else call the original EmbedSWF with all its arguments 
 					window['swfobject']['originalEmbedSWF']( swfUrlStr, replaceElemIdStr, widthStr,
-							heightStr, swfVersionStr, xiSwfUrlStr, flashvarsObj, parObj, attObj, callbackFn )
+							heightStr, swfVersionStr, xiSwfUrlStr, flashvarsObj, parObj, attObj, callbackFn );
 				}
 			});
-		}
+		};
 	}
 }
 
 function getFlashVersion(){
-  // ie
-  try {
-    try {
-      // avoid fp6 minor version lookup issues
-      // see: http://blog.deconcept.com/2006/01/11/getvariable-setvariable-crash-internet-explorer-flash-6/
-      var axo = new ActiveXObject('ShockwaveFlash.ShockwaveFlash.6');
-      try { axo.AllowScriptAccess = 'always'; }
-      catch(e) { return '6,0,0'; }
-    } catch(e) {}
-    return new ActiveXObject('ShockwaveFlash.ShockwaveFlash').GetVariable('$version').replace(/\D+/g, ',').match(/^,?(.+),?$/)[1];
-  // other browsers
-  } catch(e) {
-    try {
-      if(navigator.mimeTypes["application/x-shockwave-flash"].enabledPlugin){
-        return (navigator.plugins["Shockwave Flash 2.0"] || navigator.plugins["Shockwave Flash"]).description.replace(/\D+/g, ",").match(/^,?(.+),?$/)[1];
-      }
-    } catch(e) {}
-  }
-  return '0,0,0';
+	// navigator browsers:
+	if (navigator.plugins && navigator.plugins.length) {
+		try {
+			if(navigator.mimeTypes["application/x-shockwave-flash"].enabledPlugin){
+				return (navigator.plugins["Shockwave Flash 2.0"] || navigator.plugins["Shockwave Flash"]).description.replace(/\D+/g, ",").match(/^,?(.+),?$/)[1];
+			}
+		} catch(e) {}
+	}
+	// IE
+	try {
+		try {
+			if( typeof ActiveXObject != 'undefined' ){
+				// avoid fp6 minor version lookup issues
+				// see: http://blog.deconcept.com/2006/01/11/getvariable-setvariable-crash-internet-explorer-flash-6/
+				var axo = new ActiveXObject('ShockwaveFlash.ShockwaveFlash.6');
+				try { 
+					axo.AllowScriptAccess = 'always'; 
+				} catch(e) { 
+					return '6,0,0'; 
+				}
+			}
+		} catch(e) {}
+    	return new ActiveXObject('ShockwaveFlash.ShockwaveFlash').GetVariable('$version').replace(/\D+/g, ',').match(/^,?(.+),?$/)[1];
+	} catch(e) {}
+	return '0,0,0';
 }
 
 // Check DOM for Kaltura embeds ( fall forward ) 
 // && html5 video tag ( for fallback & html5 player interface )
 var ranKCheckAddScript = false;
 function kCheckAddScript(){
-	if( ranKCheckAddScript )
-		return ;
-	ranKCheckAddScript = true;
+	/**
+	 * Hard code some defaults for users not using the kaltura SAS
+	 * It kind of sucks to hard code this, But we can't deliver iframes for non SAS users atm. 
+	 */
+	var serviceUrl = mw.getConfig('Kaltura.ServiceUrl');
+	if( ! serviceUrl || serviceUrl != 'http://www.kaltura.com' ){
+		// if not hosted on kaltura for now we can't use the iframe to load the player
+		mw.setConfig( 'Kaltura.IframeRewrite', false );
+		mw.setConfig( 'Kaltura.UseManifestUrls', false);
+	}
 	// If user javascript is using mw.ready add script
-	if( preMwEmbedReady.length ) {
+	if( window.preMwEmbedReady.length ) {
 		kAddScript();
 		return ;
 	}
-	if( mw.getConfig( 'Kaltura.LoadScriptForVideoTags' ) ){
-		// If document includes audio or video tags
-		if( document.getElementsByTagName('video').length != 0
-			|| document.getElementsByTagName('audio').length != 0 ) {
-			kAddScript();
-			return ;
-		}
-	}
-	var dPlayers = getKalturaDynamicPlayers();
-	if( dPlayers.length ){
-		for(var i=0;i< dPlayers.length;i++){
-			var options = { width: dPlayers[i].width, height: dPlayers[i].height }		
-			kalturaIframeEmbed( dPlayers[i].id, dPlayers[i].kSettings, options );
-		}
+	if( ! mw.getConfig( 'Kaltura.ForceFlashOnDesktop' )  
+			&& 
+		( mw.getConfig( 'Kaltura.LoadScriptForVideoTags' ) && kPageHasAudioOrVideoTags()  )
+	){
+		kAddScript();
+		return ;
 	}
 	// If document includes kaltura embed tags && isMobile safari: 
-	if ( kIsHTML5FallForward() &&  kGetKalturaPlayerList().length ) {
+	if ( kIsHTML5FallForward()
+			&&  
+		kGetKalturaPlayerList().length 
+	) {
 		// Check for Kaltura objects in the page
 		kAddScript();
-	} else {
-		// Restore the jsCallbackReady ( we are not rewriting )
-		restoreKalturaKDPCallback();	
+		return ;
 	}
+
+	// Check if no flash and no html5 and no forceFlash ( direct download link ) 
+	if( ! kSupportsFlash() && ! kSupportsHTML5() && ! mw.getConfig( 'Kaltura.ForceFlashOnDesktop' ) ){
+		kAddScript();
+		return ;		
+	}
+
+	// Restore the jsCallbackReady ( we are not rewriting )
+	restoreKalturaKDPCallback();	
 }
 // Fallforward by default prefers flash, uses html5 only if flash is not installed or not available 
-function kIsHTML5FallForward(){	
-	// Check for a mobile html5 user agent:	
+function kIsHTML5FallForward(){
+	// Check for a mobile html5 user agent:
 	if ( (navigator.userAgent.indexOf('iPhone') != -1) || 
 		(navigator.userAgent.indexOf('iPod') != -1) || 
 		(navigator.userAgent.indexOf('iPad') != -1) ||
@@ -356,10 +475,16 @@ function kIsHTML5FallForward(){
 		}
 	}
 
-	// if the browser supports flash ( don't use html5 )
+	// If the browser supports flash ( don't use html5 )
 	if( kSupportsFlash() ){
 		return false;
 	}
+	
+	// Check if the UseFlashOnDesktop flag is set and ( don't check for html5 ) 
+	if( mw.getConfig( 'Kaltura.ForceFlashOnDesktop' ) ){
+		return false;
+	}
+	
 	// No flash return true if the browser supports html5 video tag with basic support for canPlayType:
 	if( kSupportsHTML5() ){
 		return true;
@@ -377,7 +502,7 @@ function kIsHTML5FallForward(){
 // but is part of the mobile check above. 
 function kSupportsHTML5(){
 	var dummyvid = document.createElement( "video" );
-	// Blackberry is evil in its response to canPlayType calls. 
+	// Blackberry does not really support html5 ( 
 	if( navigator.userAgent.indexOf('BlackBerry') != -1 ){
 		return false ;
 	}
@@ -407,17 +532,22 @@ function kAddScript( callback ){
 
 	var jsRequestSet = [];
 	if( typeof window.jQuery == 'undefined' || FORCE_LOAD_JQUERY ) {
-		jsRequestSet.push( 'window.jQuery' )
+		jsRequestSet.push( 'window.jQuery' );
 	}
 	// Check if we are using an iframe ( load only the iframe api client ) 
-	if( mw.getConfig( 'Kaltura.IframeRewrite' ) ) {
+	if( mw.getConfig( 'Kaltura.IframeRewrite' ) && ! kPageHasAudioOrVideoTags() ) {
 		if( mw.getConfig( 'EmbedPlayer.EnableIframeApi') && ( kSupportsFlash() || kSupportsHTML5() ) ){
-			jsRequestSet.push( 'mwEmbed', 'mw.style.mwCommon', '$j.cookie', 'mw.EmbedPlayerNative', '$j.postMessage',  'mw.IFramePlayerApiClient', 'mw.KDPMapping', 'JSON' );
+			jsRequestSet.push( 'mwEmbed', 'mw.style.mwCommon', '$j.cookie', 'mw.EmbedPlayerNative', '$j.postMessage',  'mw.IFramePlayerApiClient', 'mw.KDPMapping', 'JSON' );		
+			// Load a minimal set of modules for iframe api
 			kLoadJsRequestSet( jsRequestSet, callback );
+			return ;
 		} else {
-			kDoIframeRewriteList( kGetKalturaPlayerList() )	;
+			kDoIframeRewriteList( kGetKalturaPlayerList() );
+			// if we don't have a mw.ready function we don't need to load the script library
+			if( !window.preMwEmbedReady.length ){
+				return ;
+			}
 		}
-		return ;
 	}
 	
 	// Add all the classes needed for video 
@@ -450,6 +580,13 @@ function kAddScript( callback ){
 		'mw.TimedText',
 		'mw.style.TimedText'
 	);
+	// If an iframe server include iframe server stuff: 
+	if( mw.getConfig('EmbedPlayer.IsIframePlayer') ){
+		jsRequestSet.push(
+			'$j.postMessage',
+			'mw.IFramePlayerApiServer'
+		);
+	}
 	
 	// Add the jquery ui skin: 
 	if( mw.getConfig( 'jQueryUISkin' ) ){
@@ -459,6 +596,7 @@ function kAddScript( callback ){
 	}
 	
 	var objectPlayerList = kGetKalturaPlayerList();
+
 	// Check if we are doing object rewrite ( add the kaltura library ) 
 	if ( kIsHTML5FallForward() || objectPlayerList.length ){
 		// Kaltura client libraries:
@@ -475,7 +613,8 @@ function kAddScript( callback ){
 		  'controlbarLayout',
 		  'faderPlugin',
 		  'watermarkPlugin',
-		  'adPlugin'
+		  'adPlugin',
+		  'bumperPlugin'
 		);
 		// kaltura playlist support ( so small relative to client libraries that we always include it )	
 		jsRequestSet.push(
@@ -486,10 +625,12 @@ function kAddScript( callback ){
 		);
 	}
 	kLoadJsRequestSet( jsRequestSet, callback );
-};
+}
+
 function isIE(){
 	return /msie/i.test(navigator.userAgent) && !/opera/i.test(navigator.userAgent);
 }
+
 function kAppendScriptUrl( url, callback ) {
 	var script = document.createElement( 'script' );
 	script.type = 'text/javascript';
@@ -512,6 +653,7 @@ function kAppendScriptUrl( url, callback ) {
 }
 
 function kLoadJsRequestSet( jsRequestSet, callback ){
+
 	var url = SCRIPT_LOADER_URL + '?class=';
 	// Add all the requested classes
 	url+= jsRequestSet.join(',') + ',';
@@ -520,10 +662,21 @@ function kLoadJsRequestSet( jsRequestSet, callback ){
 	if ( SCRIPT_FORCE_DEBUG ){
 		url+= '&debug=true';
 	}
+
 	// Check for special global callback for script load
 	kAppendScriptUrl(url, callback);
 }
-
+function kPageHasAudioOrVideoTags(){
+	if( !kSupportsHTML5() ){
+		return false;
+	}
+	// If document includes audio or video tags
+	if( document.getElementsByTagName('video').length != 0
+		|| document.getElementsByTagName('audio').length != 0 ) {
+		return true;
+	}
+	return false;
+}
 
 /**
 * DOM-ready setup ( similar to jQuery.ready )  
@@ -539,20 +692,25 @@ function kAddReadyHook( callback ){
 function kRunMwDomReady(){
 	// run dom ready with a 1ms timeout to prevent sync execution in browsers like chrome
 	// Async call give a chance for configuration variables to be set
-	setTimeout(function(){
+	//window.setTimeout(function(){
+		//alert('setTimeout::kRunMwDomReady');
 		kAlreadyRunDomReadyFlag  = true;
 		while( kReadyHookSet.length ){
 			kReadyHookSet.shift()();
 		}
-		kOverideSwfObject();
+		kOverideJsFlashEmbed();
 		kCheckAddScript();
-	},1 );
+	//},100 );
 }
+
 // Check if already ready: 
 if ( document.readyState === "complete" ) {
 	kRunMwDomReady();
 }
-
+// fallback function that should fire for all browsers 
+window.onload = function(){
+	kRunMwDomReady();
+}
 // Cleanup functions for the document ready method
 if ( document.addEventListener ) {
 	DOMContentLoaded = function() {
@@ -569,25 +727,19 @@ if ( document.addEventListener ) {
 		}
 	};
 }
+
 // Mozilla, Opera and webkit nightlies currently support this event
 if ( document.addEventListener ) {
 	// Use the handy event callback
 	document.addEventListener( "DOMContentLoaded", DOMContentLoaded, false );
-	// A fallback to window.onload, that will always work
-	window.addEventListener( "load", kRunMwDomReady, false );
-
 // If IE event model is used
 } else if ( document.attachEvent ) {
 	// ensure firing before onload,
 	// maybe late but safe also for iframes
 	document.attachEvent("onreadystatechange", DOMContentLoaded);
-	// A fallback to window.onload, that will always work
-	window.attachEvent( "onload", kRunMwDomReady );
-
 	// If IE and not a frame
 	// continually check to see if the document is ready
 	var toplevel = false;
-
 	try {
 		toplevel = window.frameElement == null;
 	} catch(e) {
@@ -595,6 +747,10 @@ if ( document.addEventListener ) {
 	if ( document.documentElement.doScroll && toplevel ) {
 		doScrollCheck();
 	}
+}
+// A document addEventListener
+if ( document.addEventListener ) {
+	window.addEventListener( "load", kRunMwDomReady, false );
 }
 // The DOM ready check for Internet Explorer
 function doScrollCheck() {
@@ -613,31 +769,6 @@ function doScrollCheck() {
 	kRunMwDomReady();
 }
 
-getKalturaDynamicPlayers = function(){
-	var objectList = document.getElementsByTagName('object');
-	var dPlayers = [];
-	// Look for param based attributes ( if class == KalturaDynamicPlayer ) override flashvars )
-	for( var i =0; i < objectList.length; i++){
-		if( objectList[i].className && objectList[i].className.indexOf( 'KalturaDynamicPlayer' ) ){
-			var flashvars = {};
-			var paramTags = objectList[i].getElementsByTagName('param');
-			for( var j = 0; j < paramTags.length; j++){
-				var pName = paramTags[j].getAttribute('name');
-				var pVal = paramTags[j].getAttribute('value');
-				if( pName == 'entry_id' || pName == 'widget_id' || pName == 'uiconf_id'){
-					flashvars[ pName ] = pVal;
-				}
-			}
-			var settings = kGetKalturaEmbedSettings( '', flashvars );
-			if( settings && settings.uiconf_id && settings.wid ){
-				objectList[i].kSettings = settings;
-				dPlayers.push( objectList[i] );
-			}
-		}
-	}
-	return dPlayers;
-}
-
 /**
  * Get the list of embed objects on the page that are 'kaltura players'
  * Copied from kalturaSupport loader mw.getKalturaPlayerList  
@@ -646,7 +777,9 @@ kGetKalturaPlayerList = function(){
 	var kalturaPlayers = [];
 	// check all objects for kaltura compatible urls 
 	var objectList = document.getElementsByTagName('object');
-	
+	if( !objectList.length && document.getElementById('kaltura_player') ){
+		objectList = [ document.getElementById('kaltura_player') ];
+	}
 	// local function to attempt to add the kalturaEmbed
 	var tryAddKalturaEmbed = function( url , flashvars){
 		var settings = kGetKalturaEmbedSettings( url, flashvars );
@@ -656,10 +789,10 @@ kGetKalturaPlayerList = function(){
 			return true;
 		}
 		return false;
-	}
-	
-	// alert('object list: ' + objectList.length );
+	};
 	for( var i =0; i < objectList.length; i++){
+		if( ! objectList[i] )
+			continue;
 		var swfUrl = '';
 		var flashvars = {};
 		var paramTags = objectList[i].getElementsByTagName('param');
@@ -667,10 +800,10 @@ kGetKalturaPlayerList = function(){
 			var pName = paramTags[j].getAttribute('name');
 			var pVal = paramTags[j].getAttribute('value');
 			if( pName == 'data' ||	pName == 'src' ) {
-				swfUrl =  pVal
+				swfUrl =  pVal;
 			}
 			if( pName == 'flashvars' ){
-				flashvars =	kFlashVarsToObject( pVal );
+				flashvars =	kFlashVars2Object( pVal );
 			}
 		}
 
@@ -685,9 +818,9 @@ kGetKalturaPlayerList = function(){
 		}
 	}
 	return kalturaPlayers;
-}
+};
 
-function kFlashVarsToObject( flashvarsString ){
+function kFlashVars2Object( flashvarsString ){
 	var flashVarsSet = ( flashvarsString )? flashvarsString.split('&'): [];
 	var flashvars = {};
 	for( var i =0 ;i < flashVarsSet.length; i ++){
@@ -698,25 +831,36 @@ function kFlashVarsToObject( flashvarsString ){
 	}
 	return flashvars;
 }
+
+function kFlashVarsToUrl( flashVarsObject ){
+	var params = '';
+	for( var i in flashVarsObject ){
+		params+= '&' + 'flashvars[' + encodeURIComponent( i ) + ']=' + encodeURIComponent( flashVarsObject[i] );
+	}
+	return params;
+}
+
 function kGetEntryThumbUrl( entry ){
 	var kCdn = mw.getConfig( 'Kaltura.CdnUrl', 'http://cdnakmi.kaltura.com' ); 
 	return kCdn + '/p/' + entry.partner_id + '/sp/' +
 		entry.partner_id + '00/thumbnail/entry_id/' + entry.entry_id + '/width/' +
-		entry.height + '/height/' + entry.width;
+		entry.width + '/height/' + entry.height;
 }
 // Copied from kalturaSupport loader mw.getKalturaEmbedSettings  
 function kGetKalturaEmbedSettings ( swfUrl, flashvars ){
 	var embedSettings = {};	
+
 	// Convert flashvars if in string format:
 	if( typeof flashvars == 'string' ){
-		flashvars = kFlashVarsToObject( flashvars );
+		flashvars = kFlashVars2Object( flashvars );
 	}
-	if( !flashvars )
+	
+	if( !flashvars ){
 		flashvars= {};
+	}
 	
 	// Include flashvars
-	embedSettings.flashvars = flashvars
-		
+	embedSettings.flashvars = flashvars;	
 	var dataUrlParts = swfUrl.split('/');
 	
 	// Search backward for key value pairs
@@ -745,45 +889,49 @@ function kGetKalturaEmbedSettings ( swfUrl, flashvars ){
 		prevUrlPart = curUrlPart;
 	}
 	// Add in Flash vars embedSettings ( they take precedence over embed url )
-	for( var i in  flashvars){
-		embedSettings[ i.toLowerCase() ] = flashvars[i];
-	}
-	// Normalize to the url based settings: 
-	if( embedSettings[ 'entryid' ] ){
-		embedSettings.entry_id =  embedSettings.entryid;
-	}
-	if( embedSettings['widget_id'] ){
-		embedSettings.wid = embedSettings.widget_id;
-		embedSettings.p = embedSettings.wid.replace(/_/,'');
-	}
-	if( embedSettings['parent_id'] ){
-		embedSettings.wid = '_' + embedSettings.parent_id;
-		embedSettings.p = embedSettings.parent_id;
+	for( var key in  flashvars){	
+		var val = flashvars[key];
+		var key = key.toLowerCase();
+		// Normalize to the url based settings: 
+		if( key == 'entryid' ){
+			embedSettings.entry_id = val;
+		}
+		if(  key == 'uiconfid' ){
+			embedSettings.uiconf_id = val;
+		}
+		if( key == 'widgetid' || key == 'widget_id' ){
+			embedSettings.wid = val;
+			embedSettings.p = val.replace(/_/,'');
+		}	
+		if( key == 'parentid' ||  key == 'parent_id'){
+			embedSettings.wid = '_' + val;
+			embedSettings.p = val;
+		}
 	}
 	return embedSettings;
-};
+}
 
 /**
  * To support kaltura kdp mapping override
  */
 var checkForKDPCallback = function(){
-	if( typeof window.jsCallbackReady != 'undefined'){
+	if( typeof window.jsCallbackReady != 'undefined' && !window.KalturaKDPCallbackReady ){
 		window.KalturaKDPCallbackReady = window.jsCallbackReady;
-		window.jsCallbackReady = function(){			
-			window.KalturaKDPCallbackAlreadyCalled = true;
-		};		
+		window.jsCallbackReady = function( player_id ){			
+			window.KalturaKDPCallbackAlreadyCalled = player_id;
+		};
 	}
-}
+};
 var restoreKalturaKDPCallback = function(){
 	// To restore when we are not rewriting: 
 	if( window.KalturaKDPCallbackReady ){
 		window.jsCallbackReady = window.KalturaKDPCallbackReady;
 		window.KalturaKDPCallbackReady = null;
 		if( window.KalturaKDPCallbackAlreadyCalled ){
-			window.jsCallbackReady();
+			window.jsCallbackReady( window.KalturaKDPCallbackAlreadyCalled );
 		}
 	}
-}
+};
 // Check inline and when the dom is ready:
-checkForKDPCallback()
+checkForKDPCallback();
 kAddReadyHook( checkForKDPCallback );
