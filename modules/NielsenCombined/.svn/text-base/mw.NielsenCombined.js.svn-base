@@ -67,7 +67,7 @@ mw.NielsenCombined.prototype = {
 		var embedPlayer = this.embedPlayer;
 		
 		// Clear out any old bindings
-		$( embedPlayer ).unbind( _this.bindPostFix );
+		embedPlayer.unbindHelper( _this.bindPostFix );
 		
 		// Bind ad Playback
 		var contentPlay = false;
@@ -76,9 +76,11 @@ mw.NielsenCombined.prototype = {
 		var currentContentSegmentDuration = 0;
 		var lastContentSegmentDuration = 0;
 		var contentSegmentCount = 1;
+		var currentSlotType = null;
 		
 		embedPlayer.bindHelper( 'AdSupport_StartAdPlayback' + _this.bindPostFix, function( event, slotType ){
 			var vid = _this.getPlayerElement(); 
+			currentSlotType = slotType;
 			
 			// Check if we were playing content before this "adStart"
 			if( contentPlay ){
@@ -109,17 +111,17 @@ mw.NielsenCombined.prototype = {
 				_this.addPlayerTracking( slotType );
 			});
 		});
-		embedPlayer.bindHelper( 'AdSupport_EndAdPlayback' + _this.bindPostFix, function( event, slotType ){
+		embedPlayer.bindHelper( 'AdSupport_EndAdPlayback' + _this.bindPostFix, function( event ){
 			// close the current ad: 
 			if( adOpenUrl && dispachedAdStart ){
 				// Stop the ad: 
-				_this.dispatchEvent( 7, _this.round( _this.currentAdTime ), slotType );
+				_this.dispatchEvent( 7, _this.round( _this.currentAdTime ), currentSlotType );
 				// Ad fire a 4 to 'unload' the ad ( always called even if we don't get to "ended" event )
-				_this.dispatchEvent( 4, _this.round( currentAdDuration ), slotType );
+				_this.dispatchEvent( 4, _this.round( _this.currentAdTime ), currentSlotType );
 				adOpenUrl = false;
 			}
 			// unbind tracking ( will be re-instated via addPlayerTracking on subsequent ads or content 
-			$( embedPlayer ).unbind( _this.trackerPostFix );
+			embedPlayer.unbindHelper( _this.trackerPostFix );
 			
 			// Restore content tracking after ad end:
 			_this.addPlayerTracking( "content" );
@@ -131,28 +133,41 @@ mw.NielsenCombined.prototype = {
 			// Check if the play event is content or "inAdSequence" 
 			if( !_this.inAd() && !contentPlay ){
 				contentPlay = true;
-				// Playing content fire the 5 content beacon and start content tracking
-				_this.dispatchEvent( 15, _this.getCurrentVideoSrc() , "content", _this.getMetaXmlString(), contentSegmentCount );
-				contentSegmentCount++;
 				
-				// Add player "raw" player bindings:
-				_this.addPlayerTracking( "content" );
+				var sendContentPlayBeacon = function(){
+					// Playing content fire the 5 content beacon and start content tracking
+					_this.dispatchEvent( 15, _this.getCurrentVideoSrc() , "content", _this.getMetaXmlString(), contentSegmentCount );
+					contentSegmentCount++;
+					
+					// Add player "raw" player bindings:
+					_this.addPlayerTracking( "content" );
+					
+					// set the segment update as soon as we have a timeupdate:
+					currentContentSegmentDuration = _this.round( _this.getRelativeTime('duration') );
+				};
 				
-				// set the segment update as soon as we have a timeupdate:
-				$( vid ).bind( 'timeupdate' + _this.bindPostFix, function(){
-					currentContentSegmentDuration = vid.currentTime - lastContentSegmentDuration;
-				});
+				// check if we have duration before sending the event:
+				if( vid.duration ){
+					sendContentPlayBeacon();
+				} else {
+					$( vid ).bind( 'durationchange.nielsenContent', function( e ){
+						sendContentPlayBeacon();
+						$( vid ).unbind( 'durationchange.nielsenContent' );
+					});
+				};
 			}
 		});
 		// Watch for 'ended' event for cases where finish all ads post sequence and everything "stop the player" 
 		embedPlayer.bindHelper( 'onEndedDone' + _this.bindPostFix, function(){
 			// Stop the content: 
-			_this.dispatchEvent( 7, _this.round( currentContentSegmentDuration), 'content' );
+			_this.dispatchEvent( 7, _this.round( _this.getRelativeTime('duration') ), 'content' );
+			// unload the content as well.
+			_this.dispatchEvent( 4, _this.round( _this.getRelativeTime('duration') ), 'content' );
 			// At this point we have reset the player so reset bindings: 
-			$( embedPlayer ).unbind( _this.bindPostFix );
+			embedPlayer.unbindHelper( _this.bindPostFix );
 			_this.unbindPlayerTracking();
 			
-			// Reset the bindings for a replay: ( don't stack) 
+			// Reset the bindings for a replay or next clip ( don't stack) 
 			setTimeout(function(){
 				_this.addSequenceBinding();
 			},0);
@@ -162,14 +177,14 @@ mw.NielsenCombined.prototype = {
 		return Math.round( floatValue * 100 ) / 100;
 	},
 	unbindPlayerTracking: function(){
-		$( this.embedPlayer ).unbind( this.trackerPostFix );
+		this.embedPlayer.unbindHelper( this.trackerPostFix );
 		$( this.embedPlayer.getPlayerElement() ).unbind( this.trackerPostFix );
 	},
 	getPlayerElement: function(){
 		// some ad providers such as freewheel inserts a new video tag into the page 
 		// ( track that instead of the first video source if present ) 
 		if( $( this.embedPlayer.getPlayerElement() ).siblings('video').length ){
-			return $( this.embedPlayer.getPlayerElement() ).siblings('video').get(0);
+			return $( this.embedPlayer.getPlayerElement() ).siblings('video')[0];
 		} else {
 			return this.embedPlayer.getPlayerElement();
 		}
@@ -201,19 +216,36 @@ mw.NielsenCombined.prototype = {
 		var b = function( bindName, callback ){
 			$( vid ).bind( bindName + _this.trackerPostFix, callback);
 		}
+		var pauseTime = null;
+		
+		// on ended let the player flow take over ( we don't want any of the end trigger events ) 
+		b( 'ended', function(){
+			// let the player take over on end: 
+			_this.unbindPlayerTracking();
+		})
+		
+		
 		// on pause:
 		b( 'pause', function(){
-			// pause is triggred as part of player end state ( don't dispatch if eventProgatation is off ) 
+			// pause is triggered as part of player end state ( don't dispatch if eventProgatation is off ) 
 			if( embedPlayer._propagateEvents ){
-				_this.dispatchEvent( 6, _this.getRelativeTime('currentTime') );
+				pauseTime = _this.round( _this.getRelativeTime('currentTime') );
+				_this.dispatchEvent( 6, pauseTime, type );
+				
+				// Update paused time on seek 
+				b('seeked', function(){
+					pauseTime = _this.round( _this.getRelativeTime('currentTime') );
+				})
+				
+				// setup the resume binding:
+				b('play', function(){
+					// unbind play: 
+					$( vid ).unbind( 'play' + _this.trackerPostFix );
+					if( embedPlayer._propagateEvents ){
+						_this.dispatchEvent( 5, pauseTime, type );
+					}
+				});
 			}
-			
-			// setup the resume binding:
-			b('play', function(){
-				_this.dispatchEvent( 5, _this.getRelativeTime('currentTime') );
-				// unbind play: 
-				$(embedPlayer).unbind( 'play' + _this.trackerPostFix );
-			});
 		});
 		
 		// Volume change: 
@@ -227,6 +259,8 @@ mw.NielsenCombined.prototype = {
 		// Monitor:
 		var lastTime = -1;
 		b( 'timeupdate', function(){
+			var vid = _this.getPlayerElement();
+			
 			if( type != 'content' ){
 				_this.currentAdTime = vid.currentTime;
 			}
@@ -239,12 +273,12 @@ mw.NielsenCombined.prototype = {
 			// Check for position changed more than "3" ( seek )
 			if( posDelta > 3 ){
 				mw.log("NielsenCombined:: Dispach clip jump, seek delta : " + posDelta );
-				_this.dispatchEvent( 8, String( lastTime ), String( _this.getRelativeTime('currentTime') ), type );
+				_this.dispatchEvent( 8, _this.round( lastTime ), _this.round( _this.getRelativeTime('currentTime') ), type );
 			}
 			// Dispatch vid progress every 2 seconds:
 			if( posDelta > _this.queryInterval ){
 				lastTime = vid.currentTime;
-				_this.dispatchEvent( 49, String( _this.getRelativeTime( 'currentTime' ) ), type );
+				_this.dispatchEvent( 49, _this.round( _this.getRelativeTime( 'currentTime' ) ), type );
 			}
 		});
 	},
@@ -256,6 +290,8 @@ mw.NielsenCombined.prototype = {
 		var args = $.makeArray( arguments ); 
 		var eventString = args.join("\n\n"); 
 		mw.log("NielsenCombined:: dispatchEvent: " + eventString);
+		// trigger dispatch event for testing
+		$( this.embedPlayer ).trigger('NielsenCombined_DispatchEvent', [args]);
 		this.gg.ggPM.apply( this, args);
 	},
 	// Gets the "raw" current source ( works with ad assets )  
@@ -280,6 +316,7 @@ mw.NielsenCombined.prototype = {
 	getRelativeTime: function( timeAttribute ){
 		var _this = this;
 		var embedPlayer = this.embedPlayer;
+		var vid = this.getPlayerElement(); 
 		if( timeAttribute != 'duration' && timeAttribute != 'currentTime' ){
 			mw.log("Error:: calling getRelativeTime with invalid timeAttribute: " + timeAttribute );
 			return 0;
@@ -302,7 +339,7 @@ mw.NielsenCombined.prototype = {
 		if( embedPlayer.rawCuePoints ){
 			var segmentDuration = 0;
 			var prevCuePointTime = 0;
-			var absolutePlayerTime = embedPlayer.currentTime * 1000;
+			var absolutePlayerTime = vid.currentTime * 1000;
 			for( var i =0; i < embedPlayer.rawCuePoints.length; i++ ){
 				var cuePoint = embedPlayer.rawCuePoints[ i ];
 				// Make sure the cue point is an Ad and not an overlay ( adType 2 )
@@ -323,7 +360,7 @@ mw.NielsenCombined.prototype = {
 							&&
 						absolutePlayerTime > cuePoint.startTime
 					){
-						return _this.round( embedPlayer.duration - ( cuePoint.startTime / 1000 ) )
+						return _this.round( vid.duration - ( cuePoint.startTime / 1000 ) )
 					}
 				}
 				prevCuePointTime = cuePoint.startTime;
@@ -333,8 +370,12 @@ mw.NielsenCombined.prototype = {
 				return _this.round( ( absolutePlayerTime - prevCuePointTime )  / 1000 );
 			}
 		}
-		// else just return embed player duration 
-		return _this.round( embedPlayer[ timeAttribute ] );
+		if(  vid[ timeAttribute ]  ){
+			return _this.round( vid[ timeAttribute ] );
+		} else {
+			// else just return embed player duration 
+			return embedPlayer[timeAttribute];
+		}
 	},
 	inAd:function(){
 		return !! this.embedPlayer.evaluate( '{sequenceProxy.isInSequence}' ); 
@@ -350,7 +391,7 @@ mw.NielsenCombined.prototype = {
 				this.getCurrentVideoSrc() +
 			"</uurl>\n" +
 			"<length>"+
-				this.getRelativeTime( 'duration' ) + 
+				_this.round( this.getRelativeTime( 'duration' ) )+ 
 			"</length>\n";
 		// A tag map that allows for ads to override content values
 		var tagMap = {};
@@ -398,6 +439,9 @@ mw.NielsenCombined.prototype = {
 					  clientid: clientId,
 					  vcid: _this.getConfig( "vcid" )
 				};	
+				if( _this.getConfig( 'prod') ){
+					nolggGlobalParams['prod'] = _this.getConfig( 'prod');
+				}
 				_this.gg = new gg();
 				var uid = 0; // "provided by Nielsen"
 				var oldFlashDetect = false; // no longer used (dummy placeholder for legacy implementations)

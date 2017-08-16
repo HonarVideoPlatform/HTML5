@@ -296,7 +296,7 @@
 							.loadingSpinner()
 						)
 					);					
-					var elm = $('#' + videoEmbedAttributes.id ).get(0);
+					var elm = $('#' + videoEmbedAttributes.id )[0];
 					// Assign values to DOM object methods ( not just attributes ) 
 					$.each( videoEmbedAttributes, function( attrName, attrValue ){
 						// skip style attr:
@@ -536,14 +536,15 @@
 			var additionalIframeCss = kGetAdditionalTargetCss();
 			
 			$.extend(iframeCss, additionalIframeCss);
-
+			
 			var $iframe = $('<iframe />')
 				.attr({
 					'id' : iframeId,
 					'name' : iframeId,
 					'class' : baseClass + 'mwEmbedKalturaIframe',					
 					'height' : $( playerTarget ).height(),
-					'width' : $( playerTarget ).width()
+					'width' : $( playerTarget ).width(),
+					'allowfullscreen' : true
 				})
 				.attr('style', iframeStyle)
 				.css(iframeCss);
@@ -569,11 +570,10 @@
 					return ;
 				}
 				window[ cbName ] = function( iframeData ){
-					var newDoc = $( '#' + iframeId ).get(0).contentDocument;
+					var newDoc = $( '#' + iframeId )[0].contentDocument;
 					newDoc.open();
 					newDoc.write( iframeData.content );
 					newDoc.close();
-				
 					// Invoke the iframe player api system:
 					$iframeProxy.iFramePlayer( callback );
 					

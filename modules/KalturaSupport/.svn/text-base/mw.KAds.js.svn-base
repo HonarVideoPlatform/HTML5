@@ -293,7 +293,12 @@ mw.KAds.prototype = {
 		var startOvelrayDisplayed = false;
 		var lastDisplay = 0;
 		var timeout = this.embedPlayer.getKalturaConfig( 'vast', 'timeout' );
-		
+
+		// turn start time from string to number
+		timeout = parseInt( timeout );
+		overlayConfig.start = parseInt( overlayConfig.start );
+		overlayConfig.end = ( overlayConfig.start + timeout );
+
 		// Set overlay to 5 seconds if we can't get overlay info: 
 		if( ! timeout )
 			timeout = 5;
@@ -307,15 +312,16 @@ mw.KAds.prototype = {
 				},
 				timeout
 			)
-		}
+		};
+		
 		$( embedPlayer ).bind( 'monitorEvent', function(){
-			if( embedPlayer.currentTime > overlayConfig.start && !startOvelrayDisplayed){
+			if( (embedPlayer.currentTime > overlayConfig.start) && (embedPlayer.currentTime < overlayConfig.end) && !startOvelrayDisplayed && !embedPlayer.evaluate('{sequenceProxy.isInSequence}') ){
 				lastDisplay = embedPlayer.currentTime;
 				startOvelrayDisplayed = true;
 				mw.log("KAds::displayOverlay::startOvelrayDisplayed " + startOvelrayDisplayed)
 				displayOverlay();
 			}
-			if( startOvelrayDisplayed && embedPlayer.currentTime > ( lastDisplay + parseInt( overlayConfig.frequency ) )  ){
+			if( startOvelrayDisplayed && embedPlayer.currentTime > ( lastDisplay + parseInt( overlayConfig.frequency ) ) && !embedPlayer.evaluate('{sequenceProxy.isInSequence}') ){
 				// reset the lastDisplay time: 
 				mw.log("KAds::displayOverlay::overlayConfig.frequency ct:" +embedPlayer.currentTime + ' > ' + ( lastDisplay + parseInt( overlayConfig.frequency) ) )
 				displayOverlay();

@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.3a/modules/MiroSubs/mirosubs/media/js/widget/testing
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.2/modules/KalturaSupport/uiConfComponents
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-03-27T09:35:08.218980Z
-5036
+2012-01-01T08:58:44.295160Z
+7103
 rany
 
 
@@ -26,16 +26,16 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-events.js
+myLogo.js
 file
 
 
 
 
-2017-07-03T22:41:36.000000Z
-d14f3b4131c47992e071662eacec8d6b
-2011-03-27T09:35:08.218980Z
-5036
+2017-07-03T22:43:11.000000Z
+9ee8ed7dee3e2e71386551748f5e2272
+2012-01-01T08:58:44.295160Z
+7103
 rany
 
 
@@ -58,18 +58,18 @@ rany
 
 
 
-2199
+2186
 
-stubvideoplayer.js
+bumperPlugin.js
 file
 
 
 
 
-2017-07-03T22:41:36.000000Z
-40859f880c74c9e5a37cfa51c3129142
-2011-03-27T09:35:08.218980Z
-5036
+2017-07-03T22:43:11.000000Z
+554ba8107bc5e0551d3c5a4adefda3f1
+2012-01-01T08:58:44.295160Z
+7103
 rany
 
 
@@ -92,5 +92,277 @@ rany
 
 
 
-1996
+2516
+
+volumeBarLayout.js
+file
+
+
+
+
+2017-07-03T22:43:11.000000Z
+94444b5f2709358e2651524a279e14cf
+2012-01-01T08:58:44.295160Z
+7103
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+538
+
+captionPlugin.js
+file
+
+
+
+
+2017-07-03T22:43:11.000000Z
+fa03e4bf7069806f75290a025244e4bc
+2012-01-01T08:58:44.295160Z
+7103
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2282
+
+watermarkPlugin.js
+file
+
+
+
+
+2017-07-03T22:43:11.000000Z
+f4e29242508bf42bc48da4790ff743fe
+2012-01-01T08:58:44.295160Z
+7103
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+3786
+
+titleLayout.js
+file
+
+
+
+
+2017-07-03T22:43:11.000000Z
+078f37e61cdc0879ae9a9c63dcc4502a
+2012-01-01T08:58:44.295160Z
+7103
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2925
+
+faderPlugin.js
+file
+
+
+
+
+2017-07-03T22:43:11.000000Z
+2d2f94a3d030491ead5df5285893af58
+2012-01-01T08:58:44.295160Z
+7103
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1015
+
+playlistPlugin.js
+file
+
+
+
+
+2017-07-03T22:43:11.000000Z
+1cb248ee38956557586f746b4a827db0
+2012-01-01T08:58:44.295160Z
+7103
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1712
+
+adPlugin.js
+file
+
+
+
+
+2017-07-03T22:43:11.000000Z
+f3159fed9dcc500ac63b3d08469ba8ed
+2012-01-01T08:58:44.295160Z
+7103
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+1027
+
+controlbarLayout.js
+file
+
+
+
+
+2017-07-03T22:43:11.000000Z
+360a88da025ec2200aadd37a892759a2
+2012-01-01T08:58:44.295160Z
+7103
+rany
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+5093
 

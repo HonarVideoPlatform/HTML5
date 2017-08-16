@@ -136,10 +136,7 @@ mw.KAdPlayer.prototype = {
 		// Local base video monitor function: 
 		var vid = _this.getOriginalPlayerElement();
 		// Stop display of overlay if video playback is no longer active
-		if( typeof vid == 'undefined'
-			||
-			 _this.getOriginalPlayerElement().currentTime - startTime > displayDuration 
-		){
+		if( typeof vid == 'undefined' || vid.currentTime - startTime > displayDuration ){
 			mw.log( "KAdPlayer::display:" + adSlot.type + " Playback done because vid does not exist or > displayDuration " + displayDuration );
 			adSlot.playbackDone();
 		} else {
@@ -585,7 +582,7 @@ mw.KAdPlayer.prototype = {
 				$vidSibling
 			);
 		}
-		return $vidSibling.get(0);
+		return $vidSibling[0];
 	},
 	getVideoAdSiblingId: function(){
 		return this.embedPlayer.pid + '_adSibling';

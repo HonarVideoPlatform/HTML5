@@ -226,12 +226,12 @@ mw.PlaylistHandlerKaltura.prototype = {
 			_this.clipList = [];
 			var playlistData;
 			// The api does strange things with multi-playlist vs single playlist
-			if( playlistDataResult[0].id ){
+			if( playlistDataResult[0] && playlistDataResult[0].id ){
 				playlistData = playlistDataResult;
-			} else if( playlistDataResult[0][0].id ){
+			} else if( playlistDataResult[0] && playlistDataResult[0][0].id ){
 				playlistData = playlistDataResult[0];
 			} else {
-				mw.log("Error: kaltura playlist:" + playlist_id + " could not load:" + playlistData.code);
+				mw.log("Error: kaltura playlist:" + playlist_id + " could not load:" + playlistDataResult.code);
 			}			
 			mw.log( 'kPlaylistGrabber::Got playlist of length::' +   playlistData.length );
 			if( playlistData.length > mw.getConfig( "Playlist.MaxClips" ) ){
@@ -418,8 +418,15 @@ mw.PlaylistHandlerKaltura.prototype = {
 		);
 		$item.find('.nameAndDuration')
 			.after( $('<div />').css({'display': 'block', 'height': '20px'} ) )
-			.find('div span:last').css('float', 'right')
+			.find( 'div span:last' ).css('float', 'right')
+			
 		return $item;
+	},
+	adjustTextWidthAfterDisplay: function( $clipList ){
+		var textWidth = $clipList.width() - $clipList.find('img').width();
+		// there is about 64 pixles of padding involved; 
+		textWidth = textWidth - 64;
+		$clipList.find( '.irDescriptionIrScreen' ).css( 'width', textWidth );
 	},
 	getBoxLayout: function(  clipIndex, $currentBox ){
 		var _this = this;
@@ -459,7 +466,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 					offsetLeft+= $node.width();
 				}
 				// Box model! containers should not have width:
-				if( $node.get(0).nodeName.toLowerCase() == 'div' ){
+				if( $node[0].nodeName.toLowerCase() == 'div' ){
 					$node.css('width', '');
 				}
 				$boxContainer.append( $node );

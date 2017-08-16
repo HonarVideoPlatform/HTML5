@@ -384,12 +384,14 @@ mw.Playlist.prototype = {
 			// Show the videoList
 			$videoListWraper.show();
 			
+			_this.sourceHandler.adjustTextWidthAfterDisplay( $videoListWraper );
+			
 			// Should test for touch support
-			if( mw.isMobileDevice() && !$('#video-list-wrapper-' + _this.id ).get(0).iScroll ){
+			if( mw.isMobileDevice() && !$('#video-list-wrapper-' + _this.id )[0].iScroll ){
 				// give real height for iScroll:
 				$videoListWraper.css("height", $videoListWraper.height() );
 				// add iScroll:
-				$('#video-list-wrapper-' + _this.id ).get(0).iScroll = 
+				$('#video-list-wrapper-' + _this.id )[0].iScroll = 
 					new iScroll( 'video-list-wrapper-' + _this.id, { 
 						'onTouchEnd': function(e, moved){ 
 							if( moved !== false){
@@ -462,7 +464,7 @@ mw.Playlist.prototype = {
 		return this.targetPlayerSize;
 	},
 	getEmbedPlayer: function(){
-		return $('#' + this.getVideoPlayerId() ).get(0);
+		return $('#' + this.getVideoPlayerId() )[0];
 	},
 	getVideoPlayerTarget: function(){
 		return $( this.target + ' .media-rss-video-player' );
@@ -704,7 +706,6 @@ mw.Playlist.prototype = {
 			// Output each item with the current selected index:
 			$itemBlock = $('<div />')
 				.addClass( 'ui-widget-content ui-corner-all playlistItem ui-helper-clearfix' );
-				
 
 			if( _this.clipIndex == inx ){
 				$itemBlock.addClass( 'ui-state-active');
@@ -746,7 +747,7 @@ mw.Playlist.prototype = {
 
 	play: function(){
 		mw.log( 'mw.Playlist::play ');
-		var embedPlayer = $('#' + this.getVideoPlayerId() ).get(0);
+		var embedPlayer = $('#' + this.getVideoPlayerId() )[0];
 		embedPlayer.play();
 	},
 

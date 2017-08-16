@@ -314,7 +314,7 @@ mw.PlayerControlBuilder.prototype = {
 			size.height = vid.videoHeight;
 		}
 		// check for posterImage size: ( should have Intrinsic aspect size as well ) 
-		var img = this.embedPlayer.$interface.find('.playerPoster').get(0);
+		var img = this.embedPlayer.$interface.find('.playerPoster')[0];
 		if( !size.width && img && img.naturalWidth){
 			size.width = img.naturalWidth;
 		}
@@ -396,8 +396,9 @@ mw.PlayerControlBuilder.prototype = {
 		$( document ).bind( 'touchend.fullscreen', function(e){
 			$( embedPlayer ).trigger( 'onTouchEnd' );
 		});
-		if( triggerOnOpenFullScreen )
+		if( triggerOnOpenFullScreen ) {
 			$( embedPlayer ).trigger( 'onOpenFullScreen' );
+		}
 	},
 	doFullScreenPlayerDom: function(){
 		var _this = this;
@@ -456,9 +457,9 @@ mw.PlayerControlBuilder.prototype = {
 		var leftOffset = '0px';
 
 		// Check if we have an offsetParent
-		if( $interface.offsetParent().get(0).tagName 
+		if( $interface.offsetParent()[0].tagName 
 				&& 
-			$interface.offsetParent().get(0).tagName.toLowerCase() != 'body' ) 
+			$interface.offsetParent()[0].tagName.toLowerCase() != 'body' ) 
 		{
 			topOffset = -this.windowOffset.top + 'px';
 			leftOffset = -this.windowOffset.left + 'px';
@@ -841,7 +842,7 @@ mw.PlayerControlBuilder.prototype = {
 				embedPlayer.$interface.find( '.control-bar' ).hover( function(e) {
 					_this.onControlBar = true;
 					embedPlayer.$interface.find( '.control-bar' ).show();
-				}, function(e) {
+				}, function( e ) {
 					if (!_this.hideControlBarCallback) {
 						_this.hideControlBarCallback = setTimeout(function(){
 							_this.hideControlBar();

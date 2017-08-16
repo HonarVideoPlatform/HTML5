@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.1/includes
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.2/includes
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-12-28T08:48:40.695169Z
-7100
+2012-01-01T08:58:44.295160Z
+7103
 rany
 
 
@@ -38,10 +38,10 @@ file
 
 
 
-2017-07-03T22:42:36.000000Z
+2017-07-03T22:43:00.000000Z
 7777ddf6f33f76333645dc46f7513cbc
-2011-12-18T11:17:07.765209Z
-7051
+2012-01-01T08:58:44.295160Z
+7103
 rany
 
 
@@ -72,10 +72,10 @@ file
 
 
 
-2017-07-03T22:42:36.000000Z
-eee98e47a039f212ec313e23246bbb05
-2011-12-28T08:48:40.695169Z
-7100
+2017-07-03T22:43:00.000000Z
+9d5222d2432c2c4379badac6838e295a
+2012-01-01T08:58:44.295160Z
+7103
 rany
 
 
@@ -98,7 +98,7 @@ rany
 
 
 
-4708
+4617
 
 noMediaWikiConfig.php
 file
@@ -106,10 +106,10 @@ file
 
 
 
-2017-07-03T22:42:36.000000Z
+2017-07-03T22:43:00.000000Z
 9f269c6c5180300b73d849d73bef8767
-2011-12-18T11:17:07.765209Z
-7051
+2012-01-01T08:58:44.295160Z
+7103
 rany
 
 

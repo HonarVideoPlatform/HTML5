@@ -2100,7 +2100,10 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 * @return {String} absolute url
 	 */
 	mw.absoluteUrl = function( src, contextUrl ) {
-
+		if( ! src ){
+			return ;
+		}
+		
 		var parsedSrc = mw.parseUri( src );
 
 		// Source is already absolute return:
@@ -2695,9 +2698,9 @@ if( mw.isStaticPackge() && !window.jQuery ){
  */
 
 if( window.jQuery ){
-	if( ! mw.versionIsAtLeast( '1.4.2', jQuery.fn.jquery ) ){
+	if( ! mw.versionIsAtLeast( '1.3.2', jQuery.fn.jquery ) ){
 		if( window.console && window.console.log ) {
-			console.log( 'Error Kaltura HTML5 requires jQuery 1.4 or above' );
+			console.log( 'Error Kaltura HTML5 requires jQuery 1.3.2 or above' );
 		}
 	}
 	var dollarFlag = false;
@@ -2753,7 +2756,7 @@ if( window.jQuery ){
 		var callbackSet = [];
 
 		// Check for both jQuery 1.4.4 events location and other jQuery data location: 
-		if( !$( targetObject ).data( 'events' ) && ! $( targetObject).get(0)['__events__'] ){
+		if( !$( targetObject ).data( 'events' ) && ! $( targetObject)[0]['__events__'] ){
 			// No events run the callback directly
 			callback();
 			return ;
@@ -2761,7 +2764,7 @@ if( window.jQuery ){
 		
 		var triggerEventSet = $( targetObject ).data( 'events' ) ?
 					$( targetObject ).data( 'events' )[ triggerBaseName ] :
-					$( targetObject).get(0)['__events__'][ 'events' ][ triggerBaseName ];
+					$( targetObject)[0]['__events__'][ 'events' ][ triggerBaseName ];
 					
 		if( ! triggerNamespace ){
 			callbackSet = triggerEventSet;

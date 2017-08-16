@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.1/libraries/utf8
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.2/libraries/utf8
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-12-18T11:17:07.765209Z
-7051
+2012-01-01T08:58:44.295160Z
+7103
 rany
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T22:42:59.000000Z
+2017-07-03T22:43:25.000000Z
 37f99e58287b23e409635843b1a56068
-2011-12-18T11:17:07.765209Z
-7051
+2012-01-01T08:58:44.295160Z
+7103
 rany
 
 
