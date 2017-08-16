@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9/libraries/jquerymobile
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.1/libraries/jquerymobile
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-02-21T04:34:31.192570Z
-7271
-mdale
+2012-03-13T09:19:53.810795Z
+7330
+rany
 
 
 
@@ -32,12 +32,12 @@ file
 
 
 
-2017-07-03T22:48:21.000000Z
+2017-07-03T20:06:51.000000Z
 98b73188486e7d379926bc9a7e116e82
-2012-02-21T04:34:31.192570Z
-7271
-mdale
-has-props
+2012-03-13T09:19:53.810795Z
+7330
+rany
+
 
 
 
@@ -66,12 +66,12 @@ file
 
 
 
-2017-07-03T22:48:21.000000Z
+2017-07-03T20:06:51.000000Z
 2d75e8cd08193efeae6700bf9ae585fb
-2012-02-21T04:34:31.192570Z
-7271
-mdale
-has-props
+2012-03-13T09:19:53.810795Z
+7330
+rany
+
 
 
 

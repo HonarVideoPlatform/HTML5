@@ -105,6 +105,18 @@ mw.IFramePlayerApiClient.prototype = {
 		var verticalScrollPosition = 0;
 		var viewPortTag;
 		
+		/* Un-used for now
+		var disableZoom = function() {
+			viewPortTag = $('head meta[name=viewport]')[0];
+			$('head meta[name=viewport]').remove();
+			$('head').prepend('<meta name="viewport" content="width=device-width, initial-scale=1.0">');
+		};
+
+		var restoreZoom = function() {
+			$('head meta[name=viewport]').remove();
+			$('head').prepend( viewPortTag );
+		};
+		*/
 		var storeVerticalScroll = function(){
 			verticalScrollPosition = (document.all ? document.scrollTop : window.pageYOffset);
 		}
@@ -117,13 +129,13 @@ mw.IFramePlayerApiClient.prototype = {
 			
 			mw.log("iframeClient:: doFullscreen> verticalScrollPosition:" + verticalScrollPosition);
 			scrollToTop();
-			/*
+			
 			// make sure the page has a zoom of 1: 
 			if( !$('meta[name="viewport"]').length ){
 				$('head').append( $( '<meta />' ).attr('name', 'viewport') );
 			}
 			$('meta[name="viewport"]').attr('content', 'initial-scale=1;' );
-			*/
+			
 			// iPad 5 supports fixed position in a bad way, use absolute pos for iOS
 			var playerCssPosition = ( mw.isIOS() ) ? 'absolute': 'fixed';
 			// Remove absolute css of the interface parents
@@ -169,7 +181,7 @@ mw.IFramePlayerApiClient.prototype = {
 		var restoreWindowMode = function(){
 			mw.log("iframeClient:: restoreWindowMode> verticalScrollPosition:" + verticalScrollPosition);
 			localIframeInFullscreen = false;
-			/*
+			
 			// Restore document zoom: 
 			if( orginalViewPortContent ){
 				$('meta[name="viewport"]').attr('content', orginalViewPortContent );
@@ -178,7 +190,7 @@ mw.IFramePlayerApiClient.prototype = {
 				// initial scale, so we just restore to 1 in the absence of explicit viewport tag ) 
 				$('meta[name="viewport"]').attr('content', 'initial-scale=1;');
 			}
-			*/
+			
 			$iframe
 				.css( orgSize )
 				.data(
@@ -201,7 +213,7 @@ mw.IFramePlayerApiClient.prototype = {
 		// Bind orientation change to resize player ( if fullscreen )
 		$(window).bind( 'orientationchange', function(e){
 			if( localIframeInFullscreen ){
-				//$('meta[name="viewport"]').attr('content', 'initial-scale=1;  maximum-scale=1.0');
+				$('meta[name="viewport"]').attr('content', 'initial-scale=1');
 				doFullscreen();
 			}
 		});

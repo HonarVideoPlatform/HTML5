@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4b21/modules/MiroSubs/mirosubs/media/images/prettyPhoto/facebook
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.1/modules/Sequencer/remotes
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-08-07T09:17:46.361583Z
-6092
+2012-03-13T09:19:53.810795Z
+7330
 rany
 
 
@@ -26,52 +26,20 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-contentPatternBottom.png
-file
-
-
-
-
-2017-07-03T22:45:06.000000Z
-a6fab9b4551a6274d71703b610eb6abd
-2011-08-07T09:17:46.361583Z
-6092
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-142
+images
+dir
 
-btnPrevious.png
+mw.MediaWikiRemoteSequencer.js
 file
 
 
 
 
-2017-07-03T22:45:06.000000Z
-b251170307bcb724ac5b4e97482dc6ed
-2011-08-07T09:17:46.361583Z
-6092
+2017-07-03T20:04:08.000000Z
+93ce50d37be11dcaca99bd371188e69f
+2012-03-13T09:19:53.810795Z
+7330
 rany
-has-props
 
 
 
@@ -92,20 +60,20 @@ has-props
 
 
 
-828
+
+14138
 
-btnNext.png
+mw.style.SequencerRemote.css
 file
 
 
 
 
-2017-07-03T22:45:06.000000Z
-b8d4bf8440aae57321064ecaf2efea7e
-2011-08-07T09:17:46.361583Z
-6092
+2017-07-03T20:04:08.000000Z
+2ae1e270b39e0acc2359f54092c4a506
+2012-03-13T09:19:53.810795Z
+7330
 rany
-has-props
 
 
 
@@ -126,175 +94,6 @@ has-props
 
 
 
-845
-
-contentPatternLeft.png
-file
 
-
-
-
-2017-07-03T22:45:06.000000Z
-3b7f995669ad8cbf24acccb8f1d70f4d
-2011-08-07T09:17:46.361583Z
-6092
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-137
-
-contentPatternRight.png
-file
-
-
-
-
-2017-07-03T22:45:06.000000Z
-74bfb933f639e76971ca5db1ae612011
-2011-08-07T09:17:46.361583Z
-6092
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-136
-
-sprite.png
-file
-
-
-
-
-2017-07-03T22:45:06.000000Z
-7e88957ba7614dede5cdd0edf96173e5
-2011-08-07T09:17:46.361583Z
-6092
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3752
-
-loader.gif
-file
-
-
-
-
-2017-07-03T22:45:06.000000Z
-df46993044576f83f2c2cc1a64e18f31
-2011-08-07T09:17:46.361583Z
-6092
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2545
-
-contentPatternTop.png
-file
-
-
-
-
-2017-07-03T22:45:06.000000Z
-c2e5c4ec6fc9ee4e49c79ff7e18c9695
-2011-08-07T09:17:46.361583Z
-6092
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-142
+150
 

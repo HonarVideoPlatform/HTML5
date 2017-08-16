@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9/libraries/mediawiki
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.1/libraries/mediawiki
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-02-21T04:34:31.192570Z
-7271
-mdale
+2012-03-13T09:19:53.810795Z
+7330
+rany
 
 
 
@@ -35,12 +35,12 @@ file
 
 
 
-2017-07-03T22:48:21.000000Z
+2017-07-03T20:06:51.000000Z
 835d7ac2ac1e439e7afe69f72dbea36e
-2012-02-21T04:34:31.192570Z
-7271
-mdale
-has-props
+2012-03-13T09:19:53.810795Z
+7330
+rany
+
 
 
 
@@ -69,12 +69,12 @@ file
 
 
 
-2017-07-03T22:48:21.000000Z
+2017-07-03T20:06:51.000000Z
 5d0f5034ea4b8ed6f789e1a0d0b12c9a
-2012-02-21T04:34:31.192570Z
-7271
-mdale
-has-props
+2012-03-13T09:19:53.810795Z
+7330
+rany
+
 
 
 
@@ -103,12 +103,12 @@ file
 
 
 
-2017-07-03T22:48:21.000000Z
+2017-07-03T20:06:51.000000Z
 2ffbe17fe042d335775d35fb4468a9e5
-2012-02-21T04:34:31.192570Z
-7271
-mdale
-has-props
+2012-03-13T09:19:53.810795Z
+7330
+rany
+
 
 
 
@@ -137,12 +137,12 @@ file
 
 
 
-2017-07-03T22:48:21.000000Z
+2017-07-03T20:06:51.000000Z
 857c254e8e7e189059fafa38c6a17ee7
-2012-02-21T04:34:31.192570Z
-7271
-mdale
-has-props
+2012-03-13T09:19:53.810795Z
+7330
+rany
+
 
 
 
