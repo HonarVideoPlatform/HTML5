@@ -117,9 +117,15 @@ class kalturaIframe {
 			'wid' => 'kwidgetid',
 			'autoplay' => 'autoplay',
 		);
+		//check if we have flashvar: loadThumbnailWithKs, if so load the thumbnail with KS
+		$ksParam = null;
+		if( isset( $_REQUEST['flashvars'] ) && is_array( $_REQUEST['flashvars'] ) && 
+				isset( $_REQUEST['flashvars']['loadThumbnailWithKs']) ) {
+			$ksParam = '/ks/' . $this->getResultObject()->getKS();
+		}
 		$posterUrl =  $wgKalturaCDNUrl . '/p/' . $this->getResultObject()->getPartnerId() . '/sp/' .
 						$this->getResultObject()->getPartnerId() . '00/thumbnail/' .
-						'entry_id/' .  $this->getResultObject()->getEntryId() .
+						'entry_id/' .  $this->getResultObject()->getEntryId() . $ksParam .
 						'/height/480';
 		try {
 			$sources = $this->getResultObject()->getSources();
@@ -532,13 +538,15 @@ class kalturaIframe {
 				// Load the mwEmbed resource library and add resize binding
 				mw.ready(function(){
 					var embedPlayer = $j( '#<?php echo htmlspecialchars( $this->playerIframeId )?>' ).get(0);
-					// Try to seek to the IframeSeekOffset time:
-					if( mw.getConfig( 'EmbedPlayer.IframeCurrentTime' ) ){
-						embedPlayer.currentTime = mw.getConfig( 'EmbedPlayer.IframeCurrentTime' );					
-					}
-					// this unfortunatly won't work on iOS but will support play state for html5 browsers
-					if( mw.getConfig('EmbedPlayer.IframeIsPlaying') ){
-						embedPlayer.play();
+					if( !mw.isIpad() ) {
+						// Try to seek to the IframeSeekOffset time:
+						if( mw.getConfig( 'EmbedPlayer.IframeCurrentTime' ) ){
+							embedPlayer.currentTime = mw.getConfig( 'EmbedPlayer.IframeCurrentTime' );
+						}
+						// this unfortunatly won't work on iOS but will support play state for html5 browsers
+						if( mw.getConfig('EmbedPlayer.IframeIsPlaying') ){
+							embedPlayer.play();
+						}
 					}
 					// Bind window resize to reize the player:
 					$j( window ).resize( function(){

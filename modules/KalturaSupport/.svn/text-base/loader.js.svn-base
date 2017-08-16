@@ -163,9 +163,12 @@
 						kalturaSwapObjectClass = 'mwEmbedKalturaVideoSwap';
 						videoEmbedAttributes.kentryid = kEmbedSettings.entry_id;
 						if( kEmbedSettings.p ){
+							// if we have flashvar  we need to pass the ks to thumbnail url
+							var ks = ( flashvars && flashvars.loadThumbnailWithKs ) ? flashvars.ks : false;
 							var thumb_url =  mw.getKalturaThumbUrl({
 								'partner_id': kEmbedSettings.p,
 								'entry_id' :  kEmbedSettings.entry_id,
+								'ks' : ks,
 								'width' : parseInt( width ),
 								'height' : parseInt( height )
 							});

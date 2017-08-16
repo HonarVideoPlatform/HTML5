@@ -73,6 +73,49 @@ class KalturaGetResultObject {
 		return $_SERVER['HTTP_USER_AGENT'];
 	}
 
+	public function userAgentRestricted( $uiConf ) {
+		// Get flashvars
+		$flashVars = $this->urlParameters[ 'flashvars' ];
+		$restrictedMessage = true;
+		// Check for plugin definition in flashVars
+		if( $flashVars && isset($flashVars['restrictUserAgent.plugin']) ) {
+			$restrictedStrings = $flashVars['restrictUserAgent.restrictedUserAgents'];
+			if( isset($flashVars['restrictUserAgent.restrictedUserAgentTitle']) && isset($flashVars['restrictUserAgent.restrictedUserAgentMessage']) ) {
+				$restrictedMessage = $flashVars['restrictUserAgent.restrictedUserAgentTitle'] ."\n". $flashVars['restrictUserAgent.restrictedUserAgentMessage'];
+			}
+		} else if( $uiConf ) {
+			// Check for plug definition in uiConf
+			$xml = new SimpleXMLElement( $uiConf );
+			$restrictUserAgentPlugin = $xml->xpath("*//Plugin[@id = 'restrictUserAgent']");
+			if( $restrictUserAgentPlugin ) {
+				$restrictUserAgentPlugin = $restrictUserAgentPlugin[0]->attributes();
+				$restrictedStrings = $restrictUserAgentPlugin->restrictedUserAgents;
+				if( isset($restrictUserAgentPlugin->restrictedUserAgentTitle) && isset($restrictUserAgentPlugin->restrictedUserAgentMessage) ) {
+					$restrictedMessage = $restrictUserAgentPlugin->restrictedUserAgentTitle . "\n" . $restrictUserAgentPlugin->restrictedUserAgentMessage;
+				}
+			}
+		} else {
+			return false;
+		}
+
+		// If we don't have any string to search for, return true
+		if( !isset($restrictedStrings) || empty($restrictedStrings) ) { return false; }
+
+		// Lower case user agents string
+		$userAgent = strtolower( $this->getUserAgent() );
+		$restrictedStrings = strtolower( $restrictedStrings );
+		$restrictedStrings = explode(",", $restrictedStrings);
+
+		foreach( $restrictedStrings as $string ) {
+			$string = str_replace(".*", "", $string); // Removes .*
+			$string = trim($string);
+			if( ! strpos( $userAgent, $string ) === false ) {
+				return $restrictedMessage;
+			}
+		}
+		return false;
+	}
+
 	public function getSourceForUserAgent( $sources = null, $userAgent = false ){
 		// Get all sources
 		if( !$sources ){
@@ -91,7 +134,14 @@ class KalturaGetResultObject {
 		if( isset( $sources['iphone'] ) ) {
 			$flavorUrl = $sources['iphone']['src'];
 		}
-		
+		// h264 for iPad
+		if( isset( $sources['ipad'] ) ) {
+			$flavorUrl = $sources['ipad']['src'];
+		}
+		// rtsp3gp for BlackBerry
+		if( strpos( $userAgent, 'BlackBerry' ) !== false && $sources['rtsp3gp'] ){
+			return 	$sources['rtsp3gp']['src'];
+		}
 		// 3gp check 
 		if( isset( $sources['3gp'] ) ) {
 			// Blackberry ( newer blackberry's can play the iPhone src but better safe than broken )
@@ -169,6 +219,11 @@ class KalturaGetResultObject {
 			return "Un authorized country\nWe're sorry, this content is only available on certain countries.";
 		}
 
+		/* IP Address Restricted */
+		if($accessControl->isIpAddressRestricted) {
+			return "Un authorized IP address\nWe're sorry, this content is only available for ceratin IP addresses.";
+		}
+
 		/* Session Restricted */
 		if( $accessControl->isSessionRestricted && $accessControl->previewLength == -1 ) {
 			return "No KS where KS is required\nWe're sorry, access to this content is restricted.";
@@ -176,6 +231,23 @@ class KalturaGetResultObject {
 
 		if($accessControl->isScheduledNow === 0) {
 			return "Out of scheduling\nWe're sorry, this content is currently unavailable.";
+		}
+
+		/* User Agent Restricted */
+		$userAgentMessage = "User Agent Restricted\nWe're sorry, this content is not available for certain user agents.";
+		if(isset($accessControl->isUserAgentRestricted) && $accessControl->isUserAgentRestricted ) {
+			return $userAgentMessage;
+		} else {
+			$userAgentRestricted = $this->userAgentRestricted( $resultObject['uiConf'] );
+			if( $userAgentRestricted === false ) {
+				return true;
+			} else {
+				if( $userAgentRestricted === true ) {
+					return $userAgentMessage;
+				} else {
+					return $userAgentRestricted;
+				}
+			}
 		}
 
 		return true;
@@ -210,8 +282,8 @@ class KalturaGetResultObject {
 		// Decide if to use playManifest or flvClipper URL
 		if( $wgKalturaUseManifestUrls ){
 			$flavorUrl =  $wgKalturaServiceUrl .'/p/' . $this->getPartnerId() . '/sp/' .
-			$this->getPartnerId() . '00/playManifest/entryId/' .
-			$this->urlParameters['entry_id'];
+			$this->getPartnerId() . '00/playManifest/entryId/' . $this->urlParameters['entry_id']
+			. '/ks/' . $this->getKS();
 		} else {
 			$flavorUrl = $wgKalturaCDNUrl .'/p/' . $this->getPartnerId() . '/sp/' .
 			$this->getPartnerId() . '00/flvclipper/entry_id/' .
@@ -239,6 +311,17 @@ class KalturaGetResultObject {
 				
 			} else {
 				$assetUrl =  $flavorUrl . '/flavor/' . 	$KalturaFlavorAsset->id;
+			}
+
+			// Check for rtsp as well:
+			if( strpos( $KalturaFlavorAsset->tags, 'hinted' ) !== false ){
+				$assetUrl = $flavorUrl . '/flavorId/' . $KalturaFlavorAsset->id .  '/format/rtsp/name/a.3gp';
+				$sources['rtsp3gp'] = array(
+					'src' => $assetUrl,
+					'type' => 'application/rtsl',
+					'data-flavorid' => 'rtsp3gp'
+				);
+				continue;
 			}
 
 			// Add iPad Akamai flavor to iPad flavor Ids list
@@ -525,21 +608,26 @@ class KalturaGetResultObject {
 		$conf->serviceUrl = $wgKalturaServiceUrl;
 		$conf->clientTag = $this->clientTag;
 		$conf->curlTimeout = $wgKalturaServiceTimeout;
+		$conf->userAgent = $this->getUserAgent();
 		
 		$client = new KalturaClient( $conf );
 
-		// Check modify time on cached php file
-		$filemtime = @filemtime($cacheFile);  // returns FALSE if file does not exist
-		if ( !$filemtime || filesize( $cacheFile ) === 0 || ( time() - $filemtime >= $cacheLife ) ) {
-			try{
-		    	$session = $client->session->startWidgetSession( $this->urlParameters['wid'] );
-		    	$this->ks = $session->ks;
-		    	$this->putCacheFile( $cacheFile,  $this->ks );
-			} catch ( Exception $e ){
-				throw new Exception( KALTURA_GENERIC_SERVER_ERROR . "\n" . $e->getMessage() );
-			}
+		if( isset($this->urlParameters[ 'flashvars' ][ 'ks' ]) ) {
+			$this->ks = $this->urlParameters[ 'flashvars' ][ 'ks' ];
 		} else {
-		  	$this->ks = file_get_contents( $cacheFile );
+			// Check modify time on cached php file
+			$filemtime = @filemtime($cacheFile);  // returns FALSE if file does not exist
+			if ( !$filemtime || filesize( $cacheFile ) === 0 || ( time() - $filemtime >= $cacheLife ) ) {
+				try{
+					$session = $client->session->startWidgetSession( $this->urlParameters['wid'] );
+					$this->ks = $session->ks;
+					$this->putCacheFile( $cacheFile,  $this->ks );
+				} catch ( Exception $e ){
+					throw new Exception( KALTURA_GENERIC_SERVER_ERROR . "\n" . $e->getMessage() );
+				}
+			} else {
+				$this->ks = file_get_contents( $cacheFile );
+			}
 		}
 		// Set the kaltura ks and return the client
 		$client->setKS( $this->ks );
