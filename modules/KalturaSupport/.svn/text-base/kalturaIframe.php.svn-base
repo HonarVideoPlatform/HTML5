@@ -114,7 +114,7 @@ class kalturaIframe {
 		if( $wgKalturaUseManifestUrls ){
 			$flavorUrl =  $wgKalturaServiceUrl .'/p/' . $this->getPartnerId() . '/sp/' .
 			$this->getPartnerId() . '00/playManifest/entryId/' .
-			$this->playerAttributes['entry_id'];
+			$this->playerAttributes['entry_id'].'/referrer/'.base64_encode($this->getReferer());
 		} else {
 			$flavorUrl = $wgKalturaCDNUrl .'/p/' . $this->getPartnerId() . '/sp/' .
 			$this->getPartnerId() . '00/flvclipper/entry_id/' .
@@ -294,7 +294,7 @@ class kalturaIframe {
 			$client->queueServiceActionCall( "flavorAsset", "getByEntryId", $kparams );
 
 			// access control
-			$client->addParam( $kparams, "contextDataParams",  array( 'referer' => $this->getReferer() ) );
+			$client->addParam( $kparams, "contextDataParams",  array( 'referrer' => $this->getReferer() ) );
 			$client->queueServiceActionCall( "baseEntry", "getContextData", $kparams );
 
 			// Entry Meta
