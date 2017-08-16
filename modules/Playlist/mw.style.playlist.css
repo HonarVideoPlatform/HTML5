@@ -1,0 +1,41 @@
+.playlistItem img{
+	float: left;
+	padding: 4px;
+	vertical-align:middle;
+}
+.playlistItem {
+	font-size: 12px;
+	margin: 5px;
+}
+.playlistItem .clipText {
+	width: 100%;
+	vertical-align:text-top;
+}
+.playlistItem .clipTitle {
+	float: left;
+	display:block;
+}
+.playlistItem .clipDuration{
+	float: right;
+	height:20px;
+	display:block;
+	padding-right: 2px;
+}
+.playlistSet-container{
+	font-size:12px;
+	margin:5px;
+}
+.media-rss-video-list{
+	margin:5px;
+}
+
+.playlistSetList{
+	padding-left:15px;	
+	font-size: 14px;
+}
+.playlistSetList a{
+	color: #999;
+}
+.playlistSetList a.active{
+	color: #fff;
+}

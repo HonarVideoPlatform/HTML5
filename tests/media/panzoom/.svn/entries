@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.3a/tests/media/panzoom
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4a5/tests/media/panzoom
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-03-27T09:35:08.218980Z
-5036
+2011-06-15T15:01:35.390188Z
+5647
 rany
 
 
@@ -25,106 +25,4 @@ rany
 
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
-
-fruitStand.jpg
-file
-
-
-
-
-2017-07-03T22:41:02.000000Z
-7c567a065d77c2fc23418f8959a1d0fd
-2011-03-27T09:35:08.218980Z
-5036
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-343379
-
-Fruits-4s.smil
-file
-
-
-
-
-2017-07-03T22:41:02.000000Z
-c0ab5b6573d6d97d9f149b7238fb6a25
-2011-03-27T09:35:08.218980Z
-5036
-rany
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2689
-
-Thumbs.db
-file
-
-
-
-
-2017-07-03T22:41:02.000000Z
-3a7efff37032ae913e5b7c7a090f5599
-2011-03-27T09:35:08.218980Z
-5036
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-6144
 

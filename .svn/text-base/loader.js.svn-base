@@ -61,8 +61,13 @@ mw.setDefaultConfig ( {
 	'loader.groupStrategy' : 'module',
 
 	// Default appendJS string ( not used outside of wikimedia gadget system )
-	'Mw.AppendWithJS' : false
-
+	'Mw.AppendWithJS' : false,
+	
+	// The amount of days that user preferences stick around. 
+	'Mw.UserPreferenceExpireDays' : 7,
+	
+	// The xml proxy entry point for loading remote xml
+	'Mw.XmlProxyUrl' : mw.getMwEmbedPath() + 'simplePhpXMLProxy.php'
 } );
 
 /**
@@ -82,7 +87,7 @@ mw.setConfig( 'loaderContext', '' );
  */
 mw.addResourcePaths( {
 	"mwEmbed"				: "mwEmbed.js",
-	"window.jQuery"			: "libraries/jquery/jquery-1.4.2.js",
+	"window.jQuery"			: "libraries/jquery/jquery-1.6.1.js",
 
 	"$j.mobile"				: "libraries/jquerymobile/jquery.mobile-1.0a2.js",
 	"mw.style.mobile"		: "libraries/jquerymobile/jquery.mobile-1.0a2.css",

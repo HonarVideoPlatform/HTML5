@@ -24,7 +24,7 @@ $mwEmbedRoot = dirname( __FILE__ );
 
 if( isset( $myMwEmbedFrame->kwidgetid ) ){	
 	require(  dirname( __FILE__ ) . '/modules/KalturaSupport/kalturaIframe.php');
-	exit(1);
+	exit();
 }
 
 // Do mwEmbedFrame video output:
@@ -43,6 +43,7 @@ class mwEmbedFrame {
 	var $playerAttributes = array(
 		'apiTitleKey',
 		'apiProvider',
+		'autoplay',
 		'durationHint',
 		'poster',
 		'kentryid',
@@ -68,7 +69,7 @@ class mwEmbedFrame {
 	// Parse the embedFrame request and sanitize input
 	private function parseRequest(){
 		if( isset($_REQUEST['iaid'])  &&  include('/petabox/setup.inc') ){
-		  Video::mwEmbedSetup(); // archive.org media
+		  $this->playerIframeId .= Video::mwEmbedSetup(); // archive.org media
 		}
           
 		// Check for / attribute type request and update "REQUEST" global 
@@ -138,7 +139,11 @@ class mwEmbedFrame {
 		// Output each source
 		if( count( $this->sources ) ){
 			foreach($this->sources as $src ){
-				$o.= '<source src="' . htmlspecialchars( $src ) . '"></source>';
+                          $ute = (isset($_REQUEST['iaid'])  && //Internet Archive
+                                  ($suffix = strrchr($src,'.'))  &&
+                                  ($suffix=='.ogv' || $suffix=='.mp4') ?
+                                  ' URLTimeEncoding="true"' : '');
+				$o.= '<source src="' . htmlspecialchars( $src ) . '"'.$ute.'></source>';
 			}
 		}
 		$o.= '</video>';
@@ -196,7 +201,7 @@ class mwEmbedFrame {
 
 			// Enable the iframe player server:
 			mw.setConfig( 'EmbedPlayer.EnableIframeApi', true );
-			
+
 			mw.ready(function(){
 				// Bind window resize to reize the player: 
 				$j(window).resize(function(){
