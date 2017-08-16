@@ -835,8 +835,8 @@ mw.KWidgetSupport.prototype = {
 			mw.log("Error: KWidgetSupport: flavorData is not defined ");
 			return ;
 		}
-		// Remove the ':' from the protocol
-		var protocol = location.protocol.substr(0, location.protocol.length-1); 
+
+		var protocol = mw.getConfig('Kaltura.Protocol');
 
 		// Setup the deviceSources array
 		var deviceSources = [];
@@ -853,40 +853,44 @@ mw.KWidgetSupport.prototype = {
 			var flavorUrl = mw.getConfig('Kaltura.CdnUrl') + '/p/' + partnerId +
 				   '/sp/' +  partnerId + '00/flvclipper';
 		}
-
+		var clipAspect = null;
+		
+		// flag to tell if we added applembr flavor
+		var addedAppleMBRFlavor = false;
+		
 		// Add all avaliable sources: 
 		for( var i = 0 ; i < flavorData.length; i ++ ) {
 			var asset = flavorData[i];
 			var entryId = asset.entryId;
+			
+			var newAspect = Math.round( ( asset.width / asset.height )  * 100 )  / 100
+			if( clipAspect !== null && clipAspect != newAspect ){
+				mw.log("KWidgetSupport:: Possible Error clipApsect mispach: " + clipAspect + " != " + newAspect );
+			}
+			if( ! isNaN( newAspect) ){
+				clipAspect = newAspect;
+			}
+			
 			// Setup a source object:
 			var source = {
 				'data-sizebytes' : asset.size * 1024,
 				'data-bandwidth' : asset.bitrate * 1024,
 				'data-width' : asset.width,
-				'data-height' : asset.height
+				'data-height' : asset.height,
+				'data-aspect' : clipAspect
 			};
+			
 			// Continue if clip is not ready (2) and not in a transcoding state (4 )
 			if( asset.status != 2  ) {
 				// if an asset is transcoding and no other source is found bind an error callback: 
 				if( asset.status == 4 ){
 					source.error = 'not-ready-transcoding';
+					mw.log("KWidgetSupport:: Skip sources that are not ready: " +  asset.id + ' ' +  asset.tags );
+					
 					// don't add sources that are not ready ( for now ) 
-					//deviceSources.push( source );
+					// deviceSources.push( source );
 				}
 				continue;
-			}
-			
-			// Add iPad Akamai flavor to iPad flavor Ids list id list
-			if( asset.tags.toLowerCase().indexOf('ipadnew') != -1 ){
-				ipadAdaptiveFlavors.push( asset.id );
-				// We don't need to continue, the ipadnew/iphonenew flavor are used also for progressive download
-				//continue;
-			}
-			
-			// Add iPhone Akamai flavor to iPad&iPhone flavor Ids list
-			if( asset.tags.toLowerCase().indexOf('iphonenew') != -1 ){
-				ipadAdaptiveFlavors.push( asset.id );
-				iphoneAdaptiveFlavors.push( asset.id );
 			}
 			
 			// Check playManifest conditional
@@ -894,7 +898,16 @@ mw.KWidgetSupport.prototype = {
 				var src  = flavorUrl + '/entryId/' + asset.entryId;
 				// Check if Apple http streaming is enabled and the tags include applembr
 				if( asset.tags.indexOf('applembr') != -1 ) {
+					addedAppleMBRFlavor = true;
 					src += '/format/applehttp/protocol/' + protocol + '/a.m3u8';
+					
+					deviceSources.push({
+						'data-aspect' : clipAspect,
+						'data-flavorid' : 'AppleMBR',
+						'type' : 'application/vnd.apple.mpegurl',
+						'src' : src
+					});
+					
 					continue;
 				} else {
 					src += '/flavorId/' + asset.id + '/format/url/protocol/' + protocol;
@@ -954,23 +967,49 @@ mw.KWidgetSupport.prototype = {
 			if( source['src'] ){
 				deviceSources.push( source );
 			}
+			
+			/**
+			 * Add Adaptive flavors:
+			 */
+			
+			// Android does not support audio flavors in the adaptive stream set:
+			if(  navigator.userAgent.indexOf( 'Android' ) !== -1 && 
+					asset.width == 0  && asset.height == 0  ){
+				continue;
+			}
+			
+			// Add iPad Akamai flavor to iPad flavor Ids list id list
+			if( asset.tags.toLowerCase().indexOf('ipadnew') != -1 ){
+				ipadAdaptiveFlavors.push( asset.id );
+			}
+			
+			// Add iPhone Akamai flavor to iPad&iPhone flavor Ids list
+			if( asset.tags.toLowerCase().indexOf('iphonenew') != -1 ){
+				ipadAdaptiveFlavors.push( asset.id );
+				iphoneAdaptiveFlavors.push( asset.id );
+			}
 		}
 		
-		// Create iPad flavor for Akamai HTTP
-		if( ipadAdaptiveFlavors.length != 0 && mw.getConfig('Kaltura.UseAppleAdaptive') ) {
-			deviceSources.push({
-				'data-flavorid' : 'iPadNew',
-				'type' : 'application/vnd.apple.mpegurl',
-				'src' : flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + ipadAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/' + protocol + '/a.m3u8'
-			});
-		}
-		// Create iPhone flavor for Akamai HTTP
-		if(iphoneAdaptiveFlavors.length != 0 && mw.getConfig('Kaltura.UseAppleAdaptive') ) {
-			deviceSources.push({
-				'data-flavorid' : 'iPhoneNew',
-				'type' : 'application/vnd.apple.mpegurl',
-				'src' : flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + iphoneAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/' + protocol + '/a.m3u8'
-			});
+		// We don't need adaptive flavors (iphonenew/ipadnew) if we already added applembr flavor
+		if( ! addedAppleMBRFlavor ) {
+			// Create iPad flavor for Akamai HTTP if we have more than one flavor
+			if( ipadAdaptiveFlavors.length > 1 && mw.getConfig('Kaltura.UseAppleAdaptive') ) {
+				deviceSources.push({
+					'data-aspect' : clipAspect,
+					'data-flavorid' : 'iPadNew',
+					'type' : 'application/vnd.apple.mpegurl',
+					'src' : flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + ipadAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/' + protocol + '/a.m3u8'
+				});
+			}
+			// Create iPhone flavor for Akamai HTTP
+			if( iphoneAdaptiveFlavors.length > 1 && mw.getConfig('Kaltura.UseAppleAdaptive') ) {
+				deviceSources.push({
+					'data-aspect' : clipAspect,
+					'data-flavorid' : 'iPhoneNew',
+					'type' : 'application/vnd.apple.mpegurl',
+					'src' : flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + iphoneAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/' + protocol + '/a.m3u8'
+				});
+			}
 		}
 		
 		// Append KS to all source if available 

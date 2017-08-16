@@ -2,7 +2,7 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6e/modules/Sequencer/tools
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6f/modules/Sequencer/tools
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
@@ -35,7 +35,7 @@ file
 
 
 
-2017-07-03T22:52:05.000000Z
+2017-07-03T22:57:00.000000Z
 d808e8b0025434aad84790a19e43b7ae
 2012-03-18T17:15:19.535554Z
 7349
