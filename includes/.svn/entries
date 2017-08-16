@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.6/includes
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.7/includes
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-02-07T11:06:44.224138Z
-7216
+2012-02-08T13:55:11.641365Z
+7232
 mdale
 
 
@@ -38,11 +38,12 @@ file
 
 
 
-2017-07-03T22:45:25.000000Z
-7777ddf6f33f76333645dc46f7513cbc
-2012-01-23T10:38:30.974088Z
-7162
-rany
+2017-07-03T22:45:51.000000Z
+aec8802fe1b93271e282d8303ae0fbd4
+2012-02-07T13:16:53.250642Z
+7217
+mdale
+has-props
 
 
 
@@ -63,8 +64,7 @@ rany
 
 
 
-
-10280
+9979
 
 DefaultSettings.php
 file
@@ -72,10 +72,10 @@ file
 
 
 
-2017-07-03T22:45:25.000000Z
-e37694711d064ef7af1a26c2fd7c0230
-2012-02-07T11:06:44.224138Z
-7216
+2017-07-03T22:45:51.000000Z
+3947b1488be6e76eb29bbf70543a9d41
+2012-02-08T13:55:11.641365Z
+7232
 mdale
 
 
@@ -98,7 +98,7 @@ mdale
 
 
 
-4729
+4732
 
 noMediaWikiConfig.php
 file
@@ -106,11 +106,11 @@ file
 
 
 
-2017-07-03T22:45:25.000000Z
+2017-07-03T22:45:51.000000Z
 9f269c6c5180300b73d849d73bef8767
-2012-01-23T10:38:30.974088Z
-7162
-rany
+2012-02-07T13:16:53.250642Z
+7217
+mdale
 
 
 

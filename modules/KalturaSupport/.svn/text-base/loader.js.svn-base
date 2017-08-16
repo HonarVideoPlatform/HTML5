@@ -50,20 +50,21 @@
 
 	// Add the kentryid and kpartnerid and kuiconfid attribute to the embed player
 	mw.mergeConfig( 'EmbedPlayer.Attributes', {
-		'kentryid' : null,
+		'kentryid' : null, // mediaProxy.entry.id
 		'kwidgetid' : null,
 		'kuiconfid' : null,
 		// helps emulate the kdp behavior of not updating currentTime until a seek is complete. 
 		'kPreSeekTime': null,
+		// Kaltura player Metadata exported across the iframe
 		'kalturaPlayerMetaData' : null,
 		'kalturaEntryMetaData' : null,
 		'kalturaPlaylistData' : null,
-		'kalturaExportedEvaluateObject': null,
+		'playerConfig': null,
 		'rawCuePoints' : null
 	});
 	
 	mw.mergeConfig( 'EmbedPlayer.DataAttributes', {
-		'flashvars': null
+		'flashvars': null // $(embedPlayer).data( 'flashvars' )
 	});
 	
 	mw.mergeConfig( 'EmbedPlayer.SourceAttributes', [
@@ -98,7 +99,9 @@
 		"titleLayout" : "uiConfComponents/titleLayout.js",
 		"volumeBarLayout"	:	"uiConfComponents/volumeBarLayout.js",
 		"shareSnippet"	:	"uiConfComponents/shareSnippet.js",
-		"moderationPlugin"    :   "uiConfComponents/moderationPlugin.js"
+		"moderationPlugin"    :   "uiConfComponents/moderationPlugin.js",
+        "downloadPlugin"    :   "uiConfComponents/downloadPlugin.js",
+        "captureThumbnailPlugin"    :   "uiConfComponents/captureThumbnailPlugin.js"
 	} );
 	
 	// Set a local variable with the request set so we can append it to embedPlayer
@@ -125,6 +128,8 @@
 		'watermarkPlugin',
 		'shareSnippet',
         'moderationPlugin',
+        'captureThumbnailPlugin',
+        'downloadPlugin',
 		'adPlugin',
 		'captionPlugin',
 		'bumperPlugin',
@@ -140,8 +145,7 @@
 	};
 	
 	mw.addModuleLoader( 'KalturaPlaylist', function() {
-		return $.merge( kalturaSupportRequestSet,
-			[
+		return $.merge( kalturaSupportRequestSet, [
 			  'mw.PlaylistHandlerKaltura', 
 			  'mw.PlaylistHandlerKalturaRss'
 			] );
@@ -355,7 +359,7 @@
 						if( $( playerTarget).data( 'cache_st' ) ){
 							kParams['cache_st'] = $( playerTarget).data('cache_st');
 						}
-						
+
 						iframeRewriteCount++;
 						$( playerTarget )
 							.removeClass('mwEmbedKalturaWidgetSwap')
@@ -408,9 +412,6 @@
 		}
 		// Add kaltura support hook
 		if( kLoadKalturaSupport ) {
-			// Pass the flashvars to the iframe
-			$( playerElement ).data('flashvars', mw.getConfig('KalturaSupport.IFramePresetFlashvars'));
-
 			for(var i =0; i < kalturaSupportRequestSet.length; i++ ){
 				if( $.inArray(kalturaSupportRequestSet[i], classRequest ) == -1 ){
 					classRequest.push( kalturaSupportRequestSet[i] );
@@ -421,32 +422,24 @@
 	
 	$( mw ).bind("Playlist_GetSourceHandler", function( event, playlist ){
 		var $playlistTarget = $( '#' + playlist.id );
-		var playlistEmbed = playlist.embedPlayer;
+		var embedPlayer = playlist.embedPlayer;
 		var kplUrl0, playlistConfig;
+		
 		// Check if we are dealing with a kaltura player: 
-		if( !playlistEmbed  ){
-			// XXX deprecated old rewrite method: 
-			playlistConfig = {
-				'uiconf_id' : $playlistTarget.attr('kuiconfid'),
-				'widget_id' : $playlistTarget.attr('kwidgetid'),
-				'flashvars' : $playlistTarget.data('flashvars')
-			};		
-			if( playlistConfig && playlistConfig['flashvars'] ){
-				kplUrl0 = playlistConfig['flashvars']['playlistAPI.kpl0Url'];
-			}
+		if( !embedPlayer  ){
+			mw.log("Error: playlist source handler without embedPlayer");
 		} else {
 			playlistConfig = {
-				'uiconf_id' : playlistEmbed.kuiconfid,
-				'widget_id' : playlistEmbed.kwidgetid
+				'uiconf_id' : embedPlayer.kuiconfid,
+				'widget_id' : embedPlayer.kwidgetid
 			};
-			kplUrl0 = playlistEmbed.getKalturaConfig( 'playlistAPI', 'kpl0Url' )
+			kplUrl0 = embedPlayer.getKalturaConfig( 'playlistAPI', 'kpl0Url' )
 		}
-		// No kpl0Url, not a kaltura playlist good
+		// No kpl0Url, not a kaltura playlist
 		if( !kplUrl0 ){
 			return ;
 		} 
 		var plId =  mw.parseUri( kplUrl0 ).queryKey['playlist_id'];
-		
 		// If the url has a partner_id and executeplaylist in its url assume its a "kaltura services playlist"
 		if( plId && mw.parseUri( kplUrl0 ).queryKey['partner_id'] && kplUrl0.indexOf('executeplaylist') != -1 ){
 			playlistConfig.playlist_id = plId;
@@ -470,7 +463,6 @@
 	 * 	optional function called once iframe player has been loaded
 	 */
 	jQuery.fn.kalturaIframePlayer = function( iframeParams, callback ) {
-	
 		$( this ).each( function( inx, playerTarget ){
 			mw.log( '$.kalturaIframePlayer::' + $( playerTarget ).attr('id') );
 			// Check if the iframe API is enabled: 
@@ -490,7 +482,7 @@
 			var iframeRequest = '';
 			for( var key in iframeParams ){
 				// don't put flashvars into the post url ( will be a request param ) 
-				if( key == 'flashvars' ){
+				if( key == 'flashvars' || key == 'readyCallback' ){
 					continue;
 				}
 				
@@ -519,10 +511,6 @@
 				iframeRequest += kServiceConfigToUrl();
 			}
 		
-			// Add debug flag if set: 
-			if( mw.getConfig( 'debug' ) ){
-				iframeRequest+= '&debug=true';
-			}
 			// Add no cache flag if set:
 			if( mw.getConfig('Kaltura.NoApiCache') ) {
 				iframeRequest+= '&nocache=true';

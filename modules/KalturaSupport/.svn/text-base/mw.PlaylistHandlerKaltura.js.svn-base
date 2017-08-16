@@ -94,6 +94,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 			);
 			// Check for autoContinue 
 			_this.autoContinue = _this.getConfig( 'autoContinue' );
+			mw.log("mw.PlaylistHandlerKaltura::loadPlaylist > autoContinue: " + _this.autoContinue );
 			
 			// Set autoPlay
 			_this.autoPlay =_this.getConfig( 'autoPlay' );
@@ -125,7 +126,6 @@ mw.PlaylistHandlerKaltura.prototype = {
 			// Find all the playlists by number  
 			for( var i=0; i < 50 ; i ++ ){
 				var playlist_id = playlistName = null;
-				
 				// Try and get the playlist id and name: 
 				var kplUrl = _this.playlist.embedPlayer.getKalturaConfig( 'playlistAPI', 'kpl' + i + 'Url' );
 				playlistName =_this.playlist.embedPlayer.getKalturaConfig( 'playlistAPI', 'kpl' + i + 'Name' ); 
@@ -158,7 +158,6 @@ mw.PlaylistHandlerKaltura.prototype = {
 			mw.log( "PlaylistHandlerKaltura:: got  " +  _this.playlistSet.length + ' playlists ' );	
 			// Set the playlist to the first playlist
 			_this.setPlaylistIndex( 0 );
-			
 			// Load playlist by Id 
 			_this.loadCurrentPlaylist( callback );
 		});

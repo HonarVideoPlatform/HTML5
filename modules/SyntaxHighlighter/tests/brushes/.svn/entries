@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.6/modules/SyntaxHighlighter/tests/brushes
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.7/modules/SyntaxHighlighter/tests/brushes
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-01-23T10:38:30.974088Z
-7162
-rany
+2012-02-07T13:16:53.250642Z
+7217
+mdale
 
 
 
@@ -32,12 +32,12 @@ file
 
 
 
-2017-07-03T22:45:48.000000Z
+2017-07-03T22:46:14.000000Z
 9de6e10b5b1ad8f42373b6e2488c5def
-2012-01-23T10:38:30.974088Z
-7162
-rany
-
+2012-02-07T13:16:53.250642Z
+7217
+mdale
+has-props
 
 
 

@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.6/tests/qunit-tests
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.9.6d/modules/MiroSubs/mirosubs/media/images/prettyPhoto
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-01-23T10:38:30.974088Z
-7162
+2012-03-18T17:15:19.535554Z
+7349
 rany
 
 
@@ -25,4 +25,19 @@ rany
 
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
+
+dark_rounded
+dir
+
+dark_square
+dir
+
+light_rounded
+dir
+
+light_square
+dir
+
+facebook
+dir
 

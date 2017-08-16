@@ -206,7 +206,6 @@ class kalturaIframe {
 		$o.='poster="' . htmlspecialchars( $this->getResultObject()->getThumbnailUrl() ) . '" ';
 		$o.='id="' . htmlspecialchars( $this->getIframeId() ) . '" ' .
 			'style="' . $playerStyle . '" ';
-
 		$urlParams = $this->getResultObject()->getUrlParameters();
 		
 		// Add any additional attributes:
@@ -471,7 +470,7 @@ class kalturaIframe {
 		global $wgResourceLoaderUrl;
 		$path = str_replace( 'ResourceLoader.php', '', $wgResourceLoaderUrl );
 		?>
-		<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
 		<title>Kaltura Embed Player iFrame</title>
 		<style type="text/css">
 			body {
@@ -571,6 +570,7 @@ class kalturaIframe {
 <!DOCTYPE html>
 <html>
 	<head>
+        
 		<script type="text/javascript"> /*@cc_on@if(@_jscript_version<9){'video audio source track'.replace(/\w+/g,function(n){document.createElement(n)})}@end@*/ 
 		</script>
 		<?php echo $this->outputIframeHeadCss(); ?>
@@ -592,7 +592,6 @@ class kalturaIframe {
 				// on some video tag properties
 				?>
 				<script type="text/javascript">
-
 					function getViewPortSize(){
 						var w;
 						var h;
@@ -710,18 +709,8 @@ class kalturaIframe {
 						// could not get config from parent javascript scope
 					}
 				}
-	
-				// Get the flashvars object:
-				var flashVarsString = '<?php echo $this->getFlashVarsString() ?>';
-				var fvparts = flashVarsString.split('&');
-				var flashvarsObject = {};
-				for(var i=0;i<fvparts.length;i++){
-					var kv = fvparts[i].split('=');
-					if( kv[0] && kv[1] ){
-						flashvarsObject[ unescape( kv[0] ) ] = unescape( kv[1] );
-					}
-				}
-				mw.setConfig( 'KalturaSupport.IFramePresetFlashvars', flashvarsObject );
+
+				mw.setConfig('KalturaSupport.PlayerConfig', <?php echo json_encode( $this->getResultObject()->getPlayerConfig() ); ?> );
 	
 				// We should first read the config for the hashObj and after that overwrite with our own settings
 				// The entire block below must be after mw.setConfig( hashObj.mwConfig );
@@ -813,15 +802,27 @@ class kalturaIframe {
 					if( mw.getConfig('EmbedPlayer.IframeIsPlaying') ){
 						embedPlayer.play();
 					}
+					
+					function getWindowSize(){
+						return {
+							'width' : $(window).width(),
+							'height' : $(window).height()
+						};
+					};
 					function doResizePlayer(){
-						$( '#<?php echo htmlspecialchars( $this->getIframeId() )?>' )
-							[0].resizePlayer({
-								'width' : $(window).width(),
-								'height' : $(window).height()
-							});
-					}
+						var embedPlayer = $( '#<?php echo htmlspecialchars( $this->getIframeId() )?>' )[0];						
+						setTimeout(function(){
+							if( console && console.log ){
+								// Do not remove this log statment ( there is something strange going on on iPad / iOS 5 that nessetates this ) 
+								console.log( 'Resize player: ' + $( embedPlayer ).width() + ' to:' + $(window).width() );
+							}
+							embedPlayer.resizePlayer( getWindowSize() );
+						},0);
+					};
+
 					// Bind window resize to reize the player:
 					$( window ).resize( doResizePlayer );
+					
 					// Resize the player per player on ready
 					if( mw.getConfig('EmbedPlayer.IsFullscreenIframe') ){
 						doResizePlayer();

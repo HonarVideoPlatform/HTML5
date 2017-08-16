@@ -129,7 +129,7 @@ mw.KWidgetSupport.prototype = {
 	 */
 	loadAndUpdatePlayerData: function( embedPlayer, callback ){
 		var _this = this;
-		mw.log("KWidgetSupport::loadAndUpdatePlayerData>");
+		mw.log( "KWidgetSupport::loadAndUpdatePlayerData>" );
 		// Load all the player configuration from kaltura: 
 		_this.loadPlayerData( embedPlayer, function( playerData ){
 			if( !playerData ){
@@ -188,6 +188,7 @@ mw.KWidgetSupport.prototype = {
 					mw.log( 'KWidgetSupport:: postEnded.acpreview>' );
 					$( embedPlayer ).trigger( 'KalturaSupport_FreePreviewEnd' );
 					// Don't run normal onend action: 
+					mw.log( 'KWidgetSupport:: KalturaSupport_FreePreviewEnd set onDoneInterfaceFlag = false' );
 					embedPlayer.onDoneInterfaceFlag = false;
 					var closeAcMessage = function(){
 						$( embedPlayer ).unbind('postEnded.acpreview');
@@ -285,13 +286,13 @@ mw.KWidgetSupport.prototype = {
 		
 		// Add an exported plugin value: 
 		embedPlayer.addExportedObject = function( pluginName, objectSet ){
-			if( !embedPlayer.kalturaExportedEvaluateObject ){
-				embedPlayer.kalturaExportedEvaluateObject = {};
+			if( !embedPlayer.playerConfig ){
+				embedPlayer.playerConfig = {};
 			}
-			if( !embedPlayer.kalturaExportedEvaluateObject[ pluginName ] ){
-				embedPlayer.kalturaExportedEvaluateObject[ pluginName ] = objectSet;
+			if( !embedPlayer.playerConfig[ pluginName ] ){
+				embedPlayer.playerConfig[ pluginName ] = objectSet;
 			} else {
-				$.extend( embedPlayer.kalturaExportedEvaluateObject[ pluginName ], objectSet);
+				$.extend( embedPlayer.playerConfig[ pluginName ], objectSet);
 			}
 			// Sync iframe with attribute data updates:
 			$( embedPlayer ).trigger( 'updateIframeData' );
@@ -299,13 +300,18 @@ mw.KWidgetSupport.prototype = {
 
 		// Add isPluginEnabled to embed player:
 		embedPlayer.isPluginEnabled = function( pluginName ) {
-			return _this.getPluginConfig( embedPlayer, pluginName, 'plugin' );
+			// Always check with lower case first letter of plugin name: 
+			if( _this.getPluginConfig( embedPlayer, pluginName[0].toLowerCase() + pluginName.substr(1), 'plugin' ) ){
+				return true;
+			}
+			return false;
 		};
+		
 		// Add getFlashvars to embed player:
 		embedPlayer.getFlashvars = function() {
 			var fv = $( embedPlayer ).data( 'flashvars' );
 			if( !fv ){
-				fv = mw.getConfig( 'KalturaSupport.IFramePresetFlashvars' ) || {};
+				fv = mw.getConfig( 'KalturaSupport.PlayerConfig' )['vars'] || {};
 			}
 			return fv;
 		}
@@ -343,8 +349,12 @@ mw.KWidgetSupport.prototype = {
 			mw.log( "KWidgetSupport:: trigger KalturaSupport_CheckUiConf" );
 			$( embedPlayer ).triggerQueueCallback( 'KalturaSupport_CheckUiConf', embedPlayer.$uiConf, function(){	
 				mw.log("KWidgetSupport::KalturaSupport_CheckUiConf done with all uiConf checks");
-				// Ui-conf file checks done
-				doneWithUiConf();
+				
+				// Trigger the api method for 1.6.7 and above ( eventually we will deprecate KalturaSupport_CheckUiConf );
+				$( mw ).triggerQueueCallback( 'Kaltura_CheckConfig', embedPlayer, function(){
+					// Ui-conf file checks done
+					doneWithUiConf();
+				});
 			});
 		} else {
 			doneWithUiConf();
@@ -361,6 +371,7 @@ mw.KWidgetSupport.prototype = {
 		if( autoPlay ){
 			embedPlayer.autoplay = true;
 		}
+		
 		// Check for imageDefaultDuration
 		var imageDuration = this.getPluginConfig( embedPlayer, '', 'imageDefaultDuration');
 		if( imageDuration ){
@@ -389,19 +400,58 @@ mw.KWidgetSupport.prototype = {
 		var singleAttrName = false;
 		if( typeof attr == 'string' ){
 			singleAttrName = attr;
-			attr = $.makeArray( attr );
 		}
-		var rawConfig = this.getRawPluginConfig( embedPlayer, confPrefix, attr);
-		var config =  this.postProcessConfig( embedPlayer, rawConfig );
+
+		var rawConfigArray = this.getRawPluginConfig( embedPlayer, confPrefix, singleAttrName );
+		var configArray = this.postProcessConfig( embedPlayer, rawConfigArray );
 		
 		if( singleAttrName != false ){
-			return config[ singleAttrName ];
+			return configArray[ singleAttrName ];
 		} else {
-			return config;
+			return configArray;
 		}
 	},
 
 	getRawPluginConfig: function( embedPlayer, confPrefix, attr ){
+		// Setup local pointers: 
+		var _this = this;
+		if( ! embedPlayer.playerConfig ){
+			if( attr ){
+				attr = [ attr ];
+			}
+			return this.getLegacyPluginConfig( embedPlayer, confPrefix, attr );
+		}
+		
+		var plugins =  embedPlayer.playerConfig['plugins'];
+		var returnConfig = {};
+		
+		// confPrefix is the plugin Name and the first letter should always be lower case. 
+		if( confPrefix ){
+			confPrefix = confPrefix[0].toLowerCase() + confPrefix.substr(1);
+		}
+	
+		// if confPrefix is not an empty string or null check for the conf prefix
+		if( confPrefix && plugins[ confPrefix ] ){
+			if( !attr ){
+				return plugins[ confPrefix ];
+			}
+			if( attr && typeof plugins[ confPrefix ][ attr ] != 'undefined' ){
+				returnConfig[ attr ] = plugins[ confPrefix ][ attr ];
+			}
+		}
+		if( !confPrefix && attr ){
+			returnConfig[ attr ] = embedPlayer.playerConfig['vars'][attr]
+		}
+		return returnConfig;
+	},
+	/**
+	 * Eventually we should deprecate this in favor of a iframe like javascript service to get plugin config.
+	 */
+	getLegacyPluginConfig: function( embedPlayer, confPrefix, attr ){
+		if( !this.logLegacyErrorOnce ){
+			this.logLegacyErrorOnce = true;
+			mw.log("Error: kWidgetSupport get config from uiCOnf has been deprecated please load via iframe");
+		}
 		// Setup local pointers: 
 		var _this = this;
 		var flashvars = embedPlayer.getFlashvars();
@@ -492,31 +542,22 @@ mw.KWidgetSupport.prototype = {
 		}
 		return config;
 	},
-	postProcessConfig: function(embedPlayer,  config ){
+	postProcessConfig: function(embedPlayer, config ){
 		var _this = this;
-		$.each(config, function( attrName, value ) {
+		var returnSet = $.extend( {}, config ); 
+		$.each( returnSet, function( attrName, value ) {
 			// Unescape values that would come in from flashvars
 			if( value ){
-				config[ attrName ] = unescape( value );
+				returnSet[ attrName ] = unescape( value );
 			}
-			// Convert string to boolean 
-			if( config[ attrName ] === "true" )
-				config[ attrName ] = true;
-			if( config[ attrName ] === "false" )
-				config[ attrName ] = false; 
 			
-			// Do any value handling
+			// Do any value handling  ... myPlugin.cat = {video.currentTime}
 			// If JS Api disabled, evaluate is undefined
-			if( embedPlayer.evaluate )
-				config[ attrName ] = embedPlayer.evaluate( config[ attrName ] );
+			if( embedPlayer.evaluate ){
+				returnSet[ attrName ] = embedPlayer.evaluate( returnSet[ attrName ] );
+			}
 		});
-		
-		// Check if disableHTML5 was "true" and return false for the plugin config ( since we are the html5 library ) 
-		if( config['disableHTML5'] == true && config['plugin'] ){
-			config['plugin'] = false;
-		}
-		
-		return config;
+		return returnSet;
 	},
 	/**
 	 * Alternate source grabbing script ( for cases where we need to hot-swap the source ) 
@@ -525,10 +566,11 @@ mw.KWidgetSupport.prototype = {
 	 * accessible via static reference mw.getEntryIdSourcesFromApi
 	 * 
 	 */
-	getEntryIdSourcesFromApi:  function( widgetId, entryId, callback ){
+	getEntryIdSourcesFromApi:  function( widgetId, entryId, size, callback ){
 		var _this = this;
+		var sources;
 		mw.log( "KWidgetSupport:: getEntryIdSourcesFromApi: w:" + widgetId + ' entry:' + entryId );
-		this.kClient = mw.KApiPlayerLoader( {
+		this.kClient = mw.KApiPlayerLoader({
 			'widget_id' : widgetId, 
 			'entry_id' : entryId
 		}, function( playerData ){
@@ -540,15 +582,33 @@ mw.KWidgetSupport.prototype = {
 					return ;
 				}
 			}
-
-			// Apple adaptive streaming is sometimes broken for short videos
-			// If video duration is less then 10 seconds, we should disable it
-			if( playerData.meta.duration < 10 ) {
-				mw.setConfig('Kaltura.UseAppleAdaptive', false);
+			// see if we are dealing with an image asset ( no flavor sources )
+			if( playerData.meta && playerData.meta.mediaType == 2 ){ 
+				sources = [{
+						'src' : mw.getKalturaThumbUrl({
+							'widget_id' : widgetId,
+							'entry_id' : entryId,
+							'width' : size.width,
+							'height' : size.height
+						}),
+						'type' : 'image/jpeg'
+					}];
+			} else {
+				// Get device sources 
+				sources = _this.getEntryIdSourcesFromFlavorData( _this.kClient.getPartnerId(), playerData.flavors );
 			}
-
-			// Get device sources 
-			var sources = _this.getEntryIdSourcesFromFlavorData( _this.kClient.getPartnerId(), playerData.flavors );
+			// Apple adaptive streaming is sometimes broken for short videos
+			// remove adaptive sources if duration is less then 10 seconds, 
+			if( playerData.meta.duration < 10 ) {
+				for( var i =0 ; i < sources.length; i++ ){
+					if( sources[i].type == 'application/vnd.apple.mpegurl' ){
+						// Remove the current source:
+						sources.splice( i, 1 );
+						i--;
+					}
+				}
+			}
+			// Return the valid source set
 			callback( sources );
 		});
 	},
@@ -584,10 +644,14 @@ mw.KWidgetSupport.prototype = {
 
 		// Add the flashvars
 		playerRequest.flashvars = $( embedPlayer ).data( 'flashvars' ); 
+
+		if( mw.getConfig( 'KalturaSupport.PlayerConfig' ) ){
+			embedPlayer.playerConfig =  mw.getConfig( 'KalturaSupport.PlayerConfig' );
+			mw.setConfig('KalturaSupport.PlayerConfig', null );
+		}
 		
 		// Check if we have the player data bootstrap from the iframe
 		var bootstrapData = mw.getConfig("KalturaSupport.IFramePresetPlayerData");
-
 		// Insure the bootStrap data has all the required info: 
 		if( bootstrapData 
 			&& bootstrapData.partner_id == embedPlayer.kwidgetid.replace('_', '')
@@ -602,6 +666,7 @@ mw.KWidgetSupport.prototype = {
 		} else {
 			// Run the request: ( run async to avoid function call stack overflow )
 			_this.kClient = mw.KApiPlayerLoader( playerRequest, function( playerData ){
+				
 				if( playerData.flavors &&  playerData.flavors.code == "INVALID_KS" ){
 					$('.loadingSpinner').remove();
 					$(embedPlayer).replaceWith( "Error invalid KS" );
@@ -918,8 +983,8 @@ if( !window.kWidgetSupport ){
 /**
  * Register a global shortcuts for the Kaltura sources query
  */
-mw.getEntryIdSourcesFromApi = function( widgetId, entryId, callback ){
-	kWidgetSupport.getEntryIdSourcesFromApi( widgetId, entryId, callback);
+mw.getEntryIdSourcesFromApi = function( widgetId, entryId, size, callback ){
+	kWidgetSupport.getEntryIdSourcesFromApi( widgetId, entryId, size, callback);
 };
 
 })( window.mw, jQuery );

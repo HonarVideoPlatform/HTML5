@@ -2,14 +2,14 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.6/skins/common
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.7/skins/common
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2012-01-23T10:38:30.974088Z
-7162
-rany
+2012-02-07T13:16:53.250642Z
+7217
+mdale
 
 
 
@@ -32,11 +32,11 @@ file
 
 
 
-2017-07-03T22:45:24.000000Z
-c4a7522e24eda44b35f9987766c874de
-2012-01-23T10:38:30.974088Z
-7162
-rany
+2017-07-03T22:45:50.000000Z
+4e8e0cb7443dc38fde5e4a8d17cbba96
+2012-02-07T13:16:53.250642Z
+7217
+mdale
 
 
 
@@ -58,7 +58,7 @@ rany
 
 
 
-2222
+2120
 
 images
 dir

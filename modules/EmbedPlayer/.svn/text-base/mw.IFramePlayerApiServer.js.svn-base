@@ -37,7 +37,8 @@ mw.IFramePlayerApiServer.prototype = {
 	     'monitorEvent',
 	     'onOpenFullScreen',
 	     'onCloseFullScreen',
-		 'onTouchEnd'
+		 'onTouchEnd',
+		 'resizeIframeContainer'
 	],
 		
 	'init': function( embedPlayer ){	

@@ -86,9 +86,6 @@ mw.MediaSource.prototype = {
 	// Duration of the requested segment (0 if not known)
 	duration:0,
 
-	// Is the source playable
-	is_playable: null,
-
 	// source id
 	id: null,
 
@@ -231,7 +228,7 @@ mw.MediaSource.prototype = {
 	},
 
 	/**
-	 * MIME type accessors function.
+	 * MIME type accessor function.
 	 *
 	 * @return {String} the MIME type of the source.
 	 */

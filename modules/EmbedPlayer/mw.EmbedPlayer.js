@@ -248,18 +248,17 @@ mw.EmbedPlayer.prototype = {
 		$( this ).trigger( 'onEnableInterfaceComponents');
 	},
 	disablePlayControls: function(){
-		mw.log("EmbedPlayer:: disablePlayControls" );
 		if( this.useNativePlayerControls() ){
 			return ;
 		}
 		this._playContorls = false;
-		// trun off hover: 
+		// turn off hover: 
 		this.$interface.find( '.play-btn' )
 			.unbind('mouseenter mouseleave')
 			.css('cursor', 'default' );
 
 		this.controlBuilder.disableSeekBar();
-		/*
+		/**
 		 * We should pass an array with disabled components, and the controlBuilder will listen
 		 * to this event and handle the layout changes. we should not call to this.controlBuilder inside embedPlayer.
 		 * [ 'playButton', 'seekBar' ]
@@ -393,6 +392,10 @@ mw.EmbedPlayer.prototype = {
 	 * controlBuilder.resizePlayer function
 	 */
 	resizePlayer: function( size , animate, callback){
+		// check for empty resize call: 
+		if( !size ){
+			return ;
+		}
 		mw.log("EmbedPlayer::resizePlayer:" + size.width + ' x ' + size.height );
 		var _this = this;
 		// Check if we are native display then resize the playerElement directly
@@ -445,17 +448,6 @@ mw.EmbedPlayer.prototype = {
 		});
 	},
 
-	/**
-	 * Check if the embedPlayer has text tracks
-	 * 
-	 * @return
-	 */
-	hasTextTracks: function(){
-		if( !this.mediaElement ){
-			return false;
-		}
-		return ( this.mediaElement.getTextTracks().length > 0 );
-	},
 	/**
 	 * Get text tracks from the mediaElement
 	 */
@@ -600,7 +592,7 @@ mw.EmbedPlayer.prototype = {
 		_this.updateFeatureSupport();
 		// Update duration
 		_this.getDuration();
-		// Show the palyer after update:
+		// show player inline
 		_this.showPlayer();
 		// Run the callback if provided
 		if ( callback && $.isFunction( callback ) ){
@@ -1364,7 +1356,6 @@ mw.EmbedPlayer.prototype = {
 	 *     false if the mwEmbed player interface should not be used
 	 */
 	useNativePlayerControls: function() {
-
  		if( mw.getConfig('EmbedPlayer.WebKitPlaysInline') === true && mw.isIphone() ) {
  			return false;
  		}
@@ -1770,13 +1761,18 @@ mw.EmbedPlayer.prototype = {
 	addPlayerSpinner: function(){
 		// remove any old spinner
 		$( '#loadingSpinner_' + this.id ).remove();
-		// re add
+		// re add an absolute positioned spinner: 
 		$( this ).getAbsoluteOverlaySpinner()
 		.attr( 'id', 'loadingSpinner_' + this.id );
 	},
 	hidePlayerSpinner: function(){
 		this.isPauseLoading = false;
+		// remove the spinner
 		$( '#loadingSpinner_' + this.id + ',.loadingSpinner' ).remove();
+		// hide the play btn
+		if( this.$interface ) {
+			this.$interface.find('.play-btn-large').hide();
+		}
 	},
 	hideSpinnerOncePlaying: function(){
 		this._checkHideSpinner = true;
@@ -1901,11 +1897,11 @@ mw.EmbedPlayer.prototype = {
 			this.preMuteVolume = this.volume;
 			var percent = 0;
 		}
-		this.setVolume( percent );
+		this.setVolume( percent, true );
 		// Update the interface
 		this.setInterfaceVolume( percent );
 		// trigger the onToggleMute event
-		$(this).trigger('onToggleMute');
+		$( this ).trigger('onToggleMute');
 	},
 
 	/**

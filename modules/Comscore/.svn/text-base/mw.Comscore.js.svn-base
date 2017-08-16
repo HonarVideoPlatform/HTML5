@@ -14,12 +14,12 @@ mw.Comscore = function( embedPlayer, callback ){
 
 mw.Comscore.prototype = {
 
-	pluginVersion: "1.0",
+	pluginVersion: "1.1",
 
-	prerollAdContentType: "090000",
-	postrollAdContentType: "100000",
-	midrollAdContentType: "110000",
-	inBannerVideoAd: "120000",
+	prerollAdContentType: "09",
+	postrollAdContentType: "10",
+	midrollAdContentType: "11",
+	inBannerVideoAd: "12",
 
 	loadedXML: false,
 
@@ -234,7 +234,6 @@ mw.Comscore.prototype = {
 
 		/**
 		 * For debug:
-		 console.log( 'Flashvars: ', $(this.embedPlayer).data('flashvars'));
 		 console.log( 'uiConf: ', this.embedPlayer.$uiConf.find("#comscore"));
 		 console.log( 'Comscore config: ', this.config);
 		 console.log( 'cParams: ', cParams);

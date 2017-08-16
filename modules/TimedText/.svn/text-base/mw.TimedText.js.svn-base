@@ -25,8 +25,8 @@ mw.includeAllModuleMessages();
 	 * Timed Text Object
 	 * @param embedPlayer Host player for timedText interfaces
 	 */
-	mw.TimedText = function( embedPlayer, options ) {
-		return this.init( embedPlayer, options);
+	mw.TimedText = function( embedPlayer ) {
+		return this.init( embedPlayer);
 	};
 	
 	mw.TimedText.prototype = {
@@ -95,13 +95,10 @@ mw.includeAllModuleMessages();
 		 * @constructor
 		 * @param {Object} embedPlayer Host player for timedText interfaces
 		 */
-		init: function( embedPlayer, options ) {
+		init: function( embedPlayer ) {
 			var _this = this;
 			mw.log("TimedText: init() ");
 			this.embedPlayer = embedPlayer;	
-			if( options ){
-				this.options = options;
-			}
 			// Load user preferences config:
 			var preferenceConfig = $.cookie( 'TimedText.Preferences' );
 			if( preferenceConfig !== "false" && preferenceConfig != null ) {
@@ -114,7 +111,7 @@ mw.includeAllModuleMessages();
 			// Remove any old bindings before we add the current bindings: 
 			_this.destroy();
 			// Add player bindings
-			this.addPlayerBindings();
+			_this.addPlayerBindings();
 		},
 		destroy: function(){
 			// remove any old player bindings; 
@@ -133,12 +130,7 @@ mw.includeAllModuleMessages();
 			var embedPlayer = this.embedPlayer;
 			
 			// Check for timed text support:
-			$( embedPlayer ).bind( 'addControlBarComponent' + this.bindPostFix, function(event, controlBar ){
-				if( embedPlayer.hasTextTracks() ){
-					controlBar.supportedComponents['timedText'] = true;
-					controlBar.components['timedText'] = _this.getTimedTextButton();					
-				}
-			});
+			_this.addInterface();
 			
 			$( embedPlayer ).bind( 'monitorEvent' + this.bindPostFix, function() {
 				_this.monitor();
@@ -155,7 +147,7 @@ mw.includeAllModuleMessages();
 			$( embedPlayer ).bind( 'onCloseFullScreen'+ this.bindPostFix + ' onOpenFullScreen'+ this.bindPostFix, function() {
 				// Check if we are in fullscreen or not, if so add an additional bottom offset of 
 				// double the default bottom padding. 
-				var textOffset = _this.embedPlayer.controlBuilder.fullscreenMode ? 
+				var textOffset = _this.embedPlayer.controlBuilder.inFullScreen ? 
 						mw.getConfig("TimedText.BottomPadding") *2 : 
 						mw.getConfig("TimedText.BottomPadding");
 						
@@ -172,6 +164,16 @@ mw.includeAllModuleMessages();
 					// Get the text size scale then set it to control bar height + TimedText.BottomPadding; 
 					'bottom': ( _this.embedPlayer.controlBuilder.getHeight() + textOffset ) + 'px'
 				});
+				
+			});
+			// add caption container after restore
+			$(_this.embedPlayer ).bind ( 'onCloseFullScreen' + _this.bindPostFix, function(){
+				// Resize the below captions text. 
+				var $belowContainer = _this.embedPlayer.$interface.find('.captionContainer')
+				if( $belowContainer.length ){
+					$belowContainer.remove();
+					_this.addBelowVideoCaptionContainer();
+				}
 			});
 			
 			// Update the timed text size
@@ -185,6 +187,8 @@ mw.includeAllModuleMessages();
 				} else {
 					embedPlayer.$interface.find( '.track' ).css( textCss );
 				}
+				
+				_this.positionCaptionContainer();											
 			});
 
 			// Setup display binding
@@ -202,7 +206,19 @@ mw.includeAllModuleMessages();
 				.animate( layout, 'fast' );
 			});
 		},
-
+		addInterface: function(){
+			var _this = this;
+			// By default we include a button in the control bar. 
+			$( _this.embedPlayer ).bind( 'addControlBarComponent' + this.bindPostFix, function(event, controlBar ){
+				if( _this.includeCaptionButton() ){
+					controlBar.supportedComponents['timedText'] = true;
+					controlBar.components['timedText'] = _this.getTimedTextButton();					
+				}
+			});
+		},
+		includeCaptionButton:function(){
+			return embedPlayer.getTextTracks().length;
+		},
 		/**
 		 * Get the current language key
 		 * @return 
@@ -242,8 +258,8 @@ mw.includeAllModuleMessages();
 		bindTextButton: function($textButton){
 			var _this = this;
 			$textButton.unbind('click.textMenu').bind('click.textMenu', function() {
-				_this.showTextMenu();
-				return true;
+                _this.showTextMenu();
+            return true;
 			} );
 		},
 		
@@ -276,7 +292,7 @@ mw.includeAllModuleMessages();
 				}
 			}else{				
 				// Bind the text menu:
-				this.bindMenu( true );
+				this.buildMenu( true );
 			}
 		},
 		getTextMenuContainer: function(){
@@ -353,10 +369,9 @@ mw.includeAllModuleMessages();
 		* @param {Object} target to display the menu
 		* @param {Boolean} autoShow If the menu should be displayed
 		*/
-		bindMenu: function( autoShow) {
+		buildMenu: function( autoShow ) {
 			var _this = this;
 			var $menuButton = this.embedPlayer.$interface.find( '.timed-text' );
-
 			var positionOpts = { };
 			if( this.embedPlayer.supports[ 'overlays' ] ){
 				var positionOpts = {
@@ -386,7 +401,7 @@ mw.includeAllModuleMessages();
 					'closeMenuCallback' : function(){
 						_this.embedPlayer.controlBuilder.keepControlBarOnScreen = false;
 					}
-				} );
+				});
 			});
 		},
 
@@ -557,17 +572,6 @@ mw.includeAllModuleMessages();
 				enabledSource.load();
 			});
 		},
-
-		/**
-		* Selection of a menu item
-		*
-		* @param {Element} item Item selected
-		*/
-		selectMenuItem: function( item ) {
-			mw.log("selectMenuItem: " + $( item ).find('a').attr('class') );
-			//this.currentLangKey = ''
-		},
-
 		/**
 		* Checks if a source is "on"
 		* @return {Boolean}
@@ -615,7 +619,7 @@ mw.includeAllModuleMessages();
 		*		Chose Language
 		*			All Subtiles here ( if we have categories list them )
 		*		Layout
-		*			Bellow video
+		*			Below video
 		*			Ontop video ( only available to supported plugins )
 		* TODO features:
 		*		[ Search Text ]
@@ -732,18 +736,15 @@ mw.includeAllModuleMessages();
 		*/
 		getLayoutMenu: function() {
 			var _this = this;
-			var layoutOptions = [ ];
+			mw.log( 'TimedText:: getLayoutMenu layout: ' + _this.config.layout );
 
+			var layoutOptions = [];
 			//Only display the "ontop" option if the player supports it:
 			if( this.embedPlayer.supports[ 'overlays' ] ){
 				layoutOptions.push( 'ontop' );
 			}
-
-			//Add below and "off" options:
-			if( ! mw.getConfig('EmbedPlayer.IsIframeServer') ){
-				layoutOptions.push( 'below' );
-			}
-			layoutOptions.push( 'off' );
+			// Support below player display: 
+			layoutOptions.push( 'below', 'off'  );
 
 			$ul = $('<ul>');
 			$.each( layoutOptions, function( na, layoutMode ) {
@@ -752,20 +753,21 @@ mw.includeAllModuleMessages();
 					$.getLineItem(
 						gM( 'mwe-timedtext-layout-' + layoutMode),
 						icon,
-						function() {
-							_this.selectLayout( layoutMode );
-						} )
+						function(){
+							_this.setLayoutMode( layoutMode );
+						})
 					);
 			});
 			return $ul;
 		},
 
 		/**
-		* Select a new layout
+		* set the layout mode
 		* @param {Object} layoutMode The selected layout mode
 		*/
-		selectLayout: function( layoutMode ) {
+		setLayoutMode: function( layoutMode ) {
 			var _this = this;
+			mw.log("TimedText:: setLayoutMode: " + layoutMode + ' ( old mode: ' + _this.config.layout + ' )' );
 			if( layoutMode != _this.config.layout ) {
 				// Update the config and redraw layout
 				_this.config.layout = layoutMode;						
@@ -777,18 +779,20 @@ mw.includeAllModuleMessages();
 		toggleCaptions: function(){
 			mw.log( "TimedText:: toggleCaptions was:" + this.config.layout );
 			if( this.config.layout == 'off' ){
-				this.selectLayout( 'ontop' );
+				this.setLayoutMode( 'below' );
 			} else {
-				this.selectLayout( 'off' );
+				this.setLayoutMode( 'off' );
 			}
 		},
 		/**
 		* Updates the timed text layout ( should be called when config.layout changes )
 		*/
 		updateLayout: function() {
+			mw.log( "TimedText:: updateLayout " );
 			var $playerTarget = this.embedPlayer.$interface;
             if( $playerTarget ) {
-                $playerTarget.find('.track').remove();
+            	// remove any existing caption containers: 
+                $playerTarget.find('.captionContainer,.captionsOverlay').remove();
             }            
 			this.refreshDisplay();
 		},
@@ -808,11 +812,13 @@ mw.includeAllModuleMessages();
 			this.currentLangKey =  source.srclang;
 			
 			// Update the config language if the source includes language
-			if( source.srclang )
+			if( source.srclang ){
 				this.config.userLanguage = source.srclang;
+			}
 
-			if( source.kind )
+			if( source.kind ){
 				this.config.userKind = source.kind;
+			}
 
 			// (@@todo update kind & setup kind language buckets? )
 
@@ -852,11 +858,14 @@ mw.includeAllModuleMessages();
 			this.prevText = [];
 			
 			// Refresh the Menu (if it has a target to refresh)
-			if( this.menuTarget ) {
-				mw.log('bind menu refresh display');
-				this.bindMenu( this.menuTarget, false );
-			}
+			mw.log( 'TimedText:: bind menu refresh display' );
+			this.buildMenu( this.menuTarget, false );
+            
+            this.resizeInterface();
 			
+            // add an empty catption: 
+            this.displayTextTarget( $( '<span /> ').text( '') ); 
+            
 			// Issues a "monitor" command to update the timed text for the new layout
 			this.monitor();
 		},
@@ -953,7 +962,7 @@ mw.includeAllModuleMessages();
 			var activeCaptions = source.getCaptionForTime( time );
 			var addedCaption = false;
 			// Show captions that are on: 
-			$.each(activeCaptions, function( capId, caption){
+			$.each( activeCaptions, function( capId, caption ){
 				if( _this.embedPlayer.$interface.find( '.track[data-capId="' + capId +'"]').length == 0){
 					_this.addCaption( source, capId, caption );
 					addedCaption = true;
@@ -966,34 +975,10 @@ mw.includeAllModuleMessages();
 					if( addedCaption ){
 						$( caption ).remove();
 					} else {
-						$( caption ).fadeOut( mw.getConfig('EmbedPlayer.MonitorRate'), function(){ $(this).remove();} );
+						$( caption ).fadeOut( mw.getConfig('EmbedPlayer.MonitorRate'), function(){$(this).remove();} );
 					}
 				}
 			});
-		},
-		getCaptionsTarget: function(){
-			var $capTarget = this.embedPlayer.$interface.find('.captionsLayoutTarget');
-			var layoutCss = {
-				'left' : 0,
-				'top' :0,
-				'right':0,
-				'position': 'absolute'
-			};
-			if( this.embedPlayer.controlBuilder.isOverlayControls() || 
-				!mw.getConfig( 'EmbedPlayer.OverlayControls')  )
-			{
-				layoutCss['bottom'] = 0;				
-			} else {
-				layoutCss['bottom'] = this.embedPlayer.controlBuilder.getHeight();
-			}
-			
-			if( $capTarget.length == 0 ){
-				$capTarget = $( '<div />' )
-				 	.addClass( 'captionsLayoutTarget' )
-					.css( layoutCss )
-				this.embedPlayer.$interface.append( $capTarget )
-			}
-			return $capTarget;
 		},
 		addCaption: function( source, capId, caption ){
 			if( this.getLayoutMode() == 'off' ){
@@ -1022,20 +1007,17 @@ mw.includeAllModuleMessages();
 			// Update any links to point to a new window
 			$textTarget.find( 'a' ).attr( 'target', '_blank' );
 			
-			// Apply any custom style ( if we are ontop of the video )
+			// Add TTML or other complex text styles / layouts if we have ontop captions: 
 			if( this.getLayoutMode() == 'ontop' ){
 				if( caption.css ){
 					$textTarget.css( caption.css );
 				} else {
 					$textTarget.css( this.getDefaultStyle() );
 				}
-				this.getCaptionsTarget().append( 
-					$textTarget	
-				);
-			} else {
-				// else apply the default layout system:
-				this.addTextToDefaultLocation( $textTarget );
 			}
+			// Apply any custom style ( if we are ontop of the video )
+			this.displayTextTarget( $textTarget );
+			
 			// apply any interface size adjustments: 
 			$textTarget.css( this.getInterfaceSizeTextCss({
 					'width' :  this.embedPlayer.$interface.width(),
@@ -1053,6 +1035,17 @@ mw.includeAllModuleMessages();
 		
 			$textTarget.fadeIn('fast');
 		},
+		displayTextTarget: function( $textTarget ){
+			if( this.getLayoutMode() == 'ontop' ){
+				this.addTextOverlay(
+					$textTarget	
+				);
+			} else if( this.getLayoutMode() == 'below' ){
+				this.addTextBelowVideo( $textTarget );
+			} else {
+				mw.log("Possible Error, layout mode not recognized: " + this.getLayoutMode() );
+			}
+		},
 		getDefaultStyle: function(){ 
 			var baseCss =  {
 					'position':'absolute',
@@ -1069,97 +1062,155 @@ mw.includeAllModuleMessages();
 			}));
 			return baseCss;
 		},
+		addTextOverlay: function( $textTarget ){
+			var _this = this;
+			var $captionsOverlayTarget = this.embedPlayer.$interface.find('.captionsOverlay');
+			var layoutCss = {
+				'left' : 0,
+				'top' :0,
+				'right':0,
+				'position': 'absolute'
+			};
+			if( this.embedPlayer.controlBuilder.isOverlayControls() || 
+				!mw.getConfig( 'EmbedPlayer.OverlayControls')  )
+			{
+				layoutCss['bottom'] = 0;				
+			} else {
+				layoutCss['bottom'] = this.embedPlayer.controlBuilder.getHeight();
+			}
+			
+			if( $captionsOverlayTarget.length == 0 ){
+				// TODO make this look more like addBelowVideoCaptionsTarget				
+				$captionsOverlayTarget = $( '<div />' )
+				 	.addClass( 'captionsOverlay' )
+					.css( layoutCss )
+				this.embedPlayer.$interface.append( $captionsOverlayTarget );
+                
+                this.resizeInterface();
+			}
+			// Append the text:
+			$captionsOverlayTarget.append( $textTarget );
+			
+		},
 		/**
 		 * Applies the default layout for a text target
 		 */
 		addTextBelowVideo: function( $textTarget ) {
 			var $playerTarget = this.embedPlayer.$interface;
+			
 			// Get the relative positioned player class from the controlBuilder:
 			this.embedPlayer.controlBuilder.keepControlBarOnScreen = true;
-			// Set the belowBar size to 60 pixels:
-			var belowBarHeight = mw.getConfig('TimedText.BelowVideoBlackBoxHeight');
-			
+			if( !$playerTarget.find('.captionContainer').length ){ 
+				this.addBelowVideoCaptionContainer();
+			}
+			$playerTarget.find('.captionContainer').html(
+				$textTarget.css( {
+					'color':'white'
+				} )
+			);
+		},
+		addBelowVideoCaptionContainer: function(){
+			var _this = this;
+			mw.log( "TimedText:: addBelowVideoCaptionContainer" );
+			var $playerTarget = this.embedPlayer.$interface;
 			// Append before controls:
 			$playerTarget.find( '.control-bar' ).before(
 				$('<div>').addClass( 'captionContainer' )
-					.css({
-						'position' : 'absolute',
-						'top' : this.embedPlayer.getHeight(),
-						'display' : 'block',
-						'width' : '100%',
-						'height' : belowBarHeight + 'px',
-						'background-color' : '#000',
-						'text-align' : 'center',
-						'padding-top' : '5px'
-					} ).append(
-						$textTarget.css( {
-							'color':'white'
-						} )
-					)
+				.css({
+					'position' : 'absolute',
+					'top' : this.embedPlayer.getHeight(),
+					'display' : 'block',
+					'width' : '100%',
+					'height' : mw.getConfig('TimedText.BelowVideoBlackBoxHeight') + 'px',
+					'background-color' : '#000',
+					'text-align' : 'center',
+					'padding-top' : '5px'
+				} )
 			);
 			
-			// Add some height for the bar and interface
-			var height = ( belowBarHeight + 8 ) + this.embedPlayer.getHeight() + this.embedPlayer.controlBuilder.getHeight();
-			
 			// Resize the interface for layoutMode == 'below' ( if not in full screen)
-			if( ! this.embedPlayer.controlBuilder.fullscreenMode ){
-				this.embedPlayer.$interface.animate({
-					'height': height
-				});
+			if( this.embedPlayer.controlBuilder.inFullScreen ){
+				_this.positionCaptionContainer();
+			} else {
+				// give the dom time to resize. 
+				setTimeout(function(){
+					var height = ( mw.getConfig('TimedText.BelowVideoBlackBoxHeight') + 8 ) +
+									$( _this.embedPlayer ).height() + _this.embedPlayer.controlBuilder.getHeight();
+					
+					// get the orginal player height
+					_this.originalPlayerHeight = _this.embedPlayer.$interface.css('height');
+					
+					_this.embedPlayer.$interface.css({
+						'height': height
+					});
+					// Trigger an event to resize the iframe: 
+					_this.embedPlayer.triggerHelper( 'resizeIframeContainer', [{'height' : height}] );					
+				}, 50);
 			}
-			mw.log( 'TimedText:: height of ' + this.embedPlayer.id + ' is now: ' + $( '#' + this.embedPlayer.id ).height() );
+		},
+        /**
+         * Resize the interface for layoutMode == 'below' ( if not in full screen)
+         */
+        resizeInterface: function(){
+            var _this = this;
+            if( !_this.embedPlayer.controlBuilder ){
+            	// too soon
+            	return ;
+            }
+            
+            if( !_this.embedPlayer.controlBuilder.inFullScreen && _this.originalPlayerHeight ){
+                _this.embedPlayer.$interface.css({
+                    'height': _this.originalPlayerHeight
+                });
+                _this.embedPlayer.triggerHelper( 'resizeIframeContainer', [{'height' : _this.originalPlayerHeight}] );
+            } else {
+                var cBarHeight =  ( _this.embedPlayer.controlBuilder.isOverlayControls() ) ?
+                        0 :
+                        _this.embedPlayer.controlBuilder.getHeight();
+                var newCss = {
+                    'height': _this.embedPlayer.$interface.height() -cBarHeight
+                }
+                if( parseInt( $( _this.embedPlayer ).css('top') ) < 0 ){
+                    newCss.top = 0;
+                }
+                $( _this.embedPlayer ).css( newCss );
+                $( _this.embedPlayer.getPlayerElement() ).css( newCss );
+            }
+        },
+		positionCaptionContainer: function(){
+			var _this = this;
+			var $belowContainer = _this.embedPlayer.$interface.find('.captionContainer');
+			if( $belowContainer.length ){
+				
+				var cBarHeight =  ( _this.embedPlayer.controlBuilder.isOverlayControls() ) ?
+						0 :
+						_this.embedPlayer.controlBuilder.getHeight();
+							
+				var newCss = {};
+				newCss.top = parseInt( $( _this.embedPlayer ).css( 'top' ) ) - ( mw.getConfig('TimedText.BelowVideoBlackBoxHeight') * .5 );
+				if( newCss.top < 0 ){
+					newCss.top = 0;
+				}
+				if( _this.embedPlayer.controlBuilder.inFullScreen 
+						&&
+					$( _this.embedPlayer ).height() > _this.embedPlayer.$interface.height() - mw.getConfig('TimedText.BelowVideoBlackBoxHeight')
+				){
+					newCss.height = $( _this.embedPlayer ).height() - mw.getConfig( 'TimedText.BelowVideoBlackBoxHeight' );
+				} else {
+					if( $( _this.embedPlayer ).height() > _this.embedPlayer.getHeight() ){
+						newCss.height = _this.embedPlayer.getHeight();
+					}
+				}
+				$( _this.embedPlayer ).css( newCss );
+				$( _this.embedPlayer.getPlayerElement() ).css( newCss );
+				$belowContainer.css( 'top', newCss.top + $( _this.embedPlayer.getPlayerElement() ).height() );
+			}
 		},
 		/**
 		 * Build css for caption using this.options
 		 */
 		getCaptionCss: function() {
-			var options = this.options;
-			var style = {'display': 'inline'};
-
-			if( options.bg ) {
-				style["background-color"] = this.getHexColor( options.bg );
-			}
-			if( options.fontColor ) {
-				style["color"] = this.getHexColor( options.fontColor );
-			}
-			if( options.fontFamily ){
-				style["font-family"] = options.fontFamily;
-			}
-			if( options.fontsize ) {
-				// Translate to em size so that font-size parent percentage
-				// base on http://pxtoem.com/
-				var emFontMap = { '6': .375, '7': .438, '8' : .5, '9': .563, '10': .625, '11':.688,
-						'12':.75, '13': .813, '14': .875, '15':.938, '16':1, '17':1.063, '18': 1.125, '19': 1.888,
-						'20':1.25, '21':1.313, '22':1.375, '23':1.438, '24':1.5};
-				// Make sure its an int: 
-				options.fontsize = parseInt( options.fontsize );
-				style[ "font-size" ] = ( emFontMap[ options.fontsize ] ) ?  
-						emFontMap[ options.fontsize ] +'em' :
-						(  options.fontsize > 24 )?  emFontMap[24]+'em' : emFontMap[6];
-			}
-			if( options.useGlow && options.glowBlur && options.glowColor ) {
-				style["text-shadow"] = '0 0 ' + options.glowBlur + 'px ' + this.getHexColor( options.glowColor );
-			}
-
-			return style;
-		},
-
-		getHexColor: function(color) {
-			if( color.substr(0,2) == "0x" ) {
-				return color.replace('0x', '#');
-			} else {
-				color = parseInt( color );
-				color = color.toString(16);
-				var len = 6 - color.length;
-				if( len > 0 ) {
-					var pre = '';
-					for( var i=0; i<len; i++) {
-						pre += '0';
-					}
-					color = pre + color;
-				}
-				return '#' + color;
-			}
+			return {};
 		}
 	};
 

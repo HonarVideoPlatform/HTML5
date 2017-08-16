@@ -865,7 +865,6 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 			// Setup the Script Request var:
 			var scriptRequest = null;
 
-
 			// If the scriptloader is enabled use the resourceName as the
 			// scriptRequest:
 			if( mw.getResourceLoaderPath() ) {
@@ -1206,13 +1205,16 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	};
 	mw.isMobileDevice = function(){
 		return ( mw.isIOS()|| mw.isAndroid2() );
-	},
+	};
 	mw.isIOS = function(){
 		return ( mw.isIphone() || mw.isIpod() || mw.isIpad() );
-	},
+	};
+	mw.isIOS5 = function(){
+		return /OS 5_/.test( navigator.userAgent ) && ( mw.isIphone() || mw.isIpod() || mw.isIpad() );
+	};
 	mw.isIE9 = function(){
 		return ( /msie 9/.test( navigator.userAgent.toLowerCase() ) );
-	}
+	};
 	mw.isIphone = function(){
 		return ( navigator.userAgent.indexOf('iPhone') != -1 && ! mw.isIpad() );
 	};
@@ -1832,7 +1834,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 */
 	mw.seconds2npt = function( sec, show_ms ) {
 		if ( isNaN( sec ) ) {
-			// mw.log("Warning: trying to get npt time on NaN:" + sec);			
+			//mw.log("Warning: trying to get npt time on NaN:" + sec);			
 			return '0:00:00';
 		}
 		
@@ -1857,9 +1859,9 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		if( tm.hours == 0 ){
 			hoursStr = '';
 		} else {
-			if ( tm.minutes < 10 )
+			if ( tm.minutes < 10 ){
 				tm.minutes = '0' + tm.minutes;
-			
+			}
 			hoursStr = tm.hours + ":"; 
 		}
 		return hoursStr + tm.minutes + ":" + tm.seconds;
@@ -2592,6 +2594,24 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		// Same version:
 		return true;
 	};
+	
+	mw.getHexColor = function( color ) {
+		if( color.substr(0,2) == "0x" ) {
+			return color.replace('0x', '#');
+		} else {
+			color = parseInt( color );
+			color = color.toString(16);
+			var len = 6 - color.length;
+			if( len > 0 ) {
+				var pre = '';
+				for( var i=0; i<len; i++) {
+					pre += '0';
+				}
+				color = pre + color;
+			}
+			return '#' + color;
+		}
+	};
 
 } )( window.mw );
 
@@ -3013,7 +3033,6 @@ if( window.jQuery ){
 
 
 // XXX note with new Resource loader we can move spin.js into seperate class and make it part
-
 // of the "startup modules"
 //fgnass.github.com/spin.js#v1.1
 (function(window, document, undefined) {

@@ -289,7 +289,7 @@ mw.EmbedPlayerNative = {
 		var vid = _this.getPlayerElement();
 		
 		// Update duration
-		if( vid && vid.duration ){
+		if( vid && vid.duration && isFinite( vid.duration ) ){
 			this.duration = vid.duration; 
 		}
 		// Update the bufferedPercent
@@ -478,11 +478,15 @@ mw.EmbedPlayerNative = {
 		var _this = this;
 		// Make sure we have .vid obj
 		this.getPlayerElement();
-
 		if ( !this.playerElement ) {
 			mw.log( 'EmbedPlayerNative::getPlayerElementTime: ' + this.id + ' not in dom ( stop monitor)' );
 			this.stop();
 			return false;
+		}
+		var ct =  this.playerElement.currentTime;
+		// Return 0 or a positive number: 
+		if( ! ct || isNaN( ct ) || ct < 0 || ! isFinite( ct ) ){
+			return 0;
 		}
 		// Return the playerElement currentTime
 		return this.playerElement.currentTime;
@@ -510,7 +514,7 @@ mw.EmbedPlayerNative = {
 		var _this = this;
 		var src = source.getSrc();
 		var vid = this.getPlayerElement();
-		var switchBindPostfix = '.switchPlaySource';
+		var switchBindPostfix = '.playerSwichSource';
 		this.isPauseLoading = false;
 		// Make sure the switch source is different: 
 		if( !src || src == vid.src ){
@@ -530,7 +534,7 @@ mw.EmbedPlayerNative = {
 		// vid.poster = mw.getConfig( 'EmbedPlayer.BlackPixel' );
 		
 		// only display switch msg if actually switching: 
-		mw.log( 'EmbedPlayerNative:: switchPlaySource:' + src + ' native time: ' + vid.currentTime );
+		mw.log( 'EmbedPlayerNative:: playerSwichSource: ' + src + ' native time: ' + vid.currentTime );
 		
 		// Update some parent embedPlayer vars: 
 		this.duration = 0;
@@ -561,6 +565,7 @@ mw.EmbedPlayerNative = {
 							mw.log( 'Error: EmbedPlayerNative switchPlaySource no vid');
 							return ;
 						}	
+						mw.log("EmbedPlayerNative:: playerSwichSource> vid.play() ");
 						vid.load();
 						vid.play();
 						// Wait another 100ms then bind the end event and any custom events
@@ -870,7 +875,7 @@ mw.EmbedPlayerNative = {
 	*/
 	_onloadedmetadata: function() {
 		this.getPlayerElement();
-		if ( this.playerElement && ! isNaN( this.playerElement.duration ) ) {
+		if ( this.playerElement && !isNaN( this.playerElement.duration ) && isFinite( this.playerElement.duration) ) {
 			mw.log( 'EmbedPlayerNative :onloadedmetadata metadata ready Update duration:' + this.playerElement.duration + ' old dur: ' + this.getDuration() );
 			this.duration = this.playerElement.duration;
 		}

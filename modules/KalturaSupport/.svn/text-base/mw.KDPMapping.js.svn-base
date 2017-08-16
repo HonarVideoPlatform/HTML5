@@ -196,6 +196,12 @@
 				case 'mediaPlayTo':
 					embedPlayer.pauseTime = parseFloat(value);
 				break;
+				default: 
+					if( !embedPlayer.playerConfig['plugins'][ componentName ] ){
+						embedPlayer.playerConfig['plugins'][ componentName ] = {}; 
+					}
+					embedPlayer.playerConfig['plugins'][ componentName ][ property ] = value; 
+				break;
 			}
 			// Give kdp plugins a chance to take attribute actions 
 			$( embedPlayer ).trigger( 'Kaltura_SetKDPAttribute', [componentName, property, value] );
@@ -268,11 +274,11 @@
 			
 			
 			// Check the exported kaltura object ( for manual overrides of any mapping ) 
-			if( embedPlayer.kalturaExportedEvaluateObject
+			if( embedPlayer.playerConfig
 					&&  
-				embedPlayer.kalturaExportedEvaluateObject[ objectPath[0] ] 
+				embedPlayer.playerConfig[ objectPath[0] ] 
 			){
-				var kObj = embedPlayer.kalturaExportedEvaluateObject[ objectPath[0] ] ;
+				var kObj = embedPlayer.playerConfig[ objectPath[0] ] ;
 				// TODO SHOULD USE A FUNCTION map
 				if( !objectPath[1] ){
 					return kObj;
@@ -318,7 +324,7 @@
 					break;
 				case 'video':
 					switch( objectPath[1] ){
-						case 'volume': 
+						case 'volume':
 							return embedPlayer.volume;
 							break;
 						case 'player':
@@ -380,7 +386,12 @@
 					switch( objectPath[1] ){
 						case 'flashvars':
 							if( objectPath[2] ) {
-								var fv = $( embedPlayer ).data('flashvars' );
+								var fv;
+								if( embedPlayer.playerConfig && embedPlayer.playerConfig['vars'] ){
+									fv = embedPlayer.playerConfig['vars'];
+								} else {
+									fv = $( embedPlayer ).data('flashvars');
+								}
 								switch( objectPath[2] ) {
 									case 'autoPlay':
 										// get autoplay
@@ -394,7 +405,7 @@
 										// Else use the iframeParentUrl if set:
 										return mw.getConfig( 'EmbedPlayer.IframeParentUrl' );
 										break;
-									default: 
+									default:
 										if( fv && fv[ objectPath[2] ] ){
 											return fv[ objectPath[2] ]
 										}
@@ -411,7 +422,7 @@
 						break;
 					}
 					// no objectPath[1] match return the full configProx object: 
-					return { 'flashvars' : $( embedPlayer ).data( 'flashvars' ) }
+					return {'flashvars' : $( embedPlayer ).data( 'flashvars' )}
 				break;	
 				case 'playerStatusProxy':
 					switch( objectPath[1] ){
@@ -535,7 +546,7 @@
 					break;
 				case 'volumeChanged':
 					b( 'volumeChanged', function(event, percent){
-						callback( { 'newVolume' : percent }, embedPlayer.id );
+						callback( {'newVolume' : percent}, embedPlayer.id );
 					});
 					break;
 				case 'playerStateChange':
@@ -611,7 +622,7 @@
 					break;
 				case 'durationChange':
 					b( "durationchange", function(){
-						callback( { 'newValue' : embedPlayer.duration }, embedPlayer.id );
+						callback( {'newValue' : embedPlayer.duration}, embedPlayer.id );
 					});
 				break;
 				case 'openFullScreen':
@@ -629,7 +640,7 @@
 					break;	
 				case 'changeMedia':
 					b( 'playerReady', function( event ){
-						callback({ 'entryId' : embedPlayer.kentryid }, embedPlayer.id );
+						callback({'entryId' : embedPlayer.kentryid}, embedPlayer.id );
 					});
 					break;
 				case 'entryReady':
@@ -814,6 +825,12 @@
 						embedPlayer.changeMedia();
 						break;
 					}
+                case 'alert':
+                    embedPlayer.controlBuilder.displayAlert( notificationData );
+                    break;
+                case 'removealert':
+                    embedPlayer.controlBuilder.closeAlert();
+                    break;
 			}
 			// Give kdp plugins a chance to take attribute actions 
 			$( embedPlayer ).trigger( 'Kaltura_SendNotification', [ notificationName, notificationData ] );

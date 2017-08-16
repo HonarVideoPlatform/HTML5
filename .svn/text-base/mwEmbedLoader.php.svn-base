@@ -2,7 +2,7 @@
 // Special mwEmbedLoader.js entry point with php based configuration
 // ( will be deprecated  once we move to new resource loader ) 
 
-// include configuration 
+// Include configuration 
 require_once( realpath( dirname( __FILE__ ) ) . '/includes/DefaultSettings.php' );
 
 // Kaltura Comment
@@ -67,7 +67,7 @@ if( isset( $_GET['debug'] ) || $wgEnableScriptDebug ){
 	header("Pragma: no-cache");
 	header("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); // Date in the past
 	
-	echo $loaderComment.$loaderJs;
+	echo $loaderComment . $loaderJs;
 } else {
 	// Get the JSmin class:
 	require_once( realpath( dirname( __FILE__ ) ) . '/includes/library/JSMin.php' );
@@ -97,10 +97,10 @@ if( isset( $_GET['debug'] ) || $wgEnableScriptDebug ){
 	
 	// check if there were any updates to the mwEmbedLoader file
 	if( is_file( $loaderCacheFile ) && $javascriptModTime < $cacheModTime ){
-		echo file_get_contents( $loaderCacheFile );
+		echo $loaderComment . file_get_contents( $loaderCacheFile );
 	} else {
 		$loaderMin = JSMin::minify( $loaderJs );
 		file_put_contents( $loaderCacheFile, $loaderMin );
-		echo $loaderComment.$loaderMin;
+		echo $loaderComment . $loaderMin;
 	}
 }
