@@ -7,3 +7,15 @@
 * 
 * Comsore is fired at the start of each clip. 
 */
+
+mw.Comscore = function( embedPlayer ){
+	this.init( embedPlayer );
+};
+
+mw.Comscore.prototype = {
+	init: function( embedPlayer ){
+		this.embedPlayer = embedPlayer;
+		this.addPlayerBindings();
+		alert('blaa');
+	}
+};

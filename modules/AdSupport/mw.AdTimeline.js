@@ -196,12 +196,11 @@ mw.AdTimeline.prototype = {
 					_this.display('preroll', function() {
 						// After preroll had ended we like to increase the index
 						// So when we have preroll from cue points, we will show that correct one
-						_this.timelineTargetsIndex[ 'preroll' ]++;
 						showBumper();
 					});
 				} else {
 					_this.display('preroll', function() {
-						_this.timelineTargetsIndex['preroll']++;
+						// nothing
 					});
 				}
 			}
@@ -370,6 +369,7 @@ mw.AdTimeline.prototype = {
 				displayTarget.doneFunctions.shift()();
 			}
 			displayTarget.currentlyDisplayed = false;
+			_this.timelineTargetsIndex[timeTargetType]++;
 			setTimeout(function(){
 				displayTarget.doneCallback();
 			}, 50);
