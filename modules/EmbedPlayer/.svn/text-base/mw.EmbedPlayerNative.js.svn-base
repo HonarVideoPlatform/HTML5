@@ -524,7 +524,6 @@ mw.EmbedPlayerNative = {
 		var _this = this;
 		var src = source.getSrc();
 		var vid = this.getPlayerElement();
-		_this.hideIpadPlayerOffScreen();
 		var switchBindPostfix = '.playerSwichSource';
 		this.isPauseLoading = false;
 		// Make sure the switch source is different: 
@@ -554,6 +553,7 @@ mw.EmbedPlayerNative = {
 	
 		if ( vid ) {
 			try {
+				_this.hideIpadPlayerOffScreen();
 				// Remove all switch player bindings
 				$( vid ).unbind( switchBindPostfix );
 				vid.pause();

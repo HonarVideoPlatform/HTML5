@@ -464,9 +464,16 @@ mw.PlayerControlBuilder.prototype = {
 	},
 	syncPlayerSize: function(){
 		var embedPlayer = this.embedPlayer;
-		if( $( embedPlayer ).width() != $(window).width() ){
-			embedPlayer.resizePlayer( this.getWindowSize() );
-		};
+		// resize to the playlist  container
+		// TODO  change this to an event so player with interface around it ( ppt widget etc ) can
+		// set the player to the right size. 
+		if( embedPlayer.playlist && ! this.inFullScreen ){
+			embedPlayer.playlist.syncPlayerSize();
+		} else {
+			if( $( embedPlayer ).width() != $(window).width() ){
+				embedPlayer.resizePlayer( this.getWindowSize() );
+			}
+		}
 	},
 	getWindowSize: function(){
 		return {
