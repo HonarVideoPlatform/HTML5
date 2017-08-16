@@ -103,20 +103,7 @@ mw.IFramePlayerApiClient.prototype = {
 		// orientation change ) 
 		var localIframeInFullscreen = false;
 		var verticalScrollPosition = 0;
-		var viewPortTag;
 		
-		/* Un-used for now
-		var disableZoom = function() {
-			viewPortTag = $('head meta[name=viewport]')[0];
-			$('head meta[name=viewport]').remove();
-			$('head').prepend('<meta name="viewport" content="width=device-width, initial-scale=1.0">');
-		};
-
-		var restoreZoom = function() {
-			$('head meta[name=viewport]').remove();
-			$('head').prepend( viewPortTag );
-		};
-		*/
 		var storeVerticalScroll = function(){
 			verticalScrollPosition = (document.all ? document.scrollTop : window.pageYOffset);
 		}
@@ -156,12 +143,17 @@ mw.IFramePlayerApiClient.prototype = {
 				'width' : window.innerWidth,
 				'height' : window.innerHeight
 			};
+			
+			/* 
+			 * This was used to solve issue with resizing the player on desktop
+			/
 			if( targetSize.width < orgSize.width ){
 				targetSize.width = orgSize.width;
 			}
 			if( targetSize.height < orgSize.height ){
 				targetSize.height =  orgSize.height;
 			}
+			*/
 			// Make the iframe fullscreen
 			$iframe
 				.css({

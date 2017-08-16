@@ -912,11 +912,19 @@ mw.PlayerControlBuilder.prototype = {
 			$interface
 				.show()
 				.hover( bindSpaceUp, bindSpaceDown );
-			
+
+			// include touch start pause binding
+			$( embedPlayer ).bind( 'touchstart' + this.bindPostfix, function() {
+				if( embedPlayer.paused ) {
+					embedPlayer.play();
+				} else {
+					embedPlayer.pause();
+				}
+			});	
 		} else { // hide show controls:
 			
 			// Bind a startTouch to show controls
-			$( embedPlayer).bind( 'touchstart' + this.bindPostfix, function() {
+			$( embedPlayer ).bind( 'touchstart' + this.bindPostfix, function() {
 				if ( embedPlayer.$interface.find( '.control-bar' ).is( ':visible' ) ) {
 					if( embedPlayer.paused ) {
 						embedPlayer.play();

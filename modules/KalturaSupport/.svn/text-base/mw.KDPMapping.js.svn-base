@@ -398,13 +398,13 @@
 				case 'configProxy':
 					switch( objectPath[1] ){
 						case 'flashvars':
+							var fv;
+							if( embedPlayer.playerConfig && embedPlayer.playerConfig['vars'] ){
+								fv = embedPlayer.playerConfig['vars'];
+							} else {
+								fv = $( embedPlayer ).data('flashvars');
+							}
 							if( objectPath[2] ) {
-								var fv;
-								if( embedPlayer.playerConfig && embedPlayer.playerConfig['vars'] ){
-									fv = embedPlayer.playerConfig['vars'];
-								} else {
-									fv = $( embedPlayer ).data('flashvars');
-								}
 								switch( objectPath[2] ) {
 									case 'autoPlay':
 										// get autoplay
@@ -427,7 +427,7 @@
 								}
 							} else {
 								// Get full flashvars object
-								return $( embedPlayer ).data( 'flashvars' );
+								return fv;
 							}
 						break;
 						case 'sessionId':
