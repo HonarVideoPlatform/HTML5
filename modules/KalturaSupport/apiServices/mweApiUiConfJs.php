@@ -28,14 +28,13 @@ class mweApiUiConfJs {
 	function getUserAgentPlayerRules(){
 		$o='';
 		// Do an xml query for the plugin
-		$userAgentPlayerRules = $this->getResultObject()->getUiConfXML()->xpath("*//Plugin[@id='userAgentPlayerRules']");
-		if( $userAgentPlayerRules ) {
-			$attr = $userAgentPlayerRules[0]->attributes();
+		$userAgentPlayerRules = $this->getResultObject()->getPlayerConfig( 'userAgentPlayerRules' );
+		if( count( $userAgentPlayerRules ) ) {
 			$rulesObject = array(
 				'rules' => array(),
 				'actions' => array()
 			);
-			foreach( $userAgentPlayerRules[0]->attributes() as $key => $val ){
+			foreach( $userAgentPlayerRules as $key => $val ){
 				//print "key:$key val:$val\n";
 				// Check for special keys: 
 				if( $key == 'disableForceMobileHTML5' && $val =='true' ){
@@ -69,10 +68,10 @@ class mweApiUiConfJs {
 	function getJsConfigLine( $configName, $value ){
 		if( $this->preLoaderMode ){
 			if( ! $this->jsConfigCheckDone){
-				$o='if( ! window[\'preMwEmbedConfig\'] ) { preMwEmbedConfig = {}; };';
+				$o='if( ! window[\'preMwEmbedConfig\'] ) { window.preMwEmbedConfig = {}; };';
 				$this->jsConfigCheckDone = true;
 			}
-			return $o . 'preMwEmbedConfig[\'' . htmlspecialchars( $configName ) . '\'] = ' . $value . ';' . "\n";
+			return $o . 'window.preMwEmbedConfig[\'' . htmlspecialchars( $configName ) . '\'] = ' . $value . ';' . "\n";
 		} else {
 			return 'mw.setConfig(\'' . htmlspecialchars( $configName ) . '\', ' . $value . ');' . "\n";
 		}
@@ -88,14 +87,17 @@ class mweApiUiConfJs {
 			require_once( dirname( __FILE__ ) .  '/../KalturaResultObject.php' );
 			try{
 				// Init a new result object with the client tag: 
-				$this->resultObject = new KalturaResultObject( 'html5iframe:' . $wgMwEmbedVersion );;
+				$this->resultObject = new KalturaResultObject( 'html5iframe:' . $wgMwEmbedVersion );
 			} catch ( Exception $e ){
 				$this->fatalError( $e->getMessage() );
 			}
 		}
 		return $this->resultObject;
 	}
-	
+	// report nothing on failure
+	function fatalError( $error ){
+		die( '/* Error: ' . $error . ' */' );
+	}
 	function sendHeaders(){
 		global $wgKalturaUiConfCacheTime;
 		header('Content-type: text/javascript' );
@@ -108,6 +110,7 @@ class mweApiUiConfJs {
 		header( "Expires: " . gmdate( "D, d M Y H:i:s", $time + $wgKalturaUiConfCacheTime ) . " GM" );
 	}
 }
+
 // lcfirst does not exist in old php
 if ( false === function_exists('lcfirst') ):
     function lcfirst( $str )
