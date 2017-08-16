@@ -125,9 +125,9 @@ class kalturaIframe {
 			$o.='<div id="directFileLinkThumb"></div>';
 			$o.='<a href="' . $downloadUrl . '" id="directFileLinkButton" target="_blank"></a>';
 		$o.='</div>';
-
 		return $o;
 	}
+	
 	private function getPlaylistPlayerSizeCss(){
 		$width = 400;
 		$height = 300;
@@ -187,49 +187,23 @@ class kalturaIframe {
 			'wid' => 'kwidgetid',
 			'autoplay' => 'autoplay',
 		);
-		$posterUrl = false;
-		// Check if we have flashvar: loadThumbnailWithKs, if so load the thumbnail with KS
-		$ksParam = '';
-		if( isset( $_REQUEST['flashvars'] ) && is_array( $_REQUEST['flashvars'] ) && 
-			isset( $_REQUEST['flashvars']['loadThumbnailWithKs']) ) 
-		{
-			$ksParam = '?ks=' . $this->getResultObject()->getKS();
-		}
 	
 		// See if we have access control restrictions
 		// Check access control and throw an exception if not allowed: 
 		$acStatus = $this->getResultObject()->isAccessControlAllowed( $resultObject );
 		if( $acStatus !== true ){
 			$this->playerError = $acStatus;
-			//$sources = $this->getResultObject()->getBlackVideoSources();
-		} else {	
-			try {
-				// We should grab the thumbnail url from our entry to get the latest version of the thumbnail
-				if( $this->getResultObject()->getThumbnailUrl() ){
-					$posterUrl = $this->getResultObject()->getThumbnailUrl() . '/height/480' . $ksParam;
-				} else {
-					$posterUrl = $this->getResultObject()->getBlackPoster();
-				}
-				// get Player sources: 
-				//$sources = $this->getResultObject()->getSources();
-				// If we have an error, show it
-				if( $this->getResultObject()->getError() ) {
-					$this->playerError = $this->getResultObject()->getError();
-					//$sources = $this->getResultObject()->getBlackVideoSources();
-				}
-			} catch ( Exception $e ){
-				// xxx log an empty entry id lookup!
-				$this->fatalError( $e->getMessage() );
+		} else {
+			// If we have an error, show it
+			if( $this->getResultObject()->getError() ) {
+				$this->playerError = $this->getResultObject()->getError();
 			}
 		}
 
 		// NOTE: special persistentNativePlayer class will prevent the video from being swapped
 		// so that overlays work on the iPad.
 		$o = "\n\n\t" .'<video class="persistentNativePlayer" ';
-		// output the poster if set: 
-		if( $posterUrl ){
-			$o.='poster="' . htmlspecialchars( $posterUrl ) . '" ';
-		}
+		$o.='poster="' . htmlspecialchars( $this->getResultObject()->getThumbnailUrl() ) . '" ';
 		$o.='id="' . htmlspecialchars( $this->getIframeId() ) . '" ' .
 			'style="' . $playerStyle . '" ';
 
@@ -245,7 +219,7 @@ class kalturaIframe {
 				}
 			}
 		}
-		if( $this->playerError  !== false ){
+		if( $this->playerError !== false ){
 			// TODO should move this to i8ln keys instead of raw msgs
 			$o.= ' data-playerError="' . htmlentities( $this->playerError ) . '" ';
 		}
@@ -257,22 +231,6 @@ class kalturaIframe {
 		// Close the open video tag attribute set
 		$o.='>';
 
-		
-		// Output each source as a child element ( for javascript off browsers to have a chance
-		// to playback the content
-		/* commented out for now, apperently not needed.
-		foreach( $sources as $source ){
-			// Android has issues with type attribute on source element
-			$o.= "\n\t\t" .'<source ' .
-					'type="' . htmlspecialchars( $source['type'] ) . '" ' . 
-					'src="' . $source['src'] . '" '.
-					'data-flavorid="' . htmlspecialchars( $source['data-flavorid'] ) . '" ';
-			if( isset( $source['data-bandwidth'] )){
-				$o.= 'data-bandwidth="' . htmlspecialchars( $source['data-bandwidth'] ) . '" ';
-			}
-			$o.= '></source>';
-		}
-		*/
 		// To be on the safe side include the flash player and
 		// direct file link as a child of the video tag
 		// ( if javascript is "off" and they don't have video tag support for example )
@@ -297,16 +255,23 @@ class kalturaIframe {
 		$o = '<object id="' . htmlspecialchars( $playerId ) . '" name="' . $playerId . '" ' .
 				'type="application/x-shockwave-flash" allowFullScreen="true" '.
 				'allowNetworking="all" allowScriptAccess="always" height="100%" width="100%" style="height:100%;width:100%" '.
+				'bgcolor="#000000" ' .
 				'xmlns:dc="http://purl.org/dc/terms/" '.
 				'xmlns:media="http://search.yahoo.com/searchmonkey/media/" '.
 				'rel="media:video" '.
 				'resource="' . htmlspecialchars( $this->getSwfUrl() ) . '" '.
-				'data="' . htmlspecialchars( $this->getSwfUrl() ) . '"> '.
-				'<param name="wmode" value="opaque" />' .
-				'<param name="allowFullScreen" value="true" /><param name="allowNetworking" value="all" />' .
-				'<param name="allowScriptAccess" value="always" /><param name="bgcolor" value="#000000" />'.
-				'<param name="flashVars" value="';
+				'data="' . htmlspecialchars( $this->getSwfUrl() ) . '"> ';
 		
+		// check for wmod param:
+		if( isset( $_REQUEST['wmode'] ) && ( $_REQUEST['wmode'] == 'opaque' ||  $_REQUEST['wmode'] =='transparent' ) ){
+			$o.= '<param name="wmode" value="transparent" />';
+		} else {
+			$o.= '<param name="wmode" value="direct" />';
+		}
+		
+		$o.= '<param name="allowFullScreen" value="true" /><param name="allowNetworking" value="all" />' .
+			'<param name="allowScriptAccess" value="always" /><param name="bgcolor" value="#000000" />'.
+			'<param name="flashVars" value="';
 		$o.= $this->getFlashVarsString() ;
 		// close the object tag add the movie param and childHTML: 
 		$o.='" /><param name="movie" value="' . htmlspecialchars( $this->getSwfUrl() ) . '" />'.
@@ -869,9 +834,10 @@ class kalturaIframe {
 			// part of the javascript check kIsHTML5FallForward )
 			if( document.getElementById( 'videoContainer' ) ){
 				try{
-					document.getElementById( 'videoContainer' ).innerHTML = "";
+					var el = document.getElementById( 'videoContainer' );
+					el.parentNode.removeChild(el);
 				}catch(e){
-					// failed to empty video tag
+					// failed to remove video container
 				}
 			}
 			
@@ -887,7 +853,7 @@ class kalturaIframe {
 				// also we need to see if the entryId supports direct download links
 				document.write('<?php echo $this->getFileLinkHTML()?>');
 
-				var thumbSrc = kGetEntryThumbUrl({
+				var thumbSrc = mw.getKalturaThumbUrl({
 					'entry_id' : '<?php echo $this->getResultObject()->getEntryId() ?>',
 					'partner_id' : '<?php echo $this->getResultObject()->getPartnerId() ?>',
 					'height' : ( document.body.clientHeight )? document.body.clientHeight : '300',

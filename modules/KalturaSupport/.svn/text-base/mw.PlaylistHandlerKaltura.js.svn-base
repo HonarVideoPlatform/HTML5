@@ -29,6 +29,9 @@ mw.PlaylistHandlerKaltura.prototype = {
 	
 	bindPostFix: '.playlistHandlerKaltura',
 	
+	// store any playlist loading errors:
+	errorMsg: null,
+	
 	init: function ( playlist, options ){
 		this.playlist = playlist;
 		// set all the options: 
@@ -67,6 +70,9 @@ mw.PlaylistHandlerKaltura.prototype = {
 			}
 		);
 	},
+	getConfig: function( key ){
+		return this.playlist.embedPlayer.getKalturaConfig( 'playlistAPI', key );
+	},
 	loadPlaylist: function ( callback ){
 		var _this = this;
 		
@@ -82,21 +88,15 @@ mw.PlaylistHandlerKaltura.prototype = {
 					'playlist_id' : _this.playlist_id 
 				});
 			}
-			// Load the playlist config: 
-			var plApi = _this.playlist.embedPlayer.getKalturaConfig(
-					'playlistAPI', 
-					['autoContinue', 'autoPlay']
-			);
-			
 			var plConf = _this.playlist.embedPlayer.getKalturaConfig(
 					'playlist', 
 					[ 'includeInLayout', 'width', 'height' ]
 			);
 			// Check for autoContinue 
-			_this.autoContinue = plApi.autoContinue;
+			_this.autoContinue = _this.getConfig( 'autoContinue' );
 			
 			// Set autoPlay
-			_this.autoPlay = plApi.autoPlay;
+			_this.autoPlay =_this.getConfig( 'autoPlay' );
 			
 			// Set width:
 			_this.videolistWidth = ( plConf.width )?  plConf.width : _this.$uiConf.find('#playlist').attr('width');
@@ -197,6 +197,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 	},
 	loadPlaylistById: function( playlist_id, callback ){
 		var _this = this;
+		mw.log("PlaylistHandlerKaltura::loadPlaylistById> " + playlist_id );
 		var embedPlayer = this.playlist.embedPlayer;
 		
 		// Check if the playlist is mrss url ( and use the mrss handler )
@@ -232,8 +233,11 @@ mw.PlaylistHandlerKaltura.prototype = {
 				playlistData = playlistDataResult[0];
 			} else {
 				mw.log("Error: kaltura playlist:" + playlist_id + " could not load:" + playlistDataResult.code);
-			}			
-			mw.log( 'kPlaylistGrabber::Got playlist of length::' +   playlistData.length );
+				_this.errorMsg = "Error loading playlist:" + playlistDataResult.code;
+				callback();
+				return ;
+			}
+			mw.log( 'PlaylistHandlerKaltura::Got playlist of length::' +   playlistData.length );
 			if( playlistData.length > mw.getConfig( "Playlist.MaxClips" ) ){
 				playlistData = playlistData.splice(0, mw.getConfig( "Playlist.MaxClips" ) );
 			}
@@ -269,6 +273,12 @@ mw.PlaylistHandlerKaltura.prototype = {
 	},
 	playClip: function( embedPlayer, clipIndex, callback ){
 		var _this = this;
+		if( !embedPlayer ){
+			mw.log("Error:: PlaylistHandlerKaltura:playClip > no embed player");
+			callback();
+			return;
+		}
+		
 		// Check if entry id already matches ( and is loaded ) 
 		if( embedPlayer.kentryid == this.getClip( clipIndex ).id ){
 			if( this.loadingEntry ){
@@ -284,6 +294,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 		// Listen for change media done
 		var bindName = 'onChangeMediaDone' + this.bindPostFix;
 		$( embedPlayer).unbind( bindName ).bind( bindName, function(){
+			mw.log( 'mw.PlaylistHandlerKaltura:: onChangeMediaDone' );
 			_this.loadingEntry = false;
 			embedPlayer.play();
 			if( callback ){
@@ -364,7 +375,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 	doDataProviderAction: function ( property, value ){
 		 switch( property ){
 		 	case 'selectedIndex':
-		 		// update the selected clip ( and actually play it apparently ) 
+		 		// Update the selected clip ( and actually play it apparently ) 
 		 		this.playlist.playClip( parseInt( value ) );
 			break;
 		 }
@@ -418,7 +429,11 @@ mw.PlaylistHandlerKaltura.prototype = {
 		);
 		$item.find('.nameAndDuration')
 			.after( $('<div />').css({'display': 'block', 'height': '20px'} ) )
-			.find( 'div span:last' ).css('float', 'right')
+			//.find( 'div span:last' ).css('float', 'right')
+		
+		// check for decendent margin-left
+		$item.find('.hasMarginLeft' ).slice(1).css('margin-left', '');
+		
 			
 		return $item;
 	},
@@ -443,8 +458,10 @@ mw.PlaylistHandlerKaltura.prototype = {
 				case 'hbox':
 				case 'canvas':
 					var $node = $('<div />');
-					if( offsetLeft )
-						$node.css( 'margin-left', offsetLeft );
+					if( offsetLeft ){
+						$node.css( 'margin-left', offsetLeft )
+							.addClass("hasMarginLeft")
+					}
 					$node.append( 
 						_this.getBoxLayout( clipIndex, $(boxItem) ) 
 					);
@@ -478,6 +495,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 				}
 			}
 		});
+		
 		// check for box model ("100%" single line float right, left );
 		if( $boxContainer.find('span').length == 2 && $boxContainer.find('span').slice(0).css('width') == '100%'){
 			 $boxContainer.find('span').slice(0).css({'width':'', 'float':'left'});
@@ -493,10 +511,12 @@ mw.PlaylistHandlerKaltura.prototype = {
 		$boxContainer.find('div,span').each(function( inx, node){
 			//if( $(node).css('width') == '100%')
 			$(node).css('width', ''); 
-			
 			// and box layout does crazy things with virtual margins :( remove width for irDescriptionIrScreen
 			if( $(node).data('id') == 'irDescriptionIrScreen' || $(node).data('id') == 'irDescriptionIrText'  ){
-				$(node).css('height', '');
+				$(node).css({
+					'height': '',
+					'float': 'left'
+				});
 			}
 			if( $(node).hasClass('hbox') || $(node).hasClass('vbox') || $(node).hasClass('canvas') ){
 				$(node).css('height', '');
@@ -507,9 +527,12 @@ mw.PlaylistHandlerKaltura.prototype = {
 				&& ( $(node).siblings().hasClass('hbox') || $(node).siblings().hasClass('vbox')  )
 			){
 				$(node).css({
-					'float': '',
 					'display': 'block'
 				});
+			}
+			
+			if( $(node).hasClass('irDurationIrScreen')  ){
+				$( node ).css( 'float', 'right');
 			}
 		});
 		return $boxContainer;

@@ -382,9 +382,10 @@ mw.PlayerControlBuilder.prototype = {
 		this.fullscreenMode = true;
 		var triggerOnOpenFullScreen = true;
 		if( !mw.getConfig('EmbedPlayer.IsIframeServer' ) ){
+			var vid = this.embedPlayer.getPlayerElement();
 			if( mw.getConfig('EmbedPlayer.EnableIpadNativeFullscreen')
 					&&
-				this.embedPlayer.getPlayerElement().webkitSupportsFullscreen 
+				vid && vid.webkitSupportsFullscreen 
 			){
 				this.embedPlayer.getPlayerElement().webkitEnterFullscreen();
 				triggerOnOpenFullScreen = false;
@@ -399,6 +400,21 @@ mw.PlayerControlBuilder.prototype = {
 		if( triggerOnOpenFullScreen ) {
 			$( embedPlayer ).trigger( 'onOpenFullScreen' );
 		}
+
+		// Add a secondary fallback resize ( sometimes iOS loses the $( window ).resize ) binding )
+		function getWindowSize(){
+			return {
+				'width' : $(window).width(),
+				'height' : $(window).height()
+			};
+		};
+		function syncPlayerSize(){
+			if( $( embedPlayer ).width() != $(window).width() ){
+				embedPlayer.resizePlayer( getWindowSize() );
+			};
+		}
+		setTimeout( syncPlayerSize, 50);
+		setTimeout( syncPlayerSize, 200);
 	},
 	doFullScreenPlayerDom: function(){
 		var _this = this;
@@ -431,6 +447,7 @@ mw.PlayerControlBuilder.prototype = {
 
 		// Get the base offset:
 		this.windowOffset = this.getWindowOffset();
+		
 		// Change the z-index of the interface
 		$interface.css( {
 			'position' : 'fixed',
@@ -527,10 +544,18 @@ mw.PlayerControlBuilder.prototype = {
 		// Bind resize resize window to resize window
 		$( window ).resize( function() {
 			if( _this.fullscreenMode ){
-				embedPlayer.resizePlayer({
+				// don't resize bellow original size: 
+				var targetSize = {
 					'width' : $( window ).width(),
 					'height' : $( window ).height()
-				});
+				};
+				if( targetSize.width < embedPlayer.getWidth() ){
+					targetSize.width = embedPlayer.getWidth();
+				}
+				if( targetSize.height < embedPlayer.getHeight() ){
+					targetSize.height =  embedPlayer.getHeight();
+				}
+				embedPlayer.resizePlayer( targetSize );
 			}
 		});
 
@@ -628,7 +653,7 @@ mw.PlayerControlBuilder.prototype = {
 			if( embedPlayer.getPlayerElement() ){
 				$( embedPlayer.getPlayerElement() ).animate( interfaceCss );
 			}
-			
+
 			// Update player container size:
 			$( embedPlayer ).animate(  interfaceCss, callback );
 		} else {
@@ -639,6 +664,12 @@ mw.PlayerControlBuilder.prototype = {
 			// Update play button pos
 			$interface.find('.play-btn-large').css(  _this.getPlayButtonPosition( butonScale ) );
 			
+
+			// if a spinner is displayed re-add to center:
+			if( $( '#loadingSpinner_' + embedPlayer.id ).length ){
+				embedPlayer.addPlayerSpinner();
+			}
+
 			if( embedPlayer.getPlayerElement() ){
 				$( embedPlayer.getPlayerElement() ).css( targetAspectSize );
 			}
@@ -889,6 +920,13 @@ mw.PlayerControlBuilder.prototype = {
 
 		var _this = this;
 		var embedPlayer = this.embedPlayer;
+		
+		// prevent scrolling when in fullscreen:
+		document.ontouchmove = function( e ){
+			if( _this.fullscreenMode ){
+				e.preventDefault();
+			}
+		};
 		
 		// Setup "dobuleclick" fullscreen binding to embedPlayer ( if enabled ) 
 		if ( this.supportedComponents['fullscreen'] ){
@@ -1553,7 +1591,7 @@ mw.PlayerControlBuilder.prototype = {
 
 		var $shareInterface = $('<div />');
 
-		$shareList = $( '<ul />' );
+		var $shareList = $( '<ul />' );
 
 		$shareList
 		.append(
@@ -1828,7 +1866,7 @@ mw.PlayerControlBuilder.prototype = {
 						var oldMediaTime = _this.embedPlayer.getPlayerElement().currentTime;
 						var oldPaused =  _this.embedPlayer.paused
 						// Do a live switch
-						embedPlayer.switchPlaySrc(source.getSrc(), function( vid ){
+						embedPlayer.switchPlaySource(source, function( vid ){
 							// issue a seek
 							embedPlayer.setCurrentTime( oldMediaTime );
 							// reflect pause state

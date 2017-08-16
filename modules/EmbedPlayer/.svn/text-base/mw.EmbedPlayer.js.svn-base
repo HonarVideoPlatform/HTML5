@@ -47,8 +47,8 @@ mw.EmbedPlayer.prototype = {
 	// being updated)
 	'thumbnailUpdatingFlag' : false,
 
-	// Poster display flag
-	'posterDisplayed' : true,
+	// Stopped state flag
+	'stopped' : true,
 
 	// Local variable to hold CMML meeta data about the current clip
 	// for more on CMML see: http://wiki.xiph.org/CMML
@@ -179,7 +179,7 @@ mw.EmbedPlayer.prototype = {
 		// Set the player size attributes based loaded video element:
 		this.loadPlayerSize( element );
 
-		// Set the plugin id
+		// Set the playerElementId id
 		this.pid = 'pid_' + this.id;
 
 		// Grab any innerHTML and set it to missing_plugin_html
@@ -327,7 +327,7 @@ mw.EmbedPlayer.prototype = {
 		if( this.height.indexOf('100%') != -1 || this.width.indexOf('100%') != -1 ){
 			$relativeParent = $(element).parents().filter(function() {
 				 // reduce to only relative position or "body" elements
-				 return $(this).is('body') || $(this).css('position') == 'relative';
+				 return $( this ).is('body') || $( this ).css('position') == 'relative';
 			}).slice(0,1); // grab only the "first"
 			this.width = $relativeParent.width();
 			this.height = $relativeParent.height();
@@ -436,6 +436,8 @@ mw.EmbedPlayer.prototype = {
 	checkPlayerSources: function() {
 		mw.log( 'EmbedPlayer::checkPlayerSources: ' + this.id );
 		var _this = this;
+		// Allow plugins to listen to a preCheckPlayerSources ( for registering the source loading point )
+		$( _this ).trigger( 'preCheckPlayerSources' );
 
 		// Allow plugins to block on sources lookup ( cases where we just have an api key for example )
 		$( _this ).triggerQueueCallback( 'checkPlayerSourcesEvent', function(){
@@ -475,13 +477,29 @@ mw.EmbedPlayer.prototype = {
 	},
 
 	/**
-	 * Switch and play a video source ( useful for ads or bumper videos )
-	 *
-	 * Only works while video is in active play back. Only tested with native
-	 * playback atm.
+	 * Switch and play a video source
+	 * 
+	 * Checks if the target source is the same playback mode and does player switch if needed.
+	 * and calls playerSwichSource 
 	 */
-	switchPlaySrc: function(){
-		mw.log("Error: only native playback supports insertAndPlaySource right now");
+	switchPlaySource: function( source, switchCallback, doneCallback ){
+		var _this = this;
+		var targetPlayer =  mw.EmbedTypes.getMediaPlayers().defaultPlayer( source.mimeType ) ;
+		if( targetPlayer.id != this.selectedPlayer.id ){
+			this.selectedPlayer = targetPlayer;
+			this.updatePlaybackInterface( function(){
+				_this.playerSwichSource( source, switchCallback, doneCallback );
+			});
+		} else {
+			// call the player switch directly:
+			_this.playerSwichSource( source, switchCallback, doneCallback );
+		}
+	},
+	/**
+	 * abstract function  player interface must support actual source switch
+	 */
+	playerSwichSource: function( source, switchCallback, doneCallback  ){
+		mw.log( "Error player interface must support actual source switch");
 	},
 
 	/**
@@ -538,15 +556,15 @@ mw.EmbedPlayer.prototype = {
 		// Clear out any non-base embedObj methods:
 		if ( this.instanceOf ) {
 			eval( 'var tmpObj = mw.EmbedPlayer' + this.instanceOf );
-			for ( var i in tmpObj ) { // for in loop oky for object
-				if ( this[ 'parent_' + i ] ) {
+			for ( var i in tmpObj ) { 
+				// Restore parent into local location
+				if ( typeof this[ 'parent_' + i ] != 'undefined' ) {
 					this[i] = this[ 'parent_' + i];
 				} else {
 					this[i] = null;
 				}
 			}
 		}
-
 		// Set up the new embedObj
 		mw.log( 'EmbedPlayer::updatePlaybackInterface: embedding with ' + this.selectedPlayer.library );
 		this.selectedPlayer.load( function() {
@@ -566,25 +584,28 @@ mw.EmbedPlayer.prototype = {
 
 		// Get embed library player Interface
 		var playerInterface = mw[ 'EmbedPlayer' + _this.selectedPlayer.library ];
-
+		
+		// Build the player interface ( if the interface includes an init )
+		if( playerInterface.init ){
+			playerInterface.init();
+		}
+		
 		for ( var method in playerInterface ) {
-			if ( _this[method] && !_this['parent_' + method] ) {
+			if ( typeof _this[method] != 'undefined' && !_this['parent_' + method] ) {
 				_this['parent_' + method] = _this[method];
 			}
-			_this[ method ] = playerInterface[method];
+			_this[ method ] = playerInterface[ method ];
 		}
 		// Update feature support
 		_this.updateFeatureSupport();
 		// Update duration
 		_this.getDuration();
-		// Run callback in timeout to avoid function stacking
-		setTimeout(function(){
-			_this.showPlayer();
-			// Run the callback if provided
-			if ( callback && $.isFunction( callback ) ){
-				callback();
-			}
-		}, 0);
+		// Show the palyer after update:
+		_this.showPlayer();
+		// Run the callback if provided
+		if ( callback && $.isFunction( callback ) ){
+			callback();
+		}
 	},
 
 	/**
@@ -595,6 +616,7 @@ mw.EmbedPlayer.prototype = {
 	 *      system include vlc, native, java etc.
 	 */
 	selectPlayer: function( player ) {
+		mw.log("EmbedPlayer:: selectPlayer " + player.id );
 		var _this = this;
 		if ( this.selectedPlayer.id != player.id ) {
 			this.selectedPlayer = player;
@@ -602,7 +624,7 @@ mw.EmbedPlayer.prototype = {
 				// Hide / remove track container
 				_this.$interface.find( '.track' ).remove();
 				// We have to re-bind hoverIntent ( has to happen in this scope )
-				if( !this.useNativePlayerControls() && _this.controls && _this.controlBuilder.isOverlayControls() ){
+				if( !_this.useNativePlayerControls() && _this.controls && _this.controlBuilder.isOverlayControls() ){
 					_this.controlBuilder.showControlBar();
 					_this.$interface.hoverIntent({
 						'sensitivity': 4,
@@ -668,9 +690,9 @@ mw.EmbedPlayer.prototype = {
 	 * Check if the selected source is an audio element:
 	 */
 	isAudio: function(){
-		return 	( this.rewriteElementTagName == 'audio'
+		return ( this.rewriteElementTagName == 'audio'
 				||
-				( this.mediaElement && this.mediaElement.selectedSource.mimeType.indexOf('audio/') !== -1 )
+				( this.mediaElement && this.mediaElement.selectedSource && this.mediaElement.selectedSource.mimeType.indexOf('audio/') !== -1 )
 		);
 	},
 
@@ -762,14 +784,15 @@ mw.EmbedPlayer.prototype = {
 				this.stopEventPropagation();
 			}
 			
-			mw.log("EmbedPlayer:: trigger: ended");
+			mw.log("EmbedPlayer:: trigger: ended ( inteface continue pre-check: " + this.onDoneInterfaceFlag + ' )' );
 			$( this ).trigger( 'ended' );
 			mw.log("EmbedPlayer::onClipDone:Trigged ended, continue? " + this.onDoneInterfaceFlag);
 
 			
-			if( !this.onDoneInterfaceFlag ){
+			if( ! this.onDoneInterfaceFlag ){
 				// Restore events if we are not running the interface done actions
 				 this.restoreEventPropagation(); 
+				 return ;
 			}
 			
 			// A secondary end event for playlist and clip sequence endings
@@ -777,7 +800,6 @@ mw.EmbedPlayer.prototype = {
 				mw.log("EmbedPlayer:: trigger: postEnded");
 				$( this ).trigger( 'postEnded' );
 			}
-		
 			// if the ended event did not trigger more timeline actions run the actual stop:
 			if( this.onDoneInterfaceFlag ){
 				mw.log("EmbedPlayer::onDoneInterfaceFlag=true do interface done");
@@ -812,7 +834,7 @@ mw.EmbedPlayer.prototype = {
 	 */
 	showThumbnail: function() {
 		var _this = this;
-		mw.log( 'EmbedPlayer::showThumbnail' + this.posterDisplayed );
+		mw.log( 'EmbedPlayer::showThumbnail' + this.stopped );
 
 		// Close Menu Overlay:
 		this.controlBuilder.closeMenuOverlay();
@@ -821,7 +843,7 @@ mw.EmbedPlayer.prototype = {
 		this.updatePosterHTML();
 
 		this.paused = true;
-		this.posterDisplayed = true;
+		this.stopped = true;
 		// Make sure the controlBuilder bindings are up-to-date
 		this.controlBuilder.addControlBindings();
 
@@ -856,14 +878,14 @@ mw.EmbedPlayer.prototype = {
 			});
 			$( this ).show();
 		}
-		if(  !this.useNativePlayerControls() && !this.isPersistentNativePlayer() && !_this.controlBuilder.isOverlayControls() ){
+		if( !this.useNativePlayerControls() && !this.isPersistentNativePlayer() && !_this.controlBuilder.isOverlayControls() ){
 			// Update the video size per available control space.
 			$(this).css('height', this.height - _this.controlBuilder.height );
 		}
 
 
 		// Add controls if enabled:
-		if ( ! this.useNativePlayerControls() && this.controls ) {
+		if ( !this.useNativePlayerControls() && this.controls ) {
 			this.controlBuilder.addControls();
 		}
 
@@ -884,10 +906,10 @@ mw.EmbedPlayer.prototype = {
 		setTimeout(function(){
 			_this.applyIntrinsicAspect();
 		}, 0);
-
 		// Update the playerReady flag
 		this.playerReady = true;
 		mw.log("EmbedPlayer:: Trigger: playerReady");
+		
 		// trigger the player ready event;
 		$( this ).trigger( 'playerReady' );
 
@@ -1228,9 +1250,10 @@ mw.EmbedPlayer.prototype = {
 		// Hide the play btn
 		this.$interface.find('.play-btn-large').hide(); 
 		
-		//If we are change playing media add a ready binding: 
+		//If we are change playing media add a ready binding:
 		var bindName = 'playerReady.changeMedia';
 		$this.unbind( bindName ).bind( bindName, function(){
+			mw.log('mw.EmbedPlayer::changeMedia playerReady callback');
 			// Always show the control bar on switch:
 			if( _this.controlBuilder ){
 				_this.controlBuilder.showControlBar();
@@ -1245,12 +1268,13 @@ mw.EmbedPlayer.prototype = {
 			if( _this.isPersistentNativePlayer() ){
 				// If switching a Persistent native player update the source:
 				// ( stop and play won't refresh the source  )
-				_this.switchPlaySrc( _this.getSrc(), function(){
+				_this.switchPlaySource( _this.getSource(), function(){
 					$this.trigger( 'onChangeMediaDone' );
 					if( chnagePlayingMedia ){
 						_this.play();
 					} else {
-						_this.pause();
+						// need to confirm this pause is not needed ( mdale )
+						//_this.pause();
 					}
 					if( callback ){
 						callback()
@@ -1320,7 +1344,6 @@ mw.EmbedPlayer.prototype = {
 					'height' : '100%'
 				})
 				.attr({
-					'id' : 'img_thumb_' + this.id,
 					'src' : posterSrc
 				})
 				.addClass( 'playerPoster' )
@@ -1341,6 +1364,10 @@ mw.EmbedPlayer.prototype = {
 	 *     false if the mwEmbed player interface should not be used
 	 */
 	useNativePlayerControls: function() {
+
+ 		if( mw.getConfig('EmbedPlayer.WebKitPlaysInline') === true && mw.isIphone() ) {
+ 			return false;
+ 		}
 
 		if( this.usenativecontrols === true ){
 			return true;
@@ -1477,9 +1504,6 @@ mw.EmbedPlayer.prototype = {
 	 */
 	getShareIframeObject: function(){
 		// TODO move to getShareIframeSrc
-        if (typeof(mw.IA) != 'undefined'){
-        	return mw.IA.embedCode();
-        }
 		iframeUrl = this.getIframeSourceUrl();
 
 		// Set up embedFrame src path
@@ -1642,18 +1666,18 @@ mw.EmbedPlayer.prototype = {
 	play: function() {
 		var _this = this;
 		var $this = $( this );
-		mw.log( "EmbedPlayer:: play: " + this._propagateEvents + ' poster: ' +  this.posterDisplayed );
+		mw.log( "EmbedPlayer:: play: " + this._propagateEvents + ' poster: ' +  this.stopped );
 
 		// Store the absolute play time ( to track native events that should not invoke interface updates )
 		this.absoluteStartPlayTime =  new Date().getTime();
 		
 		// Check if thumbnail is being displayed and embed html
-		if ( _this.posterDisplayed ) {
+		if ( _this.stopped ) {
 			if ( !_this.selectedPlayer ) {
 				_this.showPluginMissingHTML();
 				return false;
 			} else {
-				_this.posterDisplayed = false;
+				_this.stopped = false;
 				_this.embedPlayerHTML();
 			}
 		}
@@ -1692,8 +1716,11 @@ mw.EmbedPlayer.prototype = {
 
 		// if we have start time defined, start playing from that point
 		if( this.currentTime < this.startTime ) {
-			var percent = parseFloat( this.startTime ) / this.getDuration();
-			this.seek( percent );
+			$this.bind('playing.embedPlayer', function(){
+				var percent = parseFloat( _this.startTime ) / _this.getDuration();
+				_this.seek( percent );
+				$this.unbind('playing.embedPlayer');
+			});
 		}
 		
 		this.playInterfaceUpdate();
@@ -1741,6 +1768,9 @@ mw.EmbedPlayer.prototype = {
 		this.isPauseLoading = true;
 	},
 	addPlayerSpinner: function(){
+		// remove any old spinner
+		$( '#loadingSpinner_' + this.id ).remove();
+		// re add
 		$( this ).getAbsoluteOverlaySpinner()
 		.attr( 'id', 'loadingSpinner_' + this.id );
 	},
@@ -1847,6 +1877,8 @@ mw.EmbedPlayer.prototype = {
 			this.bufferedPercent = 0; // reset buffer state
 			this.controlBuilder.setStatus( this.getTimeRange() );
 		}
+		// update the player to stopped state: 
+		this.stopped = true;
 		// Reset the playhead
 		this.updatePlayHead( 0 );
 		// update the status: 
@@ -1976,7 +2008,7 @@ mw.EmbedPlayer.prototype = {
 	 * @return {Boolean} true if playing false if not playing
 	 */
 	isPlaying : function() {
-		if ( this.posterDisplayed ) {
+		if ( this.stopped ) {
 			// in stopped state
 			return false;
 		} else if ( this.paused ) {
@@ -1993,7 +2025,7 @@ mw.EmbedPlayer.prototype = {
 	 * @return {Boolean} true if stopped false if playing
 	 */
 	isStopped: function() {
-		return this.posterDisplayed;
+		return this.stopped;
 	},
 	/**
 	 * Stop the play state monitor
@@ -2019,7 +2051,7 @@ mw.EmbedPlayer.prototype = {
 		// Check for current time update outside of embed player
 		_this.syncCurrentTime();
 		
-//		mw.log( "monitor:: " + this.currentTime + ' propagateEvents: ' +  _this._propagateEvents );
+		// mw.log( "monitor:: " + this.currentTime + ' propagateEvents: ' +  _this._propagateEvents );
 		
 		// Keep volume proprties set outside of the embed player in sync
 		_this.syncVolume();
@@ -2154,7 +2186,7 @@ mw.EmbedPlayer.prototype = {
 			// Check if we are "done"
 			var endPresentationTime = ( this.startOffset ) ? ( this.startOffset + this.duration ) : this.duration;
 			if ( this.currentTime >= endPresentationTime ) {
-				//mw.log( "mWEmbedPlayer::should run clip done :: " + this.currentTime + ' > ' + endPresentationTime );
+				mw.log( "mw.EmbedPlayer::updatePlayheadStatus > should run clip done :: " + this.currentTime + ' > ' + endPresentationTime );
 				this.onClipDone();
 			}
 		} else {
@@ -2285,7 +2317,14 @@ mw.EmbedPlayer.prototype = {
 		// No selected source return false:
 		return false;
 	},
-	
+	/**
+	 * Return the currently selected source
+	 */
+	getSource: function(){
+		// update the current selected source: 
+		this.mediaElement.autoSelectSource();
+		return this.mediaElement.selectedSource;
+	},
 	/**
 	 * Static helper to get media sources from a set of videoFiles
 	 * 
@@ -2310,7 +2349,7 @@ mw.EmbedPlayer.prototype = {
 		var source = myMediaElement.autoSelectSource();
 		if( source ){
 			mw.log("EmbedPlayer::getCompatibleSource: " + source.getSrc());
-			return source.getSrc();
+			return source;
 		}
 		mw.log("Error:: could not find compatible source");
 		return false;

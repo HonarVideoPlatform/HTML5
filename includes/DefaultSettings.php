@@ -2,7 +2,7 @@
 /** 
  * This file stores default settings for Kaltura html5 client library "mwEmbed".
  * 
- *  DO NOT MODIFY THIS FILE. Instead modify LocalSettings.php in the parent mwEmbd directory. 
+ * DO NOT MODIFY THIS FILE. Instead modify LocalSettings.php in the parent mwEmbd directory. 
  * 
  */
 
@@ -19,7 +19,7 @@ $wgMwEmbedPathUrl = str_replace(
 );
 
 // The version of the library 
-$wgMwEmbedVersion = '1.6.5';
+$wgMwEmbedVersion = '1.6.6a17';
 
 // Url to the resource loader php script: 
 $wgResourceLoaderUrl = $wgMwEmbedPathUrl . 'ResourceLoader.php';
@@ -129,7 +129,7 @@ $wgKalturaUseAppleAdaptive = ($wgHTTPProtocol == 'https') ? false : true;
 
 // Add Kaltura api services: ( should be part of kaltura module config)
 include_once( realpath( dirname( __FILE__ ) )  . '/../modules/KalturaSupport/apiServices/mweApiUiConfJs.php' );
-
+include_once( realpath( dirname( __FILE__ ) )  . '/../modules/KalturaSupport/apiServices/mweApiSleepTest.php' );
 
 /*********************************************************
  * Include local settings override:
@@ -139,4 +139,4 @@ $wgLocalSettingsFile = realpath( dirname( __FILE__ ) ) . '/../LocalSettings.php'
 if( is_file( $wgLocalSettingsFile ) ){
 	require_once( $wgLocalSettingsFile );
 }
-?>
+

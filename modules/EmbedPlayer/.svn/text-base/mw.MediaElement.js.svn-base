@@ -197,12 +197,44 @@ mw.MediaElement.prototype = {
 				return setSelectedSource( source );;
 			}
 		});
+		
+		
+		
+		// Set apple adaptive ( if available )
+		var vndSources = this.getPlayableSources('application/vnd.apple.mpegurl')
+		if( vndSources.length && mw.EmbedTypes.getMediaPlayers().getMIMETypePlayers( 'application/vnd.apple.mpegurl' ).length ){
+			// Check for device flags: 
+			var desktopVdn, mobileVdn;
+			$.each( vndSources, function( inx, source) {
+				// kaltura tags vdn sources with iphonenew
+				if( source.getFlavorId() && source.getFlavorId().toLowerCase() == 'iphonenew' ){
+					mobileVdn = source;
+				} else {
+					desktopVdn = source;
+				}
+			})
+			// NOTE: We really should not have two vdn sources the point of vdn is to be a set of adaptive streams. 
+			// This work around is a result of kaltura HLS stream tagging 
+			if( mw.isIphone() && mobileVdn ){
+				setSelectedSource( mobileVdn );
+			} else if( desktopVdn ){
+				setSelectedSource( desktopVdn );
+			}
+		}
+		if ( this.selectedSource ) {
+			mw.log('MediaElement::autoSelectSource: Set via Adaptive HLS: source flavor id:' + _this.selectedSource.getFlavorId() + ' src: ' + _this.selectedSource.getSrc() );
+			return this.selectedSource;
+		}
+		
+		
 
-		//Set via user bandwith pref 
+		//Set via user bandwidth pref will always set source to closest bandwidth allocation while not going over  EmbedPlayer.UserBandwidth
 		if( $.cookie('EmbedPlayer.UserBandwidth') ){
+			var currentMaxBadwith = 0;
 			$.each( playableSources, function(inx, source ){
 				if( source.bandwidth ){
-					if( source.bandwidth < $.cookie('EmbedPlayer.UserBandwidth') ){
+					if( source.bandwidth > currentMaxBadwith && source.bandwidth <= $.cookie('EmbedPlayer.UserBandwidth') ){
+						currentMaxBadwith = source.bandwidth;
 						setSelectedSource( source );
 					}
 				}
@@ -213,22 +245,36 @@ mw.MediaElement.prototype = {
 			return this.selectedSource;
 		}
 		
-		// Set via embed resolution closest to relative to display size 
-		var minSizeDelta = null;
-		if( this.parentEmbedId ){
-			var displayWidth = $('#' + this.parentEmbedId).width();
-			$.each( playableSources, function(inx, source ){
-				if( source.width && displayWidth ){
-					var sizeDelta =  Math.abs( source.width - displayWidth );
-					mw.log('MediaElement::autoSelectSource: size delta : ' + sizeDelta + ' for s:' + source.width );
-					if( minSizeDelta == null ||  sizeDelta < minSizeDelta){
-						minSizeDelta = sizeDelta;
-						setSelectedSource( source );
-					}
-				}
-			});
-		}
 		
+		// If we have at least one native source, throw out non-native sources 
+		// for size based source selection: 
+		var nativePlayableSources = [];
+		$.each( playableSources, function(inx, source ){
+			var mimeType = source.mimeType;
+			var player = mw.EmbedTypes.getMediaPlayers().defaultPlayer( mimeType );
+			if ( player && player.library == 'Native'	) {
+				nativePlayableSources.push( source );
+			}
+		});
+		
+		// if we have native sources to chouse from chouse based on embed size: 
+		if( nativePlayableSources.length ){
+			// Set via embed resolution closest to relative to display size 
+			var minSizeDelta = null;
+			if( this.parentEmbedId ){
+				var displayWidth = $('#' + this.parentEmbedId).width();
+				$.each( nativePlayableSources, function(inx, source ){
+					if( source.width && displayWidth ){
+						var sizeDelta =  Math.abs( source.width - displayWidth );
+						mw.log('MediaElement::autoSelectSource: size delta : ' + sizeDelta + ' for s:' + source.width );
+						if( minSizeDelta == null ||  sizeDelta < minSizeDelta){
+							minSizeDelta = sizeDelta;
+							setSelectedSource( source );
+						}
+					}
+				});
+			}
+		}
 		// If we found a source via display resolution return true
 		if ( this.selectedSource ) {
 			mw.log('MediaElement::autoSelectSource: Set via embed resolution:' + this.selectedSource.width + ' close to: ' + displayWidth );
@@ -341,7 +387,7 @@ mw.MediaElement.prototype = {
 	 * Checks if media is a playable type
 	 */
 	isPlayableType: function( mimeType ) {
-//		mw.log("isPlayableType:: " + mimeType);
+		//	mw.log("isPlayableType:: " + mimeType);
 		if ( mw.EmbedTypes.getMediaPlayers().defaultPlayer( mimeType ) ) {
 			return true;
 		} else {
@@ -380,18 +426,21 @@ mw.MediaElement.prototype = {
 	/**
 	 * Get playable sources
 	 *
+	 *@pram mimeFilter {=string} (optional) Filter the playable sources set by mime filter
+	 *
 	 * @returns {Array} of playable media sources
 	 */
-	getPlayableSources: function() {
+	getPlayableSources: function( mimeFilter ) {
 		 var playableSources = [];
 		 for ( var i = 0; i < this.sources.length; i++ ) {
-			 if ( this.isPlayableType( this.sources[i].mimeType ) ) {
+			 if ( this.isPlayableType( this.sources[i].mimeType ) 
+					 &&
+				( !mimeFilter || this.sources[i].mimeType.indexOf( mimeFilter) != -1  )
+			){
 				 playableSources.push( this.sources[i] );
-			} else {
-				 
 			}
 		 };
-		 mw.log( "MediaElement::GetPlayableSources " + playableSources.length + ' sources playable out of ' +  this.sources.length );
+		 mw.log( "MediaElement::GetPlayableSources playable "+ playableSources.length + ' sources playable out of ' +  this.sources.length  + " mimeFilter:" + mimeFilter );
 		 return playableSources;
 	}
 };

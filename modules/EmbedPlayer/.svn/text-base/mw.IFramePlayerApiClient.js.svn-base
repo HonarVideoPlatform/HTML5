@@ -119,13 +119,14 @@ mw.IFramePlayerApiClient.prototype = {
 
 		var doFullscreen = function(){
 			mw.log("iframeClient:: doFullscreen()");
+			localIframeInFullscreen = true;
+			
 			// Save vertical scroll position and scroll to top
 			verticalScrollPosition = (document.all ? document.scrollTop : window.pageYOffset);
 			scrollToTop();
-			localIframeInFullscreen = true;
-			// changed to fixed from absolute in order to "disable" scrolling
-			var playerCssPosition = (mw.isIpad()) ? 'absolute' : 'fixed';
 			
+			// iPad 5 supports fixed position in a bad way, use absolute pos for iOS
+			var playerCssPosition = ( mw.isIOS() ) ? 'absolute': 'fixed';
 			// Remove absolute css of the interface parents
 			$iframe.parents().each( function() {
 				var $parent = $( this );
@@ -138,21 +139,33 @@ mw.IFramePlayerApiClient.prototype = {
 					$parent.css( 'position', 'static' );
 				}
 			});
+			
+			// Don't resize bellow original size: 
+			var targetSize = {
+				'width' : $( window ).width(),
+				'height' : $( window ).height()
+			};
+			if( targetSize.width < orgSize.width ){
+				targetSize.width = orgSize.width;
+			}
+			if( targetSize.height < orgSize.height ){
+				targetSize.height =  orgSize.height;
+			}
 			// Make the iframe fullscreen
 			$iframe
 				.css({
-					'z-index': mw.getConfig( 'EmbedPlayer.FullScreenZIndex' ) + 1,
+					'z-index': mw.getConfig( 'EmbedPlayer.FullScreenZIndex' ),
 					'position': playerCssPosition,
-					'top' : 0,
-					'left' : 0,
-					'width' : $(window).width(),
-					'height' : $(window).height(),
+					'top' : '0px',
+					'left' : '0px',
+					'width' : targetSize.width,
+					'height' : targetSize.height,
 					'margin': 0
 				})
 				.data(
 					'isFullscreen', true
 				);
-		};
+		}; 
 		
 		var restoreWindowMode = function(){
 			// Scroll back to the previews positon
@@ -188,7 +201,13 @@ mw.IFramePlayerApiClient.prototype = {
 		});
 		$( this.playerProxy ).bind( 'onOpenFullScreen', doFullscreen);
 		$( this.playerProxy ).bind( 'onCloseFullScreen', restoreWindowMode);
-		$( this.playerProxy ).bind( 'onTouchEnd', scrollToTop);
+		
+		// prevent scrolling when in fullscreen:
+		document.ontouchmove = function( e ){
+			if( localIframeInFullscreen ){
+				e.preventDefault();
+			}
+		};
 	},
 	/**
 	 * Handle received events
@@ -202,7 +221,7 @@ mw.IFramePlayerApiClient.prototype = {
 		
 		// check if the message object is for "this" player
 		if( msgObject.playerId !=  _this.playerProxy.id ){
-			// mw.log(' handleReceiveMessage (skiped ) ' + msgObject.playerId + ' != ' + _this.playerProxy.id );
+			// mw.log(' handleReceiveMessage (skipped ) ' + msgObject.playerId + ' != ' + _this.playerProxy.id );
 			return ;
 		}
 		

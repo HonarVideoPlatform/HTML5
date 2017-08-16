@@ -194,7 +194,7 @@
 					embedPlayer.startTime = parseFloat(value);
 				break;
 				case 'mediaPlayTo':
-					embedPlayer.endTime = parseFloat(value);
+					embedPlayer.pauseTime = parseFloat(value);
 				break;
 			}
 			// Give kdp plugins a chance to take attribute actions 
@@ -415,7 +415,7 @@
 				break;	
 				case 'playerStatusProxy':
 					switch( objectPath[1] ){
-						case 'kdpStatus': 
+						case 'kdpStatus':
 							//TODO
 						break;
 					}
@@ -530,17 +530,27 @@
 						callback( {}, embedPlayer.id );
 					});
 					break;
-				case 'volumeChanged': 
+				case 'playerReady':
+					b( 'playerReady' );
+					break;
+				case 'volumeChanged':
 					b( 'volumeChanged', function(event, percent){
-						callback( {'newVolume' : percent }, embedPlayer.id );
+						callback( { 'newVolume' : percent }, embedPlayer.id );
 					});
 					break;
 				case 'playerStateChange':
-					// TODO add in other state changes
+					// right before we start loading sources ( we enter a loading state )
+					b( 'preCheckPlayerSources', function(){
+						callback( 'loading', embedPlayer.id );
+					})
+					b( 'playerReady', function(){
+						callback( 'ready', embedPlayer.id );
+					});
 					b( 'onpause', function(){
 						callback( 'paused', embedPlayer.id );
 					});
 					b( 'onplay', function(){
+						// Go into playing state: 
 						callback( 'playing', embedPlayer.id );
 					});
 					break;
@@ -553,6 +563,7 @@
 				case 'doPause':
 					b( "onpause" );
 					break;
+				// TODO move ad Support events to the sequence proxy ( not in core KDPMapping )
 				case 'adStart':
 					b('AdSupport_StartAdPlayback');	
 					break;
@@ -562,19 +573,19 @@
 				// Pre sequences: 
 				case 'preSequenceStart':
 				case 'pre1start':
-					b( 'preSequence');
+					b( 'AdSupport_PreSequence');
 					break;
 				case 'preSequenceComplete':
-					b( 'preSequenceComplete');
+					b( 'AdSupport_PreSequenceComplete');
 					break;
 				
 				// Post sequences:
 				case 'post1start':
 				case 'postSequenceStart':
-					b( 'postSequence');
+					b( 'AdSupport_PostSequence');
 					break;
 				case 'postSequenceComplete':
-					b( 'postSequenceComplete' );
+					b( 'AdSupport_PostSequenceComplete' );
 					break;
 				case 'playerPlayed':
 				case 'play':

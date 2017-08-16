@@ -16,6 +16,9 @@ mw.KAdPlayer.prototype = {
 
 	// The local interval for monitoring ad playback: 
 	adMonitorInterval: null,
+
+	// Ad tracking flag:
+	adTrackingFlag: false,
 	
 	// The click binding: 
 	adClickPostFix :'.adClick',
@@ -53,6 +56,7 @@ mw.KAdPlayer.prototype = {
 			
 			// remove the video sibling ( used for ad playback )
 			_this.restoreEmbedPlayer();
+			
 			// Remove notice if present: 
 			$('#' + _this.embedPlayer.id + '_ad_notice' ).remove();
 			// Remove skip button if present: 
@@ -122,7 +126,7 @@ mw.KAdPlayer.prototype = {
 		// Check if should fire any impression beacon(s) 
 		if( adConf.impressions && adConf.impressions.length ){
 			// Fire all the impressions
-			for( var i =0; i< adConf.impressions; i++ ){
+			for( var i =0; i< adConf.impressions.length; i++ ){
 				mw.sendBeaconUrl( adConf.impressions[i].beaconUrl );
 			}
 		}
@@ -154,8 +158,8 @@ mw.KAdPlayer.prototype = {
 	displayVideoFile: function( adSlot, adConf ){
 		var _this = this;
 		// check that we have a video to display: 
-		var targetSrc =  _this.embedPlayer.getCompatibleSource( adConf.videoFiles );
-		if( !targetSrc ){
+		var targetSource =  _this.embedPlayer.getCompatibleSource( adConf.videoFiles );
+		if( !targetSource ){
 			mw.log("KAdPlayer:: displayVideoFile> Error no adSlot video src ");
 			adSlot.playbackDone();
 			return ;
@@ -180,9 +184,9 @@ mw.KAdPlayer.prototype = {
 			});
 		}
 		// Play the ad as sibling to the current video element.
-		if( _this.isVideoSiblingEnabled() ) {
-			_this.playVideoSibling(
-				targetSrc,
+		if( _this.isVideoSiblingEnabled( targetSource ) ) {
+			_this.playVideoSibling(	
+				targetSource,
 				function( vid ) {
 					_this.addAdBindings( vid, adSlot, adConf );
 				},
@@ -191,8 +195,8 @@ mw.KAdPlayer.prototype = {
 				} 
 			);
 		} else {
-			_this.embedPlayer.switchPlaySrc( 
-				targetSrc,
+			_this.embedPlayer.switchPlaySource( 
+				targetSource,
 				function( vid ) {
 					_this.addAdBindings( vid, adSlot, adConf );
 				},
@@ -205,7 +209,12 @@ mw.KAdPlayer.prototype = {
 	/**
 	 * Check if we can use the video sibling method or if we should use the fallback source swap. 
 	 */
-	isVideoSiblingEnabled: function(){
+	isVideoSiblingEnabled: function( targetSource ){
+		// if we have a target source use that to check for "image" and disable sibling video playback
+		if( targetSource && targetSource.getMIMEType().indexOf('image/') != -1 ){
+			return false;
+		}
+		
 		// iPhone won't play multiple videos well, use source switch
 		if( mw.isIphone() || mw.isAndroid2() || ( mw.isIpad() && ! mw.isIpad3() ) ){
 			return false;
@@ -215,17 +224,19 @@ mw.KAdPlayer.prototype = {
 	addAdBindings: function( vid,  adSlot, adConf ){
 		var _this = this;
 		if( !vid ){
-			mw.log("KAdPlayer:: Error: displayVideoFile no video callback " );
+			mw.log("KAdPlayer:: Error: displayVideoFile no vid to bind" );
 			return ;
 		}
+		// start ad tracking
+		this.adTrackingFlag = true;
 		mw.log("KAdPlayer:: source updated, add tracking");
 		// Bind all the tracking events ( currently vast based but will abstract if needed )
 		if( adConf.trackingEvents ){
 			if( vid.readyState > 0 ) {
-				_this.bindTrackingEvents( adConf.trackingEvents );
+				_this.addAdTracking( adConf.trackingEvents );
 			} else {
 				$( vid ).bind('loadedmetadata', function() {
-					_this.bindTrackingEvents( adConf.trackingEvents );
+					_this.addAdTracking( adConf.trackingEvents );
 				});
 			}
 		}
@@ -247,7 +258,7 @@ mw.KAdPlayer.prototype = {
 					.css( adSlot.notice.css )
 			);
 			var localNoticeCB = function(){
-				if( vid && $('#' + noticeId).length ){
+				if( _this.adTrackingFlag ){
 					var timeLeft = Math.round( vid.duration - vid.currentTime );
 					if( isNaN( timeLeft ) ){
 						timeLeft = '...';
@@ -281,15 +292,17 @@ mw.KAdPlayer.prototype = {
 				$('#' +skipId ).css('bottom', bottomPos + _this.embedPlayer.controlBuilder.getHeight() );
 			}
 		}
-		
 		// AD slot should include flag for progress monitoring ( for now always update playhead )
-		$( vid ).bind('timeupdate' + this.trackingBindPostfix, function(e){
-			_this.embedPlayer.controlBuilder.setStatus( 
-					mw.seconds2npt( vid.currentTime ) + '/' + mw.seconds2npt( vid.duration ) 
-			);
-			_this.embedPlayer.updatePlayHead( vid.currentTime / vid.duration );
-		});
-		
+		var progressMonitor = function(){
+			if( _this.adTrackingFlag ){
+				_this.embedPlayer.controlBuilder.setStatus( 
+						mw.seconds2npt( vid.currentTime ) + '/' + mw.seconds2npt( vid.duration ) 
+				);
+				_this.embedPlayer.updatePlayHead( vid.currentTime / vid.duration );
+				setTimeout(progressMonitor,  mw.getConfig( 'EmbedPlayer.MonitorRate' ) )
+			}
+		}
+		progressMonitor();
 	},
 	/**
 	 * Display companion ads
@@ -430,7 +443,7 @@ mw.KAdPlayer.prototype = {
 	 * 
 	 * @param {object} trackingEvents
 	 */	
-	bindTrackingEvents: function ( trackingEvents ){
+	addAdTracking: function ( trackingEvents ){
 		var _this = this;
 		var videoPlayer = _this.getVideoElement();
 		// unbind any existing adTimeline events
@@ -513,6 +526,7 @@ mw.KAdPlayer.prototype = {
 	},
 	stopAdTracking: function(){
 		var _this = this;
+		this.adTrackingFlag = false;
 		// stop monitor
 		clearInterval( _this.adMonitorInterval );
 		// clear any bindings 
@@ -524,7 +538,7 @@ mw.KAdPlayer.prototype = {
 	selectFromArray: function( array ){
 		return array[ Math.floor( Math.random() * array.length ) ];
 	},
-	playVideoSibling: function( src, playingCallback, doneCallback ){
+	playVideoSibling: function( source, playingCallback, doneCallback ){
 		var _this = this;
 		// Hide any loading spinner
 		this.embedPlayer.hidePlayerSpinner();
@@ -538,7 +552,7 @@ mw.KAdPlayer.prototype = {
 			$( _this.getOriginalPlayerElement() ).hide();
 			
 			var vid = _this.getVideoAdSiblingElement();
-			vid.src = src;
+			vid.src = source.getSrc();
 			vid.load();
 			vid.play();
 			

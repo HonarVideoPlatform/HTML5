@@ -1,42 +1,3 @@
-/*@cc_on@if(@_jscript_version<9){'video audio source track'.replace(/\w+/g,function(n){document.createElement(n)})}@end@*/
-/**
-* Kaltura html5 library loader 
-* For more info on mwEmbed / kaltura html5 library see: 
-* http://www.kaltura.org/project/HTML5_Video_Media_JavaScript_Library
-* 
-* HTML5 Library usage is driven by html5 attributes see: 
-* http://www.whatwg.org/specs/web-apps/current-work/multipage/video.html
-* 
-* Kaltura Configuration options are set via mw.setConfig( option, value ) or
-* mw.setConfig( {json set of option value pairs } );
-* 
-* Some config options and their default values: ( can be set via mw.setConfig( name, value ); ) 
-* 
-*	// Enable analytics tracking for html5 devices
-*	'Kaltura.EnableAnalytics' : true
-*
-*	// Base url for your api
-*	'Kaltura.ServiceUrl' : 'http://www.kaltura.com'
-*
-*	// Path to kaltura api 
-*	'Kaltura.ServiceBase' : '/api_v3/index.php?service=',
-*
-*	// The CDN url that hosts your assets
-*	'Kaltura.CdnUrl' : 'http://cdn.kaltura.com'
-*
-*	// If the html5 library should be loaded when there are video tags in the page.  
-*	'Kaltura.LoadScriptForVideoTags' : true
-*
-*	// If set to true will output the iframe as inline contents on the same domain as page contents 
-*	'EmbedPlayer.PageDomainIframe' : false
-*
-*	// If the iframe should expose a javascript api emulating the video tag bindings and api
-*	// lets you treat the iframe id like a video tag ie: 
-*	// $('#iframeid')[0].play() 
-*	//   and 
-*	// $('#iframeid').bind('ended', function(){ .. end playback event ... }
-*	'EmbedPlayer.EnableIframeApi' : true
-*/
 // The version of this script
 if( typeof console != 'undefined' && console.log ) {
 	console.log( 'Kaltura HTML5 Version: ' + KALTURA_LOADER_VERSION );
@@ -55,7 +16,7 @@ window.restoreKalturaKDPCallback = function(){
 	if( window.KalturaKDPCallbackReady ){
 		window.jsCallbackReady = window.KalturaKDPCallbackReady;
 		window.KalturaKDPCallbackReady = null;
-		if( window.KalturaKDPCallbackAlreadyCalled.length ){
+		if( window.KalturaKDPCallbackAlreadyCalled && window.KalturaKDPCallbackAlreadyCalled.length ){
 			for( var i =0 ; i < window.KalturaKDPCallbackAlreadyCalled.length; i++){
 				var playerId = window.KalturaKDPCallbackAlreadyCalled[i];
 				window.jsCallbackReady( playerId );
@@ -418,7 +379,7 @@ function kDirectDownloadFallback( replaceTargetId, kEmbedSettings , options ) {
 		downloadUrl += '/entry_id/'+ kEmbedSettings.entry_id;
 	}
 
-	var thumbSrc = kGetEntryThumbUrl({
+	var thumbSrc = mw.getKalturaThumbUrl({
 		'entry_id' : kEmbedSettings.entry_id,
 		'partner_id' : kEmbedSettings.p,
 		'width' : parseInt( options.width),
@@ -461,7 +422,7 @@ function kOverideJsFlashEmbed(){
 		
 		if( kEmbedSettings.entry_id ){
 			embedPlayerAttributes.kentryid = kEmbedSettings.entry_id;				
-			embedPlayerAttributes.poster = kGetEntryThumbUrl( {
+			embedPlayerAttributes.poster = mw.getKalturaThumbUrl( {
 				'width' : parseInt(width),
 				'height' : parseInt(height),
 				'entry_id' :  kEmbedSettings.entry_id,
@@ -527,8 +488,9 @@ function kOverideJsFlashEmbed(){
 					doEmbedSettingsWrite( kEmbedSettings, targetId, _this.attributes.width, _this.attributes.height);
 				} else {
 					// if its a kaltura player embed restore kdp callback:
-					if( kEmbedSettings.uiconf_id )
+					if( kEmbedSettings.uiconf_id ){
 						restoreKalturaKDPCallback();
+					}
 					// use the original flash player embed:  
 					_this.originalWrite( targetId );
 				}
@@ -558,8 +520,9 @@ function kOverideJsFlashEmbed(){
 					doEmbedSettingsWrite( kEmbedSettings, replaceElemIdStr, widthStr,  heightStr);
 				} else {
 					// if its a kaltura player embed restore kdp callback:
-					if( kEmbedSettings.uiconf_id )
+					if( kEmbedSettings.uiconf_id ){
 						restoreKalturaKDPCallback();
+					}
 					// Else call the original EmbedSWF with all its arguments 
 					window['swfobject']['originalEmbedSWF']( swfUrlStr, replaceElemIdStr, widthStr,
 							heightStr, swfVersionStr, xiSwfUrlStr, flashvarsObj, parObj, attObj, callbackFn );
@@ -672,7 +635,7 @@ function kCheckAddScript(){
 		return ;
 	}
 	// Restore the jsCallbackReady ( we are not rewriting )
-	if( !kalturaDynamicEmbed ){
+	if( !kalturaDynamicEmbed && window.restoreKalturaKDPCallback ){
 		window.restoreKalturaKDPCallback();
 	}
 }
@@ -837,7 +800,7 @@ function kAddScript( callback ){
 	}
 	
 	// Add the jquery ui skin: 
-	if( !mw.getConfig('IframeCustomjQueryUISkinCss' ) ){
+	if( ! mw.getConfig('IframeCustomjQueryUISkinCss' ) ){
 		if( mw.getConfig( 'jQueryUISkin' ) ){
 			jsRequestSet.push( 'mw.style.ui_' + mw.getConfig( 'jQueryUISkin' )  );
 		} else {
@@ -859,12 +822,6 @@ function kAddScript( callback ){
 		  'mw.KWidgetSupport',
 		  'mw.KAnalytics',
 		  'mw.KDPMapping',
-		  'mw.KAds',
-		  'mw.KAdPlayer',
-		  'mw.AdTimeline', 
-		  'mw.BaseAdPlugin',
-		  'mw.AdLoader',
-		  'mw.VastAdParser',
 		  'mw.KCuePoints',
 		  'mw.KTimedText',
 		  'mw.KLayout',
@@ -1153,12 +1110,21 @@ function kFlashVarsToString( flashVarsObject ) {
 	}
 	return params;
 }
-function kGetEntryThumbUrl( entry ){
-	var kCdn = mw.getConfig( 'Kaltura.CdnUrl', 'http://cdnakmi.kaltura.com' ); 
-	return kCdn + '/p/' + entry.partner_id + '/sp/' +
+/**
+ * Get Kaltura thumb url from entry object
+ */
+mw.getKalturaThumbUrl = function ( entry ){
+	if( entry.width == '100%')
+		entry.width = 400;
+	if( entry.height == '100%')
+		entry.height = 300;
+
+	var ks = ( entry.ks ) ? '?ks=' + entry.ks : '';
+
+	return mw.getConfig('Kaltura.CdnUrl') + '/p/' + entry.partner_id + '/sp/' +
 		entry.partner_id + '00/thumbnail/entry_id/' + entry.entry_id + '/width/' +
-		entry.width + '/height/' + entry.height;
-}
+		parseInt(entry.width) + '/height/' + parseInt(entry.height) + ks;
+};
 /**
  * Get kaltura embed settings from a swf url and flashvars object
  *
@@ -1230,6 +1196,9 @@ function kGetKalturaEmbedSettings( swfUrl, flashvars ){
 			embedSettings.wid = '_' + val;
 			embedSettings.p = val;
 		}
+		if( key == 'referenceid' ){
+			embedSettings.reference_id = val;
+		}
 	}
 
 	// Always pass cache_st
@@ -1258,72 +1227,6 @@ kAddReadyHook(function() {
 		mw.setConfig('EmbedPlayer.EnableIpadHTMLControls', false );
 	}
 })
-/**
- * KWidget static object.
- * Will eventually host all the loader logic. 
- */
-window.kWidget = {
-	// Stores widgets that are ready: 
-	readyWidgets: {},
-	
-	// First ready callback issued
-	readyCallbacks: [],
-	
-	/**
-	 * The base embed method
-	 * TODO move kalturaIframeEmbed to this method and have kalturaIframeEmbed call KWidget.embed : 
-	 */
-	embed: function( targetId, settings ){
-		
-		// Supports passing settings object as the first parameter
-		if( typeof targetId === 'object' ) {
-			settings = targetId;
-			if( ! settings.targetId ) {
-				console.log('Error: Missing target element Id');
-			}
-			targetId = settings.targetId;
-		}
-
-		kalturaIframeEmbed( targetId, settings );
-	},
-	/**
-	 * Adds a ready callback to be called once the kdp or html5 player is ready
-	 */
-	addReadyCallback : function( readyCallback ){
-		// issue the ready callback for any existing ready widgets: 
-		for( var wid in this.readyWidgets ){
-			// Make sure the widget is still in the dom before running the ready callback
-			if( document.getElementById( wid ) ){
-				readyCallback( wid );
-			}
-		}
-		// add the callback to the readyCallbacks array for any other players that become ready
-		this.readyCallbacks.push( readyCallback );
-	},
-	/**
-	 * Takes in the global ready callback events and ads them to the 
-	 * readyWidgets array
-	 * @param playerId
-	 * @return
-	 */
-	globalJsReadyCallback: function( widgetId ){
-		// issue the callback for all readyCallbacks 
-		while( this.readyCallbacks.length ){
-			this.readyCallbacks.shift()( widgetId );
-		}
-		this.readyWidgets[ widgetId ] = true;
-	},
-
-	/*
-	 * Search the DOM for Object tags and rewrite them to Iframe if needed
-	 */
-	rewriteObjectTags: function() {
-		kAddedScript = false;
-		kCheckAddScript();
-	}
-};
-// Support upper case kWidget calls
-window.KWidget = window.kWidget;
 
 window.KalturaKDPCallbackAlreadyCalled = [];
 

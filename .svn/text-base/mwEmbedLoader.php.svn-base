@@ -5,11 +5,27 @@
 // include configuration 
 require_once( realpath( dirname( __FILE__ ) ) . '/includes/DefaultSettings.php' );
 
+// Kaltura Comment
+$loaderComment = "/**
+* Kaltura HTML5 Library v$wgMwEmbedVersion 
+* Library Page http://www.kaltura.org/project/HTML5_Video_Media_JavaScript_Library
+* 
+* Common configuration options see: 
+* http://html5video.org/wiki/Kaltura_SaaS_FAQ
+*
+* Whats in this version of Kaltura HTML5
+* http://html5video.org/wiki/Kaltura_HTML5_Release_Notes
+* 
+*/\n";
+
 // Append ResourceLoder path to loader.js
 $loaderJs = "window['SCRIPT_LOADER_URL'] = '". addslashes( $wgResourceLoaderUrl ) . "';\n";
 
 // Add the library version: 
-$loaderJs.= "KALTURA_LOADER_VERSION = '$wgMwEmbedVersion';";
+$loaderJs .= "window['KALTURA_LOADER_VERSION'] = '$wgMwEmbedVersion';\n";
+
+// Get resource (  kWidgetLoader.js )
+$loaderJs .= file_get_contents( 'kWidgetLoader.js' );
 
 // Get resource (  mwEmbedLoader.js )
 $loaderJs .= file_get_contents( 'mwEmbedLoader.js' );
@@ -51,7 +67,7 @@ if( isset( $_GET['debug'] ) || $wgEnableScriptDebug ){
 	header("Pragma: no-cache");
 	header("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); // Date in the past
 	
-	echo $loaderJs;
+	echo $loaderComment.$loaderJs;
 } else {
 	// Get the JSmin class:
 	require_once( realpath( dirname( __FILE__ ) ) . '/includes/library/JSMin.php' );
@@ -68,7 +84,10 @@ if( isset( $_GET['debug'] ) || $wgEnableScriptDebug ){
 
 	// Create cache directory if not exists
 	if( ! file_exists( $wgScriptCacheDirectory ) ) {
-		mkdir( $wgScriptCacheDirectory );
+		$created = mkdir( $wgScriptCacheDirectory );
+		if( ! $created ) {
+			echo "if( console ){ console.log('Error in creating cache directory: ". $wgScriptCacheDirectory . "'); }";
+		}
 	}
 	
 	$loaderCacheFile = $wgScriptCacheDirectory . '/loader_' . $wgHTTPProtocol . '.min.' . $wgMwEmbedVersion . '.js';
@@ -82,6 +101,6 @@ if( isset( $_GET['debug'] ) || $wgEnableScriptDebug ){
 	} else {
 		$loaderMin = JSMin::minify( $loaderJs );
 		file_put_contents( $loaderCacheFile, $loaderMin );
-		echo $loaderMin;
+		echo $loaderComment.$loaderMin;
 	}
 }

@@ -390,7 +390,6 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		 */
 		load: function( loadRequest, instanceCallback ) {
 			var _this = this;
-
 			// Throw out any loadRequests that are not strings
 			loadRequest = this.cleanLoadRequest( loadRequest );
 
@@ -985,8 +984,9 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		 * false
 		 */
 	 	getResourcePath: function( resourceName ) {
-	 		if( this.resourcePaths[ resourceName ] )
+	 		if( this.resourcePaths[ resourceName ] ){
 	 			return this.resourcePaths[ resourceName ];
+	 		}
 	 		return false;
 	 	}
 	};
@@ -1710,6 +1710,10 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 *            callback Function called once sheet is ready
 	 */
 	mw.getStyleSheet = function( url , callback) {
+		if( !url ){
+			return ;
+		}
+		
 		// Add URL params ( if not already included )
 		if ( url.indexOf( '?' ) == -1 ) {
 			url += '?' + mw.getUrlParam();
@@ -2251,7 +2255,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 						mw.Language.magicSetup();						
 						
 						// Check if we have a global jquery ui skin: 
-						if( mw.getConfig('IframeCustomjQueryUISkinCss' ) ){
+						if( mw.getConfig('IframeCustomjQueryUISkinCss' ) != null ){
 							mw.style[ 'ui_' + mw.getConfig( 'jQueryUISkin' ) ] = true;
 							mw.getStyleSheet( mw.getConfig('IframeCustomjQueryUISkinCss' )  );
 						} else {
@@ -2275,7 +2279,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 										mwSetupFunctions.shift()( function() {
 											runSetupFunctions();
 										} );
-									}else{
+									} else {
 										mw.runReadyFunctions();
 									}
 								}
@@ -2536,7 +2540,10 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 */
 	mw.domReady = function ( forceSetup ) {
 		mw.log('mw.domReady:' );
-		mw.setupMwEmbed();
+		// Don't run the setup inline to avoid domready event before the rest of the script has run
+		setTimeout(function(){
+			mw.setupMwEmbed();
+		}, 0 );
 	};
 	/**
 	* Check if the url is a request for the local domain

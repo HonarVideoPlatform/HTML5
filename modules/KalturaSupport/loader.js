@@ -10,7 +10,6 @@
 ( function( mw, $ ) {
 
 	mw.setDefaultConfig( {
-		'Kaltura.EnableAnalytics' : true,
 		'Kaltura.ServiceUrl' : 'http://www.kaltura.com',
 		'Kaltura.StatsServiceUrl' : 'http://www.kaltura.com',
 		'Kaltura.ServiceBase' : '/api_v3/index.php?service=',
@@ -31,7 +30,13 @@
 		    	'type' : 'video/webm'
 		    }
 		 ],
-		 'Kaltura.BlackVideoSources' : [
+		 // Black video sources. Useful for capturing play user gesture events on a live video tag for iPad 
+		 // while displaying an error message or image overlay and not any 'real' video content. 
+		'Kaltura.BlackVideoSources' : [
+			{
+				'src' : 'http://www.kaltura.com/p/243342/sp/24334200/playManifest/entryId/1_vp5cng42/flavorId/1_6wf0o9n7/format/url/protocol/http/a.mp4',
+				'type' : 'video/h264'
+			},
 		    {
 		        'src' : 'http://www.kaltura.com/p/243342/sp/24334200/playManifest/entryId/1_vp5cng42/flavorId/1_oiyfyphl/format/url/protocol/http/a.webm',
 		        'type' : 'video/webm'
@@ -39,10 +44,6 @@
 			{
 				'src' : 'http://www.kaltura.com/p/243342/sp/24334200/playManifest/entryId/1_vp5cng42/flavorId/1_6yqa4nmd/format/url/protocol/http/a.ogg',
 				'type' : 'video/ogg'
-			},
-			{
-				'src' : 'http://www.kaltura.com/p/243342/sp/24334200/playManifest/entryId/1_vp5cng42/flavorId/1_6wf0o9n7/format/url/protocol/http/a.mp4',
-				'type' : 'video/h264'
 			}
 		]
 	} );
@@ -83,6 +84,7 @@
 		"mw.KPPTWidget" : "mw.KPPTWidget.js",
 		"mw.style.klayout" : "mw.style.klayout.css",
 		"mw.KLayout" : "mw.KLayout.js",
+		"statisticsPlugin" : "uiConfComponents/statisticsPlugin.js",
 		"faderPlugin" : "uiConfComponents/faderPlugin.js",
 		"watermarkPlugin" :  "uiConfComponents/watermarkPlugin.js",
 		"adPlugin"	: 	"uiConfComponents/adPlugin.js",
@@ -94,8 +96,9 @@
 		
 		"controlbarLayout"	: 	"uiConfComponents/controlbarLayout.js",
 		"titleLayout" : "uiConfComponents/titleLayout.js",
-		"volumeBarLayout"	:	"uiConfComponents/volumeBarLayout.js"
-		
+		"volumeBarLayout"	:	"uiConfComponents/volumeBarLayout.js",
+		"shareSnippet"	:	"uiConfComponents/shareSnippet.js",
+		"moderationPlugin"    :   "uiConfComponents/moderationPlugin.js"
 	} );
 	
 	// Set a local variable with the request set so we can append it to embedPlayer
@@ -114,11 +117,14 @@
 		'mw.KTimedText',
 		'mw.KLayout',
 		'mw.style.klayout',
+		'statisticsPlugin',
 		'controlbarLayout',
 		'titleLayout',
 		'volumeBarLayout',
 		'faderPlugin',
 		'watermarkPlugin',
+		'shareSnippet',
+        'moderationPlugin',
 		'adPlugin',
 		'captionPlugin',
 		'bumperPlugin',
@@ -132,7 +138,6 @@
 			})
 		} );
 	};
-	
 	
 	mw.addModuleLoader( 'KalturaPlaylist', function() {
 		return $.merge( kalturaSupportRequestSet,
@@ -238,11 +243,16 @@
 						'heigth' : $( element ).attr('height')
 					};
 					
-					if( kEmbedSettings.entry_id ) {
+					if( kEmbedSettings.entry_id || kEmbedSettings.reference_id ) {
 						loadEmbedPlayerFlag = true;
 						kalturaSwapObjectClass = 'mwEmbedKalturaVideoSwap';
-						videoEmbedAttributes.kentryid = kEmbedSettings.entry_id;
-						if( kEmbedSettings.p ){
+						
+						if( kEmbedSettings.reference_id ){
+							kEmbedSettings.kreferenceid;
+						}
+						
+						if( kEmbedSettings.entry_id || kEmbedSettings.p ){
+							videoEmbedAttributes.kentryid = kEmbedSettings.entry_id;
 							// If we have flashvar  we need to pass the ks to thumbnail url
 							var ks = ( flashvars && flashvars.loadThumbnailWithKs ) ? flashvars.ks : false;
 							var thumb_url =  mw.getKalturaThumbUrl({
@@ -599,20 +609,4 @@
 		};
 	};
 	
-	/**
-	 * Get Kaltura thumb url from entry object
-	 */
-	mw.getKalturaThumbUrl = function ( entry ){
-		if( entry.width == '100%')
-			entry.width = 400;
-		if( entry.height == '100%')
-			entry.height = 300;
-
-		var ks = ( entry.ks ) ? '?ks=' + entry.ks : '';
-		
-		return mw.getConfig('Kaltura.CdnUrl') + '/p/' + entry.partner_id + '/sp/' +
-			entry.partner_id + '00/thumbnail/entry_id/' + entry.entry_id + '/width/' +
-			parseInt(entry.width) + '/height/' + parseInt(entry.height) + ks;
-	};
-	
-} )( window.mw, jQuery );
+} )( window.mw, window.jQuery );

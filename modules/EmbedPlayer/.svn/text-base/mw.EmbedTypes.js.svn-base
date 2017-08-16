@@ -26,6 +26,9 @@ var appleVdnPlayer = new mw.MediaPlayer( 'appleVdn', ['application/vnd.apple.mpe
 var mp3NativePlayer = new mw.MediaPlayer( 'mp3Native', ['audio/mpeg'], 'Native' );
 var webmNativePlayer = new mw.MediaPlayer( 'webmNative', ['video/webm'], 'Native' );
 
+// Image Overlay player ( extends native ) 
+var imageOverlayPlayer = new mw.MediaPlayer( 'imageOverlay', ['image/jpeg', 'image/png'], 'ImageOverlay' );
+
 // VLC player
 var vlcMimeList = ['video/ogg', 'audio/ogg', 'audio/mpeg', 'application/ogg', 'video/x-flv', 'video/mp4', 'video/h264', 'video/x-msvideo', 'video/mpeg', 'video/3gp'];
 var vlcPlayer = new mw.MediaPlayer( 'vlc-player', vlcMimeList, 'Vlc' );
@@ -72,8 +75,9 @@ mw.EmbedTypes = {
 	supportedMimeType: function( mimeType ) {
 		for ( var i =0; i < navigator.plugins.length; i++ ) {
 			var plugin = navigator.plugins[i];
-			if ( typeof plugin[ mimeType ] != "undefined" )
-			 return true;
+			if ( typeof plugin[ mimeType ] != "undefined" ){
+				return true;
+			}
 		}
 		return false;
 	},
@@ -82,7 +86,12 @@ mw.EmbedTypes = {
 	 * Detects what plug-ins the client supports
 	 */
 	detectPlayers: function() {
-		mw.log( "embedPlayer: running detect" );		
+		mw.log( "mw.EmbedTypes::detectPlayers running detect" );
+		
+		// for now all players support "images" ( ImageOverlay is responsible for detecting "native only" players 
+		// and skip image overlays in such cases. 
+		this.mediaPlayers.addPlayer( imageOverlayPlayer );
+		
 		// In Mozilla, navigator.javaEnabled() only tells us about preferences, we need to
 		// search navigator.mimeTypes to see if it's installed
 		try{
@@ -143,8 +152,8 @@ mw.EmbedTypes = {
 					// Test for h264:
 					if ( dummyvid.canPlayType('video/mp4; codecs="avc1.42E01E, mp4a.40.2"' ) ) {
 						this.mediaPlayers.addPlayer( h264NativePlayer );
-						// check for iOS for vdn player support ( apple adaptive ):
-						if( mw.isIOS() ){
+						// Check for iOS for vdn player support ( apple adaptive ) or vdn canPlayType != '' ( ie maybe/probably ) 
+						if( mw.isIOS() || dummyvid.canPlayType('application/vnd.apple.mpegurl; codecs="avc1.42E01E"' ) ){
 							this.mediaPlayers.addPlayer( appleVdnPlayer );
 						}
 						

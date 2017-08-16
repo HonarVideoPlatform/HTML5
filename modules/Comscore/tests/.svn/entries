@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4a8/modules/MiroSubs/mirosubs/media/images/prettyPhoto/light_rounded
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.6/modules/Comscore/tests
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-07-24T16:01:31.812756Z
-5926
+2012-01-23T10:38:30.974088Z
+7162
 rany
 
 
@@ -26,18 +26,17 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-btnPrevious.png
+comscore.xml
 file
 
 
 
 
-2017-07-03T19:21:20.000000Z
-9ad8565740908ecab23ff67990e590cc
-2011-07-24T16:01:31.812756Z
-5926
+2017-07-03T22:45:49.000000Z
+1852e4b9b17b38a7e259bdda3ddfba40
+2012-01-23T10:38:30.974088Z
+7162
 rany
-has-props
 
 
 
@@ -58,20 +57,20 @@ has-props
 
 
 
-1442
+
+731
 
-btnNext.png
+Comscore.html
 file
 
 
 
 
-2017-07-03T19:21:20.000000Z
-0a89018b6e4a1492623ca2b608b606ff
-2011-07-24T16:01:31.812756Z
-5926
+2017-07-03T22:45:49.000000Z
+8ac39f2203241f938abaafa1c9be909b
+2012-01-23T10:38:30.974088Z
+7162
 rany
-has-props
 
 
 
@@ -92,73 +91,6 @@ has-props
 
 
 
-1411
-
-sprite.png
-file
 
-
-
-
-2017-07-03T19:21:20.000000Z
-68864373d6162e3865adb6d749dca094
-2011-07-24T16:01:31.812756Z
-5926
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-4008
-
-loader.gif
-file
-
-
-
-
-2017-07-03T19:21:20.000000Z
-df46993044576f83f2c2cc1a64e18f31
-2011-07-24T16:01:31.812756Z
-5926
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-2545
+17185
 

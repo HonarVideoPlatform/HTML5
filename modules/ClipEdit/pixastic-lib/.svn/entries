@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.4a8/modules/MiroSubs/mirosubs/media/images/prettyPhoto/dark_square
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.6/modules/ClipEdit/pixastic-lib
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-07-24T16:01:31.812756Z
-5926
+2012-01-23T10:38:30.974088Z
+7162
 rany
 
 
@@ -26,52 +26,20 @@ rany
 
 09e43ab6-4768-4770-81d3-4e3a7c8fdb74
 
-btnPrevious.png
-file
-
-
-
-
-2017-07-03T19:21:20.000000Z
-9ad8565740908ecab23ff67990e590cc
-2011-07-24T16:01:31.812756Z
-5926
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-1442
+actions
+dir
 
-btnNext.png
+pixastic.core.js
 file
 
 
 
 
-2017-07-03T19:21:20.000000Z
-0a89018b6e4a1492623ca2b608b606ff
-2011-07-24T16:01:31.812756Z
-5926
+2017-07-03T22:45:27.000000Z
+5155f328eb4fa98f42c538493f5ee7e3
+2012-01-23T10:38:30.974088Z
+7162
 rany
-has-props
 
 
 
@@ -92,54 +60,23 @@ has-props
 
 
 
-1411
+
+8360
 
-sprite.png
-file
-
-
-
-
-2017-07-03T19:21:20.000000Z
-50d50dc301facac07c414041a2d11389
-2011-07-24T16:01:31.812756Z
-5926
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-3303
+pixastic-editor
+dir
 
-loader.gif
+pixastic.jquery.js
 file
 
 
 
 
-2017-07-03T19:21:20.000000Z
-4297900ae2d9d0c4eb00d1c15462fb19
-2011-07-24T16:01:31.812756Z
-5926
+2017-07-03T22:45:27.000000Z
+97612c297a27263c84127d7b107c1f07
+2012-01-23T10:38:30.974088Z
+7162
 rany
-has-props
 
 
 
@@ -160,39 +97,6 @@ has-props
 
 
 
-2545
-
-contentPattern.png
-file
 
-
-
-
-2017-07-03T19:21:20.000000Z
-6660e3acf8523be8de932abe1e075370
-2011-07-24T16:01:31.812756Z
-5926
-rany
-has-props
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-121
+440
 

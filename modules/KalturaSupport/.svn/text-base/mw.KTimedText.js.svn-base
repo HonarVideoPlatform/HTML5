@@ -48,7 +48,7 @@
 		},
 		bindPlayer: function( embedPlayer ){
 			var _this = this;
-			// remove any old timed text bindings:
+			// Remove any old timed text bindings:
 			$( embedPlayer ).unbind( this.bindPostfix );
 			
 			// Trigger changed caption
@@ -99,7 +99,7 @@
 		loadTextSources: function( callback ) {
 			var _this = this;
 			// Check if text sources are already loaded ( not null )
-			if( this.textSources !== null ){
+			if( this.textSources.length ){
 				callback();
 				return ;
 			}

@@ -87,7 +87,6 @@
 mw.addAdTimeline = function( embedPlayer ){
 	embedPlayer.adTimeline = new mw.AdTimeline( embedPlayer );
 };
-
 mw.AdTimeline = function(embedPlayer) {
 	return this.init(embedPlayer);
 };
@@ -98,7 +97,7 @@ mw.AdTimeline.prototype = {
 	adOverlaysEnabled: true,
 
 	// Original source of embedPlayer
-	originalSrc: false,
+	originalSource: false,
 
 	// Flag to store if its the first time play is being called:
 	firstPlay: true,
@@ -130,7 +129,7 @@ mw.AdTimeline.prototype = {
 		var _this = this;
 		var embedPlayer = this.embedPlayer;
 		// Setup the original source
-		_this.originalSrc = embedPlayer.getSrc();
+		_this.originalSource = embedPlayer.getSource();
 		// Clear out any old bindings
 		_this.destroy();
 		// Create an empty sequence proxy object ( stores information about the current sequence ) 
@@ -146,6 +145,9 @@ mw.AdTimeline.prototype = {
 		
 		// On play preSequence
 		embedPlayer.bindHelper( 'preSequence' + _this.bindPostfix, function() {
+			// Start of preSequence			
+			embedPlayer.triggerHelper( 'AdSupport_PreSequence');
+			
 			mw.log( "AdTimeline:: First Play Start / bind Ad timeline ( " );
 			embedPlayer.pauseLoading();
 			embedPlayer.sequenceProxy.isInSequence = true;
@@ -157,25 +159,26 @@ mw.AdTimeline.prototype = {
 					// Show bumpers:
 					_this.displaySlots( 'bumper', function(){
 						// restore the original source:
-						embedPlayer.switchPlaySrc( _this.originalSrc, function(){
+						embedPlayer.switchPlaySource( _this.originalSource, function(){
 							// turn off preSequence
 							embedPlayer.sequenceProxy.isInSequence = false;
 							
 							// trigger the preSequenceComplete event
-							embedPlayer.triggerHelper( 'preSequenceComplete' );
+							embedPlayer.triggerHelper( 'AdSupport_PreSequenceComplete' );
 							
 							// Avoid function stack
 							setTimeout(function(){ 
 								// trigger another onplay ( to match the kaltura kdp ) on play event
-								// after the ad plays are compelete
+								// after the ad plays are complete 
 								if( _this.displayedSlotCount > 0 ){
 									// reset displaySlotCount: 
 									 _this.displayedSlotCount=0;
 									// Restore the player if we played an ad: 
 									_this.restorePlayer();
-									
-									embedPlayer.triggerHelper( 'onplay' );
 								}
+								// Trigger onplay ( even if there were no ads ) 
+								embedPlayer.triggerHelper( 'onplay' );
+								
 								// Continue playback
 								embedPlayer.play();
 							},0);
@@ -199,6 +202,7 @@ mw.AdTimeline.prototype = {
 				playedAnAdFlag = true;
 			});
 			displayedPostroll = true;
+			mw.log( 'AdTimeline:: AdSupport_StartAdPlayback set onDoneInterfaceFlag = false' );
 			embedPlayer.onDoneInterfaceFlag = false;
 			
 			// Display post roll in setTimeout ( hack to work around end sequence issues ) 
@@ -206,36 +210,38 @@ mw.AdTimeline.prototype = {
 			setTimeout(function(){
 				// Trigger the postSequenceStart event
 				// start the postSequence: 
-				embedPlayer.triggerHelper( 'postSequence' );
+				embedPlayer.triggerHelper( 'AdSupport_PostSequence' );
 				embedPlayer.sequenceProxy.isInSequence = true;
 				_this.displaySlots( 'postroll', function(){
 					// Turn off preSequence
 					embedPlayer.sequenceProxy.isInSequence = false;
 					// Trigger the postSequenceComplete event
-					embedPlayer.triggerHelper( 'postSequenceComplete' );
+					embedPlayer.triggerHelper( 'AdSupport_PostSequenceComplete' );
 
 					/** TODO support postroll bumper and leave behind */
 					if( playedAnAdFlag ){
-						embedPlayer.switchPlaySrc( _this.originalSrc, function( video ){
-								// make sure we pause the video
+						embedPlayer.switchPlaySource( _this.originalSource, function( video ){
+							// make sure we pause the video
+							video.pause();
+							/* iPad iOS v4.3.1 ignore video pause (probably timing issue) */
+							$( video ).bind('play.postSequenceComplete', function(){
 								video.pause();
-								/* iPad iOS v4.3.1 ignore video pause (probably timing issue) */
-								$( video ).bind('play.postSequenceComplete', function(){
-									video.pause();
-									$( video ).unbind( '.postSequenceComplete' );
-								});
+								$( video ).unbind( '.postSequenceComplete' );
+							});
 
-								// Restore interface
-								_this.restorePlayer();
-								// Restore ondone interface: 
-								embedPlayer.onDoneInterfaceFlag = true;
-								// Run the clipdone event:
-								embedPlayer.onClipDone();
+							// Restore interface
+							_this.restorePlayer();
+							// Restore ondone interface: 
+							embedPlayer.onDoneInterfaceFlag = true;
+							// Run the clipdone event:
+							embedPlayer.onClipDone();
 						});
 					} else {
 						_this.restorePlayer();
 						// Restore ondone interface: 
 						embedPlayer.onDoneInterfaceFlag = true;
+						// on clip done can't be invoked with a stop state ( TOOD clean up end sequence ) 
+						embedPlayer.stopped = false;
 						// run the clipdone event:
 						embedPlayer.onClipDone();
 					}
@@ -311,8 +317,7 @@ mw.AdTimeline.prototype = {
 					runSequeceProxyInx( seqInx );
 				}, 0 );
 			});
-			
-			// Update the interface for ads: 
+			// Update the interface for ads:
 			_this.updateUiForAdPlayback( slotType );
 		};
 		runSequeceProxyInx( seqInx );
