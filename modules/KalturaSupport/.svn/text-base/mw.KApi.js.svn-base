@@ -44,7 +44,7 @@ mw.KApi.prototype = {
 	doRequest : function( requestObject, callback ){
 		var _this = this;
 		var param = {};
-		// Convert into a multi-request if no session is set ( ks will be added bellow ) 
+		// Convert into a multi-request if no session is set ( ks will be added below ) 
 		if( !requestObject.length && !this.ks ){
 			requestObject = [ requestObject ];
 		}
@@ -135,7 +135,7 @@ mw.KApi.prototype = {
 		}
 
 		// Build the request url with sorted params:
-		var requestURL = _this.getApiUrl(serviceType) + '&' + $.param( param );
+		var requestURL = _this.getApiUrl( serviceType ) + '&' + $.param( param );
 		
 		var globalCBName = 'kapi_' + _this.getSignature( param );
 		if( window[ globalCBName ] ){
@@ -146,7 +146,8 @@ mw.KApi.prototype = {
 		}
 		window[ globalCBName ] = function( data ){
 			// issue the local scope callback:
-			callback( data );
+			if( callback )
+				callback( data );
 			// null this global function name: 
 			window[ globalCBName ] = null;
 		};
@@ -219,16 +220,10 @@ mw.KApi.prototype = {
 		}
 
 		if( kProperties.entry_id ){
-			// The referring  url ( can be from the iframe if in iframe mode ) 
-			var refer = ( mw.getConfig( 'EmbedPlayer.IframeParentUrl') ) ? 
-							mw.getConfig( 'EmbedPlayer.IframeParentUrl') : 
-							document.URL;
-			refer = refer.substr(0,refer.indexOf("#"));
-			
 			// Add Context Data request 			
 			requestObject.push({
 		        	 'contextDataParams' : {
-			        	 	'referrer' : refer,
+			        	 	'referrer' : window.kWidgetSupport.getHostPageUrl(),
 			        	 	'objectType' : 'KalturaEntryContextDataParams'
 			         },
 		        	 'service' : 'baseentry',

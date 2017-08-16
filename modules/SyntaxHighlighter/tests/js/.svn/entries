@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.18/modules/SyntaxHighlighter/tests/js
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.0/modules/SyntaxHighlighter/tests/js
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T19:08:28.000000Z
-e94d617d69921bd3861ec67591b3cfd8
-2011-11-08T14:30:29.736476Z
-6825
+2017-07-03T22:42:33.000000Z
+c0eb9a175a044321bbb8a4d2683a7a0c
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -58,7 +58,7 @@ rany
 
 
 
-3463
+3328
 
 jquery-1.4.2.js
 file
@@ -66,10 +66,10 @@ file
 
 
 
-2017-07-03T19:08:28.000000Z
-50ee67d7bcb4e4b6004dc53552789535
-2011-11-08T14:30:29.736476Z
-6825
+2017-07-03T22:42:33.000000Z
+942d93b3f88aaca2b6f4718d983b92d4
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -92,7 +92,7 @@ rany
 
 
 
-170093
+163854
 
 qunit.js
 file
@@ -100,10 +100,10 @@ file
 
 
 
-2017-07-03T19:08:28.000000Z
-5225e905c3ea9bdc26fe0f93819c21bf
-2011-11-08T14:30:29.736476Z
-6825
+2017-07-03T22:42:33.000000Z
+d6dabcb1cfdbe0c4dbb4bd7bfadb84f0
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -126,5 +126,5 @@ rany
 
 
 
-30112
+29043
 

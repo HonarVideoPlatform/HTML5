@@ -5,7 +5,7 @@ mw.addResourcePaths({
 	"mw.FreeWheelController": "mw.FreeWheelController.js"
 });
 
-mw.addModuleLoader( 'FreeWheel', ['AdSupport', 'mw.FreeWheelController'] );
+mw.addModuleLoader( 'FreeWheel', [ 'AdSupport', 'mw.FreeWheelController' ] );
 
 // Check if the plugin is enabled: 
 $( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
@@ -13,10 +13,6 @@ $( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ){
 		// Check if the freewheel plugin is enabled:
 		if( embedPlayer.isPluginEnabled( 'FreeWheel' ) ){
 			mw.load( ["FreeWheel"], function(){
-				// iPad loses bind context:
-				embedPlayer.freeWheelBindingHelper = function(bindName, callback){
-					$( embedPlayer ).bind( bindName, callback);
-				}
 				// pass the freewheel plugin 
 				embedPlayer.freeWheel = new mw.FreeWheelControler(embedPlayer, callback);
 			});

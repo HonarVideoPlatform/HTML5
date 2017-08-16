@@ -12,7 +12,11 @@ mw.KCuePoints.prototype = {
 	bindPostfix: '.kCuePoints',
 	
 	init: function( embedPlayer ){
+		// Remove any old bindings: 
+		this.destroy();
+		// Setup player ref:
 		this.embedPlayer = embedPlayer;
+		// Add player bindings:
 		this.addPlayerBindings();
 	},
 	destroy: function(){
@@ -24,25 +28,30 @@ mw.KCuePoints.prototype = {
 	addPlayerBindings: function(){
 		var _this = this;
 		// Get first cue point
-		var nextCuePoint = this.getCuePoint(0);
+		var currentCuePoint = this.getNextCuePoint(0);
 		var embedPlayer = this.embedPlayer;
 		
 		// Handle first cue point (preRoll)
-		if( nextCuePoint.startTime == 0 ) {
-			nextCuePoint.startTime = 1;
+		if( currentCuePoint.startTime == 0 ) {
+			currentCuePoint.startTime = 1;
 		}
 
 		// Bind to monitorEvent to trigger the cue points events
 		$( embedPlayer ).bind( "monitorEvent" + this.bindPostfix, function() {
 			var currentTime = embedPlayer.currentTime * 1000;
-			var cuePointType = _this.getRawAdSlotType(nextCuePoint);
+			var cuePointType = _this.getRawAdSlotType( currentCuePoint );
 			// Don't trigger postrolls
 			// TODO: we should remove preroll / postroll from the cuePoints array and handle them different
-			if( currentTime >= nextCuePoint.startTime && cuePointType != 'postroll' && embedPlayer._propagateEvents ) {
-				// Trigger the cue point
-				_this.triggerCuePoint( nextCuePoint );
-				// Get next cue point
-				nextCuePoint = _this.getCuePoint( currentTime );
+			if( currentTime > currentCuePoint.startTime 
+					&& 
+				cuePointType != 'postroll' 
+					&& 
+				embedPlayer._propagateEvents 
+			){
+				// Trigger the cue point 
+				_this.triggerCuePoint( currentCuePoint );
+				// Update the current Cue Point to the "next" cue point
+				currentCuePoint = _this.getNextCuePoint( currentTime  );
 			}
 		});
 
@@ -59,7 +68,7 @@ mw.KCuePoints.prototype = {
 		// Bind for seeked event to update the nextCuePoint
 		$( embedPlayer ).bind( "seeked" + this.bindPostfix, function(){
 			var currentTime = embedPlayer.currentTime * 1000;
-			nextCuePoint = _this.getCuePoint(currentTime);
+			currentCuePoint = _this.getNextCuePoint( currentTime );
 		});
 
 		$( embedPlayer ).bind( 'onChangeMedia' + this.bindPostfix, function(){
@@ -79,7 +88,7 @@ mw.KCuePoints.prototype = {
 	* Returns the next cuePoint object for requested time
 	* @param {Number} time Time in milliseconds
 	*/
-	getCuePoint: function( time ){
+	getNextCuePoint: function( time ){
 		var cuePoints = this.getCuePoints();
 		// Start looking for the cue point via time, return first match:
 		for( var i = 0; i < cuePoints.length; i++) {
@@ -115,14 +124,15 @@ mw.KCuePoints.prototype = {
 		} else if( rawCuePoint.cuePointType == 'adCuePoint.Ad' ) {
 			// Ad type cue point
 			eventName = 'KalturaSupport_AdOpportunity';
-			cuePointWrapper.context = this.getAdType( rawCuePoint );
+			cuePointWrapper.context = this.getVideoAdType( rawCuePoint );
 		}
 		mw.log('mw.KCuePoints :: Trigger event: ' + eventName + ' - ' + rawCuePoint.cuePointType + ' at: ' + rawCuePoint.startTime );
 		$( this.embedPlayer ).trigger(  eventName, cuePointWrapper );
+		// TOOD "midSequenceComplete"
 	},
 	
 	// Get Ad Type from Cue Point
-	getAdType: function( rawCuePoint ) {
+	getVideoAdType: function( rawCuePoint ) {
 		if( rawCuePoint.startTime == 1 ) {
 			return 'pre';
 		} else if( rawCuePoint.startTime == this.getEndTime() ) {
@@ -139,50 +149,50 @@ mw.KCuePoints.prototype = {
 	 */
 	getAdSlotType: function( cuePointWrapper ) {		
 		if( cuePointWrapper.cuePoint.adType == 1 ) {
-			return this.getAdType( cuePointWrapper.cuePoint ) + 'roll';
+			return this.getVideoAdType( cuePointWrapper.cuePoint ) + 'roll';
 		} else {
 			return 'overlay';
 		}
 	},
 	getRawAdSlotType: function( rawCuePoint ){
 		if( rawCuePoint.adType == 1 ) {
-			return this.getAdType( rawCuePoint ) + 'roll';
+			return this.getVideoAdType( rawCuePoint ) + 'roll';
 		} else {
 			return 'overlay';
 		}
 	},
 
-	// Returns the number of Ads
-	// @filter - string/optional | could be 'video', 'overlay'
-	getTotalAdsCount: function( filter ) {
+	// Returns the number of CuePoints by type
+	// @filter(optional) - string | one of: 'preroll', 'midroll', 'postroll', 'overlay'
+	getCuePointsCount: function( filter ) {
+		var _this = this;
 		var cuePoints = this.getCuePoints();
+
+		// No cue points, return zero
 		if( !cuePoints )
 			return 0;
 
-		var totalVideoAds = 0;
-		var totalOverlayAds = 0;
+		// No filter, return all cue points
+		if( !filter )
+			return  cuePoints.length;
+
+		var totalResults = {
+			'preroll': 0,
+			'midroll': 0,
+			'postroll': 0,
+			'overlay': 0
+		};
 
 		$.each(cuePoints, function( idx, rawCuePoint) {
-			if(rawCuePoint.cuePointType == 'adCuePoint.Ad') {
-				if( rawCuePoint.adType == 1 ) {
-					totalVideoAds++;
-				} else {
-					totalOverlayAds++;
-				}
-			}
+			totalResults[ _this.getRawAdSlotType( rawCuePoint ) ]++;
 		});
 
-		var totalAllAds = totalVideoAds + totalOverlayAds;
-
-		if( filter ) {
-			if( filter == 'video' ) {
-				return totalVideoAds;
-			} else if( filter == 'overlay' ) {
-				return totalOverlayAds;
-			}
+		// return count by filter
+		if( filter && totalResults[ filter ] ) {
+			return totalResults[ filter ];
 		}
-
-		return  totalAllAds;
+		// anything else, return zero
+		return 0;
 	}
 };
 

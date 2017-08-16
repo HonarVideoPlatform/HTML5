@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.18/modules/Sequencer/remotes
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.0/modules/Sequencer/remotes
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -35,10 +35,10 @@ file
 
 
 
-2017-07-03T19:06:45.000000Z
+2017-07-03T22:42:26.000000Z
 d255f5d84d3e5161237bdfbb224528fa
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -69,10 +69,10 @@ file
 
 
 
-2017-07-03T19:06:45.000000Z
-763e01d1ec6ee6a5e1a6d9809bc78621
-2011-11-08T14:30:29.736476Z
-6825
+2017-07-03T22:42:26.000000Z
+2ae1e270b39e0acc2359f54092c4a506
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -95,5 +95,5 @@ rany
 
 
 
-156
+150
 

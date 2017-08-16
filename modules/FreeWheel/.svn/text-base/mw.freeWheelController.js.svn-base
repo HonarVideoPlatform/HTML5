@@ -3,6 +3,7 @@
 // Set the FreeWheel config:
 mw.setConfig({
 	// The url for the ad Manager
+	// for debuging we use the following AdManager url: 'http://localhost/html5.kaltura/mwEmbed/modules/FreeWheel/AdManager.js'
 	'FreeWheel.AdManagerUrl': 'http://adm.fwmrm.net/p/release/latest-JS/adm/prd/AdManager.js'
 });
 
@@ -34,8 +35,11 @@ mw.FreeWheelControler.prototype = {
 		'unknown_type': []
 	},
 	
-	// The current active slot
+	// The done callback for current active slot
 	currentSlotDoneCb: null,
+	
+	// The current active slot
+	activeSlot: null,
 		
 	// if an overlay slot is active:
 	overlaySlotActive: false,
@@ -53,15 +57,15 @@ mw.FreeWheelControler.prototype = {
 	 * @param {Function} callback
 	 * @return
 	 */
-	init: function( embedPlayer, callback  ){
+	init: function( embedPlayer, callback ){
 		var _this = this;
 		// Inherit BaseAdPlugin
 		mw.inherit( this, new mw.BaseAdPlugin( embedPlayer, callback ) );
 		
 		// unbind any existing bindings:
-		$( _this.embedPlayer ).unbind( _this.bindPostfix );
+		_this.embedPlayer.unbindHelper( _this.bindPostfix );
 		
-		// TODO Checks if we are loading ads async 
+		// TODO Checks if we are loading ads async
 		
 		// Load the freewheel ad manager then setup the ads
 		if( !window['tv'] || !tv.freewheel ){
@@ -89,7 +93,7 @@ mw.FreeWheelControler.prototype = {
 		// We should be able to use: 
 		// $(_this.embedPlayer ).bind .. but this ~sometimes~ fails on OSX safari and iOS 
 		// TODO investigate wtf is going on
-		_this.embedPlayer.freeWheelBindingHelper( 'AdSupport_OnPlayAdLoad' + _this.bindPostfix, function( event, callback ){
+		_this.embedPlayer.bindHelper( 'AdSupport_OnPlayAdLoad' + _this.bindPostfix, function( event, callback ){
 			
 			// Add key-values for ad targeting.
 			_this.addContextKeyValues();
@@ -201,48 +205,53 @@ mw.FreeWheelControler.prototype = {
 	
 		$.each(_this.slots, function( slotType, slotSet){
 			if( slotType == 'midroll' || slotType == 'overlay' ){
-				_this.embedPlayer.freeWheelBindingHelper( 'monitorEvent' + _this.bindPostfix, function( event ){
-					_this.playSlotsInRange( slotSet );
+				// Add cue point binding: 
+				_this.embedPlayer.bindHelper( 'KalturaSupport_AdOpportunity' + _this.bindPostfix, function( event, kalturaCuePoint ){
+					_this.playAdCuePoint( slotSet, kalturaCuePoint.cuePoint );
 				});
 				return true;
 			}
 			
 			// Else set of preroll or postroll clips setup normal binding: 
-			_this.embedPlayer.freeWheelBindingHelper( 'AdSupport_' + slotType + _this.bindPostfix, function( event, sequenceProxy ){
+			_this.embedPlayer.bindHelper( 'AdSupport_' + slotType + _this.bindPostfix, function( event, sequenceProxy ){
+				
 				sequenceProxy[ _this.getSequenceIndex( slotType ) ] = function( callback ){
 					// Run the freewheel slot add, then run the callback once done 
 					_this.displayFreeWheelSlots( slotType, 0, function(){
-						// Restore the player:
-						_this.getContext().setVideoState( tv.freewheel.SDK.VIDEO_STATE_PLAYING );
+						_this.restorePlayState();
 						// Run the callback:
 						callback();
 					});
-					// find the video 
 				};
+				
 			});
 		});
 	},
-	playSlotsInRange: function( slotSet ){
+	restorePlayState: function(){
+		mw.log("FreeWheelControl::restorePlayState" );
+		this.getContext().setVideoState( tv.freewheel.SDK.VIDEO_STATE_PLAYING );
+		// remove pause binding: 
+		var vid = this.embedPlayer.getPlayerElement();
+		$( vid ).unbind( 'pause' + this.bindPostfix );
+	},
+	playAdCuePoint: function( slotSet, cuePoint ){
 		var _this = this;
 		var embedPlayer = this.embedPlayer;
-		$.each(slotSet, function(inx, slot){
+		$.each(slotSet, function( inx, slot ){
 			var slotType =  _this.getSlotType( slot );
 			var slotTimePosition = slot.getTimePosition();
-			if ( _this.embedPlayer.currentTime - slotTimePosition >= 0 && 
-				_this.embedPlayer.currentTime - slotTimePosition <= 1 && 
-				!_this.overlaySlotActive 
-			){
+			if( slotTimePosition == cuePoint.startTime / 1000 ){
+				mw.log("FreeWheel:: AdOpertunity play cuePoint: " + slotTimePosition+ ' == ' + cuePoint.startTime / 1000  );
 				// try to play the midroll or display the overlay: 
 				if( _this.playSlot( slot ) ){
-					// if a midroll setup ad state
-					if( slotType == 'midroll' ){
-						_this.embedPlayer.adTimeline.updateUiForAdPlayback()
+					// If type is midroll ( and the slot is not yet donePlaying ) 
+					if( slotType == 'midroll' && ! slot.donePlaying){
+						_this.embedPlayer.adTimeline.updateUiForAdPlayback();
 					}
 					
-					
 					// overlay has special handling: 
-					if( slotType == 'overlay' ){
-						// @@TODO handle close caption layout conflict
+					if( slotType == 'overlay' && _this.overlaySlotActive == false ){
+						// TODO handle close caption layout conflict
 						var bottom = parseInt( $('#fw_ad_container_div').css('bottom') );
 						var ctrlBarBottom  = bottom;
 						if( bottom < embedPlayer.controlBuilder.getHeight() ){
@@ -250,10 +259,10 @@ mw.FreeWheelControler.prototype = {
 						}
 						// Check if we are overlaying controls ( move the banner up ) 
 						if( embedPlayer.controlBuilder.isOverlayControls() ){
-							_this.embedPlayer.freeWheelBindingHelper( 'onShowControlBar', function(){
+							_this.embedPlayer.bindHelper( 'onShowControlBar', function(){
 								$('#fw_ad_container_div').animate({'bottom': ctrlBarBottom + 'px'}, 'fast');
 							});
-							_this.embedPlayer.freeWheelBindingHelper( 'onHideControlBar', function(){
+							_this.embedPlayer.bindHelper( 'onHideControlBar', function(){
 								$('#fw_ad_container_div').animate({'bottom': bottom + 'px'}, 'fast');
 							});
 						} else {
@@ -270,31 +279,86 @@ mw.FreeWheelControler.prototype = {
 		if( slot.alreadyPlayed ){
 			return false;
 		}
-		mw.log('mw.FreeWheelController:: playSlot:' + this.getSlotType( slot ) );
-		
-		if(  slot._adInstances.length ){
-			// TODO send adMeta data to adMetadata object
-			_this.embedPlayer.adTimeline.updateMeta( 
-					this.getFwAdMetaData( slot) 
-			);
-		}
-		slot.play();
+		// Set the slot played flag: 
 		slot.alreadyPlayed = true;
+		// Set the "done playing" flag to false: 
+		slot.donePlaying = false;
+		
+		mw.log( 'mw.FreeWheelController:: playSlot:' + this.getSlotType( slot ) + ' adInstances: ' +  slot._adInstances.length );
+		
+		// if no ad slots are available return 
+		if( slot._adInstances.length == 0 ){
+			return false;			
+		}
+		
+		// Update ad Meta data:
+		_this.embedPlayer.adTimeline.updateSequenceProxy( 
+			'activePluginMetadata', 
+			this.getFwAdMetaData( slot ) 
+		);
+		// Play the slot
+		slot.play();
+		// Update the active slot
+		this.activeSlot = slot;
+		// Monitor ad progress ( for sequence proxy )
+		this.monitorAdProgress();
+		
+		// Suppress freewheel controls attribute change on pause: 
+		var vid = _this.embedPlayer.getPlayerElement();
+		$( vid ).bind( 'pause' + _this.bindPostfix, function(){
+			// Do a async call to remove controls on pause
+			setTimeout(function(){
+				var vid = _this.embedPlayer.getPlayerElement();
+				vid.controls = false;
+			},0);
+		} );
 		return true;
+	},
+	monitorAdProgress: function(){
+		var _this = this;
+		// don't monitor ad progress if active slot done. 
+		if( !this.activeSlot ){
+			// clear out the timeRemaining var
+			_this.embedPlayer.adTimeline.updateSequenceProxy( 'timeRemaining', null );
+			return ;
+		}
+		// Update the timeRemaining ( if not an overlay ) 
+		if(  this.getSlotType( this.activeSlot ) != 'overlay' ){
+			var vid = _this.getAdVideoElement();
+			_this.embedPlayer.adTimeline.updateSequenceProxy( 'timeRemaining',  vid.duration - vid.currentTime );
+		}
+		
+		// Keep monitoring ad progress at MonitorRate
+		setTimeout( function(){
+			_this.monitorAdProgress();
+		}, mw.getConfig( 'EmbedPlayer.MonitorRate' ) );
+	},
+	getAdVideoElement: function(){
+		// Freewheel adds a video element to the dom for midrolls,
+		// We want this ad video element ( not the original pid getPlayerElement()
+		var $siblingVid = $( this.embedPlayer.getPlayerElement() ).siblings('video');
+		if( $siblingVid.length ){
+			return $siblingVid.get(0);
+		}
+		return  this.embedPlayer.getPlayerElement();
 	},
 	displayFreeWheelSlots: function( slotType, inx, doneCallback ){
 		var _this = this;
 		var slotSet = this.slots[ slotType ];
 		// Make sure we have a slot to be displayed:
 		if( !slotSet[ inx ] ){
-			doneCallback();
+			if( doneCallback ){
+				doneCallback();
+			} else {
+				mw.log("Error:: FreeWheelController displayFreeWheelSlots missing doneCallback ");
+			}
 			return ;
 		}
 		mw.log( "FreeWheelController::displayFreeWheelSlots> " + slotType + ' index:' + inx );
 		// Setup the active slots
 		this.curentSlotIndex = inx;
 		this.currentSlotDoneCB = doneCallback;
-		
+			
 		// Display the current slot:
 		if( ! _this.playSlot( slotSet[ inx ] ) ){
 			// if we did not play it, jump directly to slot done:
@@ -304,11 +368,17 @@ mw.FreeWheelControler.prototype = {
 	onSlotEnded: function ( event ){
 		var _this = this;
 		mw.log( "FreeWheelController::onSlotEnded> " + event.slot.getTimePositionClass() );
+		mw.log( 'set active slot to null ' );
+		// Clear the active slot
+		this.activeSlot = null;
+		// Update slot event: 
+		event.slot.donePlaying = true;
 		var slotType =_this.getSlotType( event.slot );
 		if( slotType == 'overlay'  ){
 			_this.overlaySlotActive = false;
 			return ;
 		}
+
 		if( slotType== 'preroll' ){
 			_this.getContext().setVideoState( tv.freewheel.SDK.VIDEO_STATE_PLAYING );
 		}
@@ -321,6 +391,7 @@ mw.FreeWheelControler.prototype = {
 			_this.displayFreeWheelSlots( slotType, _this.curentSlotIndex, _this.currentSlotDoneCB );
 		}
 		if( slotType=='midroll' ){
+			_this.restorePlayState();
 			// midroll done
 			_this.embedPlayer.adTimeline.restorePlayer();
 		}
@@ -486,11 +557,18 @@ mw.FreeWheelControler.prototype = {
 		var context = this.getContext();
 		for( var i=0; i < cuePoints.length; i++){
 			var cuePoint =  cuePoints[i];
+			
 			// Add ads for each cuePoint type: 
-			if( cuePoint.cuePointType == 'adCuePoint.Ad' 
-				&&
-				cuePoint.tags.toLowerCase().indexOf('freewheel') !== -1 
-			){
+			if( cuePoint.protocolType === 0 && cuePoint.cuePointType == 'adCuePoint.Ad' ){
+				
+				// Check if we have a provider filter:
+				var providerFilter = this.getConfig('provider');
+				if( providerFilter && cuePoint.tags.toLowerCase().indexOf( providerFilter ) === -1 ){
+					// skip the cuepoint that did not match the provider filter
+					mw.log( "mw.FreeWheelController:: skip cuePoint with tag: " + cuePoint.tags + ' != ' + providerFilter );
+					continue;
+				}
+				
 				var adType = embedPlayer.kCuePoints.getRawAdSlotType( cuePoint );
 				mw.log("FreeWheel:: context.addCuePointSlots: " + adType );
 				switch( adType ){

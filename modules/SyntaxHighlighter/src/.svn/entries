@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.18/modules/SyntaxHighlighter/src
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.0/modules/SyntaxHighlighter/src
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T19:08:43.000000Z
-7b30a548e734d5b6a405ae35fd251cea
-2011-11-08T14:30:29.736476Z
-6825
+2017-07-03T22:42:33.000000Z
+567272493b91dc5b04ac999e523737e7
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -58,7 +58,7 @@ rany
 
 
 
-2823
+2693
 
 shLegacy.js
 file
@@ -66,10 +66,10 @@ file
 
 
 
-2017-07-03T19:08:43.000000Z
-06239e19de852486dea7a4b7b9992941
-2011-11-08T14:30:29.736476Z
-6825
+2017-07-03T22:42:33.000000Z
+dcf9a5a97e44fc0e0b547d7ef7f2c9a1
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -92,7 +92,7 @@ rany
 
 
 
-3832
+3675
 
 XRegExp.js
 file
@@ -100,10 +100,10 @@ file
 
 
 
-2017-07-03T19:08:43.000000Z
-35f858c2ab862a67afb6e43bbef7feeb
-2011-11-08T14:30:29.736476Z
-6825
+2017-07-03T22:42:33.000000Z
+641a0bbeccebb5d98215d61ac89b8d3a
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -126,7 +126,7 @@ rany
 
 
 
-29136
+28485
 
 shCore.js
 file
@@ -134,10 +134,10 @@ file
 
 
 
-2017-07-03T19:08:43.000000Z
-5315d31c3dfed867c1e79f97bf4b6924
-2011-11-08T14:30:29.736476Z
-6825
+2017-07-03T22:42:33.000000Z
+d70a059774f9aefdad094b4e3aa6d1d7
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -160,5 +160,5 @@ rany
 
 
 
-45223
+43502
 

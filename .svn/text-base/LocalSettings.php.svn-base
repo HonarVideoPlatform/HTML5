@@ -37,6 +37,6 @@ $wgKalturaAllowIframeRemoteService = true;
 
 // Define which modules to load
 $wgMwEmbedEnabledModules = array( 'EmbedPlayer', 'KalturaSupport', 'AdSupport', 'Playlist', 'TimedText', 'Omniture',
-									'Plymedia', 'FreeWheel', 'EmbedWizard',  'SyntaxHighlighter', 'DoubleClick', 'Comscore' );
+									'Plymedia', 'FreeWheel', 'EmbedWizard',  'SyntaxHighlighter', 'DoubleClick', 'Comscore', 'DolStatistics' );
 
 ?>

@@ -31,7 +31,6 @@
 		    	'type' : 'video/webm'
 		    }
 		 ],
-		 
 		 'Kaltura.BlackVideoSources' : [
 		    {
 		        'src' : 'http://www.kaltura.com/p/243342/sp/24334200/playManifest/entryId/1_vp5cng42/flavorId/1_oiyfyphl/format/url/protocol/http/a.webm',
@@ -53,9 +52,13 @@
 		'kentryid' : null,
 		'kwidgetid' : null,
 		'kuiconfid' : null,
+		// helps emulate the kdp behavior of not updating currentTime until a seek is complete. 
+		'kPreSeekTime': null,
 		'kalturaPlayerMetaData' : null,
 		'kalturaEntryMetaData' : null,
-		'kalturaPlaylistData' : null
+		'kalturaPlaylistData' : null,
+		'kalturaExportedEvaluateObject': null,
+		'rawCuePoints' : null
 	});
 	
 	mw.mergeConfig( 'EmbedPlayer.DataAttributes', {
@@ -76,6 +79,7 @@
 		"mw.KDPMapping" : "mw.KDPMapping.js",
 		"mw.KApi" : "mw.KApi.js",		
 		"mw.KAds" : "mw.KAds.js",
+		"mw.KAdPlayer" : "mw.KAdPlayer.js",
 		"mw.KPPTWidget" : "mw.KPPTWidget.js",
 		"mw.style.klayout" : "mw.style.klayout.css",
 		"mw.KLayout" : "mw.KLayout.js",
@@ -90,6 +94,7 @@
 		
 		"controlbarLayout"	: 	"uiConfComponents/controlbarLayout.js",
 		"titleLayout" : "uiConfComponents/titleLayout.js",
+		"volumeBarLayout"	:	"uiConfComponents/volumeBarLayout.js",
 		
 		"kdpClientIframe" : "kdpPageJs/kdpClientIframe.js",
 		"kdpServerIFrame" : "kdpPageJs/kdpServerIFrame.js"
@@ -98,24 +103,27 @@
 	// Set a local variable with the request set so we can append it to embedPlayer
 	var kalturaSupportRequestSet = [
 		'MD5',
-		"mw.KApi",
+		'utf8_encode',
+		'base64_encode',
+		//'base64_decode',
+		'mw.KApi',
 		'mw.KWidgetSupport',
 		'mw.KCuePoints',
 		'mw.KAnalytics',
 		'mw.KDPMapping',
 		'mw.KAds',
+		'mw.KAdPlayer',
 		'mw.KTimedText',
 		'mw.KLayout',
 		'mw.style.klayout',
 		'controlbarLayout',
-		'titleLayout',		
+		'titleLayout',
+		'volumeBarLayout',
 		'faderPlugin',
 		'watermarkPlugin',
 		'adPlugin',
 		'captionPlugin',
 		'bumperPlugin',
-
-		'convivaPlugin',
 		'playlistPlugin'
 	];
 	
@@ -149,6 +157,7 @@
 		if( typeof kGetKalturaPlayerList == 'undefined'){
 			return ;
 		}
+		
 		var kalturaObjectPlayerList = kGetKalturaPlayerList();
 		mw.log( 'KalturaSupport found:: ' + kalturaObjectPlayerList.length + ' is mobile::' +  mw.isHTML5FallForwardNative() );
 		if( ! kalturaObjectPlayerList.length ) {
@@ -373,7 +382,7 @@
 					mw.log("KalturaLoader:: load EmbedPlayer");
 					mw.load('EmbedPlayer', function(){
 						// Remove the general loading spinner ( embedPlayer takes over )
-						$('.mwEmbedKalturaVideoSwap').embedPlayer( rewriteDoneCallback );
+						$('.mwEmbedKalturaVideoSwap' ).embedPlayer( rewriteDoneCallback );
 					});
 				}
 				// no loader, run the callback directly: 
@@ -392,7 +401,7 @@
 		// Add kaltura support hook
 		if( kLoadKalturaSupport ) {
 			// Pass the flashvars to the iframe
-			$(playerElement).data('flashvars', mw.getConfig('KalturaSupport.IFramePresetFlashvars'));
+			$( playerElement ).data('flashvars', mw.getConfig('KalturaSupport.IFramePresetFlashvars'));
 
 			for(var i =0; i < kalturaSupportRequestSet.length; i++ ){
 				if( $.inArray(kalturaSupportRequestSet[i], classRequest ) == -1 ){
@@ -421,7 +430,7 @@
 			playlistConfig = {
 				'uiconf_id' : playlistEmbed.kuiconfid,
 				'widget_id' : playlistEmbed.kwidgetid
-			};		
+			};
 			kplUrl0 = playlistEmbed.getKalturaConfig( 'playlistAPI', 'kpl0Url' )
 		}
 		// No kpl0Url, not a kaltura playlist good
@@ -459,7 +468,7 @@
 			// Check if the iframe API is enabled: 
 			if( mw.getConfig('EmbedPlayer.EnableIframeApi') ){
 				// Make sure the iFrame player client is loaded: 
-				mw.load( ['$j.postMessage', 'mw.EmbedPlayerNative' , 'mw.IFramePlayerApiClient', 'mw.KDPMapping', 'JSON' ], function(){
+				mw.load( ['$j.postMessage', 'mw.EmbedPlayerNative' , 'mw.IFramePlayerApiClient', 'mw.KWidgetSupport', 'mw.KDPMapping', 'JSON' ], function(){
 					doRewriteIframe( iframeParams, playerTarget );											
 				});
 			} else {
@@ -523,7 +532,8 @@
 			iframeRequest += '&urid=' + KALTURA_LOADER_VERSION;
 
 			var baseClass = $( playerTarget ).attr('class' ) ? $( playerTarget ).attr('class' ) + ' ' : '';
-			var iframeId = $( playerTarget ).attr('id') + '_ifp';		
+			var iframeId = $( playerTarget ).attr('id') + '_ifp';
+			var iframeStyle = ( $( playerTarget ).attr('style') ) ? $( playerTarget ).attr('style') : '';
 
 			var $iframe = $('<iframe />')
 				.attr({
@@ -533,7 +543,7 @@
 					'height' : $( playerTarget ).height(),
 					'width' : $( playerTarget ).width()
 				})
-				.attr( 'style', $( playerTarget ).attr('style') ) 
+				.attr('style', iframeStyle)
 				.css({
 					'border': '0px'
 				});

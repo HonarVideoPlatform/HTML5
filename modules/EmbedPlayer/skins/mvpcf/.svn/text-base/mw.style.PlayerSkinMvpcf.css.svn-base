@@ -99,12 +99,28 @@
 	padding-right:4px;
 }
 
+.mv-player .source-switch {
+	border: medium none;
+	display: inline;
+	color: #eee;
+	font: 11px arial, sans-serif;
+	line-height: 20px;
+	overflow: hidden;
+	width: 70px;
+	cursor: pointer;
+	float: right;
+	text-align: center;
+	padding-top:6px;
+}
+
+
 .mv-player .play_head{
 	float: left;
 	display: inline;
 	height: 10px;
 	margin-left:8px;
 	margin-top:10px;
+	margin-right: 8px;
 	position:relative;
 }
 
@@ -169,3 +185,6 @@
 .mv-player .overlay-win h3 { font-size:14px;}
 
 .active { font-size: 12px; }
+
+.ui-slider-horizontal.volume-slider { width: 44px; height: 2px; top: 7px; }
+.ui-slider-horizontal.volume-slider .ui-slider-handle { border-width: 1px; }

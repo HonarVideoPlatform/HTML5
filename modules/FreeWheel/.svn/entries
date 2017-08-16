@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.18/modules/FreeWheel
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.0/modules/FreeWheel
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T19:08:47.000000Z
-226466fcb95739d2795d59491e094f3c
-2011-11-08T14:30:29.736476Z
-6825
+2017-07-03T22:42:33.000000Z
+53b81eff196d140036e571f2b8eaa675
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -58,7 +58,7 @@ rany
 
 
 
-938
+782
 
 tests
 dir
@@ -69,10 +69,10 @@ file
 
 
 
-2017-07-03T19:08:47.000000Z
-00d891a5e8736d1e58195c965e344f26
-2011-11-08T14:30:29.736476Z
-6825
+2017-07-03T22:42:33.000000Z
+deaf500fea7e5afb63df131b4920c3d5
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -95,5 +95,5 @@ rany
 
 
 
-16565
+19514
 

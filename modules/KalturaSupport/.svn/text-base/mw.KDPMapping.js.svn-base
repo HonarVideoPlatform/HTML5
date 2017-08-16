@@ -1,9 +1,8 @@
 /**
  * Based on the 'kdp3 javascript api'
- * Add full kaltura mapping support to html5 based players
+ * Add full Kaltura mapping support to html5 based players
  * http://www.kaltura.org/demos/kdp3/docs.html#jsapi
  */
-				
 // scope in mw
 ( function( mw, $ ) {
 	mw.KDPMapping = function( ) {
@@ -32,7 +31,6 @@
 		},
 		addPlayerHooks: function(){
 			var _this = this;
-			mw.log("KDPMapping::addPlayerHooks>");
 			// Add the hooks to the player manager			
 			$( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ) {
 				// Add the addJsListener and sendNotification maps
@@ -73,7 +71,7 @@
 			$( mw ).bind( 'AddIframePlayerMethods', function( event, playerMethods ){
 				playerMethods.push( 'addJsListener', 'removeJsListener', 'sendNotification', 'setKDPAttribute' );
 			});
-
+			
 			$( mw ).bind( 'newIframePlayerClientSide', function( event, playerProxy ) {
 				$( playerProxy ).bind( 'jsListenerEvent', function(event, globalFuncName, listenerArgs){
 					// check if globalFuncName has descendant properties
@@ -93,7 +91,16 @@
 							}
 							evalFunction.apply( evalFunctionParent, listenerArgs );
 						} catch (e){
-							mw.log( "Warning KDPMapping: jsListenerEvent function name not found");
+							mw.log( "KDPMapping:: Error in jsListenerEvent callback: " + e );
+						}
+					}
+				});
+				// Add local callbacks for local updates of properties in async requests 
+				$( playerProxy ).bind( 'AddIframePlayerMethodCallbacks', function( event, playerMethods ){
+					playerMethods[ 'sendNotification' ] = function( notificationName, notificationData ){
+						// Emulate kdp seek behavior by setting local property at doSeek time. 
+						if( notificationName == 'doSeek' ){
+							playerProxy.kPreSeekTime = playerProxy.currentTime;
 						}
 					}
 				});
@@ -160,6 +167,15 @@
 				embedPlayer.evaluate = function( objectString ){
 					return _this.evaluate( embedPlayer, objectString);
 				};
+				
+				// Add preSeek event binding to upate the kPreSeekTime var
+				$( embedPlayer ).bind( 'preSeek', function(event, percent){					
+					embedPlayer.kPreSeekTime = embedPlayer.currentTime;
+				});
+				// Once a seek is complete null the kPreSeekTime ( so we can use currentTime ) in evaluate calls
+				$( embedPlayer ).bind( 'seeked', function( event ){
+					embedPlayer.kPreSeekTime = null;
+				});
 			});
 		},
 		
@@ -217,10 +233,12 @@
 			if( result === "undefined" || result === "null" || result == "" )
 				result = undefined;
 
-			if( result === "false")
+			if( result === "false"){
 				result = false;
-			if( result === "true")
+			}
+			if( result === "true"){
 				result = true;
+			}
 			
 			return result;
 		},
@@ -233,7 +251,7 @@
 		 * @param {object} embedPlayer Player Proxy or embedPlayer object 
 		 * @param {string} expression The expression to be evaluated
 		 */
-		evaluateExpression: function( embedPlayer, expression){
+		evaluateExpression: function( embedPlayer, expression ){
 			var _this = this;
 			// Check if we have a function call: 
 			if( expression.indexOf( '(' ) !== -1 ){
@@ -248,6 +266,27 @@
 			
 			// Split the uiConf expression into parts separated by '.'
 			var objectPath = expression.split('.');
+			
+			
+			// Check the exported kaltura object ( for manual overrides of any mapping ) 
+			if( embedPlayer.kalturaExportedEvaluateObject
+					&&  
+				embedPlayer.kalturaExportedEvaluateObject[ objectPath[0] ] 
+			){
+				var kObj = embedPlayer.kalturaExportedEvaluateObject[ objectPath[0] ] ;
+				// TODO SHOULD USE A FUNCTION map
+				if( !objectPath[1] ){
+					return kObj;
+				}
+				if( !objectPath[2] && kObj[ objectPath[1] ] ){
+					return kObj[ objectPath[1] ];
+				}
+				if( objectPath[2] && kObj[ objectPath[1] ] && kObj[ objectPath[1] ][ objectPath[2] ]  ){
+					return kObj[ objectPath[1] ][ objectPath[2] ];
+				}
+				
+			}
+			
 			switch( objectPath[0] ){
 				case 'isHTML5':
 					return true;
@@ -256,18 +295,24 @@
 					if( ! embedPlayer.sequenceProxy ){
 						return null;
 					}
-					switch( objectPath[1] ){
-						case 'isInSequence':
-							return embedPlayer.sequenceProxy.isInSequence;
-							break;
-						case 'activePluginMetadata':
-							if(  objectPath[2] ){
-								if( ! embedPlayer.sequenceProxy.activePluginMetadata )
-									return null;
-								return embedPlayer.sequenceProxy.activePluginMetadata[ objectPath[2] ]
-							}
-							return embedPlayer.sequenceProxy.activePluginMetadata;
-							break;
+					if( objectPath[1] ){
+						switch( objectPath[1] ){
+							// check for direct mapping properties: 
+							case 'timeRemaining':
+							case 'isInSequence':
+								return embedPlayer.sequenceProxy[ objectPath[1] ];
+								break;								
+							case 'activePluginMetadata':
+								if(  objectPath[2] ){
+									if( ! embedPlayer.sequenceProxy.activePluginMetadata ){
+										return null;
+									}
+									return embedPlayer.sequenceProxy.activePluginMetadata[ objectPath[2] ]
+								}
+								return embedPlayer.sequenceProxy.activePluginMetadata;
+								break;
+						}
+						return null;
 					}
 					// return the base object if no secondary path is specified 
 					return embedPlayer.sequenceProxy;
@@ -280,6 +325,10 @@
 						case 'player':
 							switch( objectPath[2] ){
 								case 'currentTime':
+									// check for kPreSeekTime ( kaltura seek delay update property ) 
+									if( embedPlayer.kPreSeekTime !== null ){
+										return embedPlayer.kPreSeekTime;
+									}
 									return embedPlayer.currentTime;
 								break;
 							}
@@ -291,6 +340,21 @@
 					break;
 				case 'mediaProxy':
 					switch( objectPath[1] ){
+						case 'entryCuePoints':
+							if( ! embedPlayer.rawCuePoints ){
+								return null;
+							}
+							var kdpCuePointFormat = {};
+							$.each( embedPlayer.rawCuePoints, function(inx, cuePoint ){
+								var startTime = parseInt( cuePoint.startTime / 1000 );
+								if( kdpCuePointFormat[ startTime ] ){
+									kdpCuePointFormat[ startTime ].push( cuePoint )
+								} else {
+									kdpCuePointFormat[ startTime ] = [ cuePoint ];
+								}
+							});
+							return kdpCuePointFormat;
+						break;
 						case 'entryMetadata':
 							if( ! embedPlayer.kalturaEntryMetaData ){
 								return null;
@@ -343,6 +407,9 @@
 								return $( embedPlayer ).data( 'flashvars' );
 							}
 						break;
+						case 'sessionId':
+							return window.kWidgetSupport.getGUID();
+						break;
 					}
 					// no objectPath[1] match return the full configProx object: 
 					return { 'flashvars' : $( embedPlayer ).data( 'flashvars' ) }
@@ -378,7 +445,8 @@
 					}
 				break;
 			}
-			// nothing found ( returns undefined ) 
+			// Look for a plugin based config: 
+			return embedPlayer.getKalturaConfig( objectPath[0], objectPath[1]);
 		},
 		evaluateStringFunction: function( functionName, value ){
 			switch( functionName ){
@@ -396,14 +464,21 @@
 		 */
 		addJsListener: function( embedPlayer, eventName, callbackName ){
 			var _this = this;
-			//mw.log("KDPMapping::addJsListener: " + eventName + ' cb:' + callbackName );
+			mw.log("KDPMapping::addJsListener: " + eventName + ' cb:' + callbackName );
 
+			// We can pass [eventName.namespace] as event name, we need it in order to remove listeners with their namespace
+			if( typeof eventName == 'string' ) {
+				var eventData = eventName.split('.', 2);
+				var eventNamespace = ( eventData[1] ) ? eventData[1] : 'kdpMapping';
+				eventName = eventData[0];
+			}
+			
 			if( typeof callbackName == 'string' ){
 				this.listenerList[  this.getListenerId( embedPlayer, eventName, callbackName)  ] = window[ callbackName ];
 				var callback = function(){
 					var listnerId = _this.getListenerId( embedPlayer, eventName, callbackName) ;
 					// Check that the listener is still valid and run the callback with supplied arguments
-					if( _this.listenerList [ listnerId ] ){
+					if( $.isFunction( _this.listenerList [ listnerId ] ) ){
 						_this.listenerList [ listnerId ].apply( _this, $.makeArray( arguments ) );
 					}
 				};
@@ -424,13 +499,18 @@
 					};
 				}
 				// Add a postfix string
-				bindName += '.kdpMapping';
-				// remove any other kdpMapping binding:
-				$( embedPlayer ).bind( bindName, function(){
+				bindName += '.' + eventNamespace;
+				// bind with .kdpMapping postfix::
+				embedPlayer.bindHelper( bindName, function(){
 					bindCallback.apply( _this, $.makeArray( arguments ) );
 				});
 			};
 			switch( eventName ){
+				case 'mediaLoadError':
+					b( 'mediaLoadError');
+					break;
+				case 'mediaError':
+					b( 'mediaError' );
 				case 'kdpEmpty':
 					// TODO: When we have video tag without an entry
 					b( 'playerReady', function(){
@@ -454,7 +534,7 @@
 					break;
 				case 'playerStateChange':					
 					// TODO add in other state changes
-					b( 'pause', function(){
+					b( 'onpause', function(){
 						callback( 'pause', embedPlayer.id );
 					});
 					b( 'onplay', function(){
@@ -468,10 +548,10 @@
 				case 'playerPaused':
 				case 'pause':
 				case 'doPause':
-					b( "pause" );
+					b( "onpause" );
 					break;
 				case 'adStart':
-					b('AdSupport_StartAdPlayback');
+					b('AdSupport_StartAdPlayback');	
 					break;
 				case 'adEnd':
 					b('AdSupport_EndAdPlayback');
@@ -498,12 +578,15 @@
 				case 'doPlay':
 					b( "onplay" );
 					break;
+				case 'playerSeekStart':
+					b( "seeking" ); // playerSeekStart just sends the playerId
+					break;
 				case 'seek':
 				case 'doSeek':
-				case 'playerSeekStart':
-				case 'doIntelligentSeek':		
+				case 'doIntelligentSeek':	
 					b( "seeking", function(){
-						callback( embedPlayer.currentTime, embedPlayer.id );
+						var seekTime = ( embedPlayer.kPreSeekTime !== null ) ? embedPlayer.kPreSeekTime : embedPlayer.currentTime
+						callback( seekTime, embedPlayer.id );
 					});
 					break;
 				case 'playerSeekEnd':
@@ -512,12 +595,12 @@
 				case 'playerPlayEnd':
 					b( "onEndedDone" );
 					break;
-				case 'durationChange': 
+				case 'durationChange':
 					b( "durationchange", function(){
 						callback( { 'newValue' : embedPlayer.duration }, embedPlayer.id );
 					});
 				break;
-				case 'openFullScreen': 
+				case 'openFullScreen':
 				case 'hasOpenedFullScreen':
 					b( "onOpenFullScreen" );
 					break;
@@ -531,7 +614,6 @@
 					});
 					break;	
 				case 'changeMedia':
-					// apparently change media is the same as playerReady
 					b( 'playerReady', function( event ){
 						callback({ 'entryId' : embedPlayer.kentryid }, embedPlayer.id );
 					});
@@ -540,6 +622,9 @@
 					b( 'KalturaSupport_EntryDataReady', function( event, entryData ){
 						callback( entryData, embedPlayer.id );
 					});
+					break;
+				case 'entryFailed':
+					b( 'KalturaSupport_EntryFailed' );
 					break;
 				case 'mediaReady':
 					// Check for "media ready" ( namespace to kdpMapping )
@@ -592,19 +677,33 @@
 					mw.log( "Warning: kdp event: " + eventName + " does not have an html5 mapping" );
 					break;
 
-				/* For closedCaption plguin */
+				case 'freePreviewEnd':
+					b('KalturaSupport_FreePreviewEnd');
+					break;
+				/** 
+				 * For closedCaption plguin
+				 *  TODO move to mw.KTimedText.js 
+				 */
 				case 'ccDataLoaded':
-					b('KalturaSupport_ccDataLoaded');
+					b('KalturaSupport_CCDataLoaded');
 					break;
 				case 'newClosedCaptionsData':
-					b('KalturaSupport_newClosedCaptionsData');
+					b('KalturaSupport_NewClosedCaptionsData');
 					break;
 				case 'changedClosedCaptions':
 					b('TimedText_ChangeSource');
 					break;
 				default:
-					mw.log("Error unkown JsListener: " + eventName );
-					return false;
+					// Custom listner 
+					// ( called with any custom arguments that are provided in the trigger)
+					b( eventName, function(){
+						var args = $.makeArray( arguments );
+						if( args.length ){
+							args.shift();
+						}
+						callback.apply( _this, args );
+					} );
+					break;
 			};
 			// The event was successfully binded: 
 			return true;
@@ -614,6 +713,16 @@
 		 * Emulates Kaltura removeJsListener function
 		 */
 		removeJsListener: function( embedPlayer, eventName, callbackName ){
+			// Remove event by namespace
+			if( typeof eventName == 'string' && eventName[0] === '.' ) {
+				var eventData = eventName.split('.', 2);
+				var eventNamespace = eventData[1];
+				if( eventNamespace ) {
+					$( embedPlayer ).unbind('.' + eventNamespace);
+				}
+				return ;
+			}
+
 			var listenerId = this.getListenerId( embedPlayer, eventName, callbackName) ;
 			mw.log("KDPMapping:: removeJsListener " + listenerId );
 			this.listenerList [  listenerId ] = null;
@@ -628,6 +737,7 @@
 		 * Master send action list: 
 		 */
 		sendNotification: function( embedPlayer, notificationName, notificationData ){
+			mw.log('KDPMapping:: sendNotification > '+ notificationName );
 			switch( notificationName ){
 				case 'doPlay':
 					embedPlayer.play();
@@ -641,7 +751,9 @@
 				case 'doSeek':
 					// Kaltura doSeek is in seconds rather than percentage:
 					var percent = parseFloat( notificationData ) / embedPlayer.getDuration();
-					embedPlayer.doSeek( percent );
+					// Update local kPreSeekTime
+					embedPlayer.kPreSeekTime =  embedPlayer.currentTime;
+					embedPlayer.seek( percent );
 					break;
 				case 'changeVolume':
 					embedPlayer.setVolume( parseFloat( notificationData ) );
@@ -671,7 +783,7 @@
 				    embedPlayer.kCuePoints = null;
 				    
 				    // clear ad data ..
-				    embedPlayer.ads = null;
+				    embedPlayer.kAds = null;
 				    
 					// Update the poster
 					embedPlayer.updatePosterSrc( 
@@ -682,13 +794,12 @@
 							'height' :  embedPlayer.getHeight()
 						})
 					);
-					// Empty out embedPlayer object sources
-					embedPlayer.emptySources();
-					
 					// run the embedPlayer changeMedia function
 					embedPlayer.changeMedia();
 				break;
 			}
+			// Give kdp plugins a chance to take attribute actions 
+			$( embedPlayer ).trigger( 'Kaltura_SendNotification', [ notificationName, notificationData ] );
 		}
 	};	
 		

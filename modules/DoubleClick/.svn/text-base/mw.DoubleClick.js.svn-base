@@ -52,7 +52,7 @@ mw.DoubleClick.prototype = {
 		$.each( slotSet, function( inx, slotType ){
 			// Add the adSlot binding
 			// @@TODO use the "sequence number" as a slot identifier. 
-			$( _this.embedPlayer ).bind( 'AdSupport_' + slotType + _this.bindPostfix, function( event, sequenceProxy ){
+			_this.embedPlayer.bindHelper( 'AdSupport_' + slotType + _this.bindPostfix, function( event, sequenceProxy ){
 				// Add the slot to the given sequence proxy target target
 				sequenceProxy[ _this.getSequenceIndex( slotType ) ] = function( callback ){
 					_this.loadAndPlayVideoSlot( slotType, callback );	
@@ -61,20 +61,25 @@ mw.DoubleClick.prototype = {
 		});
 
 		// Add a binding for cuepoints:
-		$( _this.embedPlayer ).bind( 'KalturaSupport_AdOpportunity' + _this.bindPostfix, function( event,  cuePointWrapper ){
+		_this.embedPlayer.bindHelper( 'KalturaSupport_AdOpportunity' + _this.bindPostfix, function( event,  cuePointWrapper ){
 			var cuePoint = cuePointWrapper.cuePoint;
-			// check if trackCuePoints has been disabled 
+			// Check if trackCuePoints has been disabled 
 			if( _this.getConfig( 'trackCuePoints') === false){
 				return ;
 			}
 			
-			// Make sure the cue point is tagged for dobuleclick
-			if( cuePoint.tags.indexOf( "doubleclick" ) === -1 
-					&& 
-				cuePoint.title.indexOf( "doubleclick" ) === -1
-			){
+			// Check that the cue point is protocolType = 0 and cuePointType == adCuePoint.Ad
+			if( cuePoint.protocolType !== 0 || cuePoint.cuePointType != 'adCuePoint.Ad' ){
 				return ;
 			}
+			// Check if we have a provider filter:
+			var providerFilter = _this.getConfig('provider');
+			if( providerFilter && cuePoint.tags.toLowerCase().indexOf( providerFilter ) === -1 ){
+				// skip the cuepoint that did not match the provider filter
+				mw.log( "mw.DoubleClick:: skip cuePoint with tag: " + cuePoint.tags + ' != ' + providerFilter );
+				return ;
+			}
+			
 			
 			// Get the ad type for each cuepoint
 			var adType = _this.embedPlayer.kCuePoints.getRawAdSlotType( cuePoint );
@@ -94,16 +99,22 @@ mw.DoubleClick.prototype = {
 					}
 					// play the restored entry ( restore propagation ) 
 					_this.embedPlayer.play();
+					_this.embedPlayer.stopEventPropagation();
+					// restore event Propagation after 100ms 
+					// prevents some residual doubleClick pause events from propagating )
+					setTimeout(function(){
+						_this.embedPlayer.restoreEventPropagation();
+					}, 100)
 				}, cuePoint);
 			}
 		});
 		// On clip done hide any overlay banners that are still active
-		$( _this.embedPlayer ).bind( 'ended' + _this.bindPostfix, function(){
+		_this.embedPlayer.bindHelper( 'ended' + _this.bindPostfix, function(){
 			 if( _this.activeOverlayadManager )
 				 _this.activeOverlayadManager.unload();
 		});
 		// On change media remove any existing ads: 
-		$( _this.embedPlayer ).bind( 'onChangeMedia' + _this.bindPostfix, function(){
+		_this.embedPlayer.bindHelper( 'onChangeMedia' + _this.bindPostfix, function(){
 			_this.destroy();
 		});
 	},
@@ -219,6 +230,9 @@ mw.DoubleClick.prototype = {
 	loadAndPlayVideoSlot: function( slotType, callback, cuePoint){
 		var _this = this;
 		mw.log( "DoubleClick::loadAndPlayVideoSlot> pause while loading ads ");
+		
+		var adClickPostFix = '.dcAdClick';
+		
 		// Pause playback:
 		_this.embedPlayer.pauseLoading();
 		
@@ -243,22 +257,21 @@ mw.DoubleClick.prototype = {
 			}
 
 			// Update the playhead to play state:
-			_this.embedPlayer.play();
+			_this.embedPlayer.playInterfaceUpdate();
 			
 			// TODO This should not be needed ( fix event stop event propagation ) 
 			_this.embedPlayer.monitor();
 			mw.log( "DoubleClick::adsManager.play" );
 			var vid = _this.embedPlayer.getPlayerElement();
-			
 			adsManager.play( vid );
 			
 			// Show the control bar with a ( force on screen option for iframe based clicks on ads ) 
 			// double click only gives us a "raw pause" 
-			$( vid ).bind('pause.dcAdClick', function(){
+			$( vid ).bind( 'pause' + adClickPostFix, function(){
 				// force display the control bar: 
 				_this.embedPlayer.controlBuilder.showControlBar( true );
 				// add a play binding: to restore hover 
-				$( vid ).bind('play.dcAdClick', function(){
+				$( vid ).bind( 'play' + adClickPostFix, function(){
 					_this.embedPlayer.controlBuilder.restoreControlsHover();
 				});
 			});
@@ -269,7 +282,7 @@ mw.DoubleClick.prototype = {
 			mw.log( "DoubleClick::loadAndPlayVideoSlot> onResumeRequestedCallback" );
 			var vid = _this.embedPlayer.getPlayerElement();
 			// unbind the click 
-			$( vid ).unbind( '.dcAdClick');
+			$( vid ).unbind( adClickPostFix );
 			
 			// TODO integrate into timeline proper: 
 			if( _this.embedPlayer.adTimeline ){

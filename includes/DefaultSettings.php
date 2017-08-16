@@ -18,8 +18,8 @@ $wgMwEmbedPathUrl = str_replace(
 	$_SERVER['SCRIPT_NAME']
 );
 
-// The version of the library ( should match the mwEmbedLoader KALTURA_LOADER_VERSION )
-$wgMwEmbedVersion = '1.5.17';
+// The version of the library 
+$wgMwEmbedVersion = '1.6.0a';
 
 // Url to the resource loader php script: 
 $wgResourceLoaderUrl = $wgMwEmbedPathUrl . 'ResourceLoader.php';
@@ -81,7 +81,10 @@ if( $wgHTTPProtocol == 'https' ){
 }
 
 // Default Kaltura Stats url
-$wgKalturaStatsServiceUrl = $wgHTTPProtocol . '://stats.kaltura.com';
+$wgKalturaStatsServiceUrl = 'http://stats.kaltura.com';
+if( $wgHTTPProtocol == 'https' ){
+	$wgKalturaStatsServiceUrl = 'https://www.kaltura.com';
+}
 
 // Default Kaltura service url:
 $wgKalturaServiceBase = '/api_v3/index.php?service=';
@@ -102,6 +105,9 @@ $wgKalturaAllowIframeRemoteService = false;
 // Default expire time for ui conf api queries in seconds 
 $wgKalturaUiConfCacheTime = 60*10; // 10 min
 
+// Cache errors for 30 seconds to avoid overloading apaches in CDN setups
+$wgKalturaErrorCacheTime = 30;
+
 // By default enable the iframe rewrite
 $wgKalturaIframeRewrite = true;
 
@@ -119,7 +125,7 @@ $wgAllowCustomResourceIncludes = true;
 $wgKalturaPartnerDisableAppleAdaptive = array();
 
 // By default use apple adaptive if we have the ability
-$wgKalturaUseAppleAdaptive = true;
+$wgKalturaUseAppleAdaptive = ($wgHTTPProtocol == 'https') ? false : true;
 
 // Add Kaltura api services: ( should be part of kaltura module config)
 include_once( realpath( dirname( __FILE__ ) )  . '/../modules/KalturaSupport/apiServices/mweApiUiConfJs.php' );

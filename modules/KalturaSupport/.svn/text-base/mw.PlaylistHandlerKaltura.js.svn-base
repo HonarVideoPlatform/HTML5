@@ -101,7 +101,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 			// Set height:
 			_this.videolistHeight = ( plConf.height )?  plConf.height : _this.$uiConf.find('#playlist').attr('height');
 			 
-			if( plConf.includeInLayout === false ){
+			if( plConf.includeInLayout === false || parseInt( _this.$uiConf.find( '#playlistHolder' ).attr('width') ) == 0 ){
 				_this.includeInLayout = false;
 			} else if( parseInt( _this.videolistWidth ) == 0 ){
 				_this.videolistWidth  = 250;
@@ -277,8 +277,9 @@ mw.PlaylistHandlerKaltura.prototype = {
 			if( callback )
 				callback();
 		});
+		mw.log("PlaylistHandlerKaltura::playClip::changeMedia entryId: " + this.getClip( clipIndex ).id);
 		// Use internal changeMedia call to issue all relevant events
-		embedPlayer.sendNotification( "changeMedia", { 'entryId' : this.getClip( clipIndex ).id } );	
+		embedPlayer.sendNotification( "changeMedia", { 'entryId' : this.getClip( clipIndex ).id } );
 		// Update the playlist data selectedIndex
 		embedPlayer.kalturaPlaylistData.selectedIndex = clipIndex;
 	},
@@ -297,6 +298,13 @@ mw.PlaylistHandlerKaltura.prototype = {
 		}
 		// Get the embed 
 		var embedPlayer = _this.playlist.getEmbedPlayer();
+
+		// Hide our player if not needed
+		var $playerHolder = embedPlayer.getKalturaConfig('PlayerHolder', ["visible", "includeInLayout"]);
+		if( $playerHolder.visible === false  || $playerHolder.includeInLayout === false ) {
+			embedPlayer.displayPlayer = false;
+		}
+
 		// update the selected index: 
 		embedPlayer.kalturaPlaylistData.selectedIndex = clipIndex;
 		// Set up ready binding (for ready )
@@ -332,6 +340,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 		$( embedPlayer ).unbind( this.bindPostFix );
 		// add the binding: 
 		$( embedPlayer ).bind( 'Kaltura_SetKDPAttribute' + this.bindPostFix, function( event, componentName, property, value ){
+			mw.log("PlaylistHandlerKaltura::Kaltura_SetKDPAttribute:" + property + ' value:' + value);
 			switch( componentName ){
 				case "playlistAPI.dataProvider":
 					_this.doDataProviderAction( property, value );
@@ -547,6 +556,7 @@ mw.PlaylistHandlerKaltura.prototype = {
 			case 'itemRendererLabel':
 				// XXX should use .playlist.formatTitle and formatDescription ( once we fix .playlist ref )
 				// hack to read common description id ( no other way to tell layout size )
+				$target.attr('title', $target.text());
 				if( idName =='irDescriptionIrScreen' || idName == 'irDescriptionIrText' ){
 					$target.text( _this.playlist.formatDescription( $target.text() ) );
 				} else{
@@ -594,4 +604,4 @@ mw.PlaylistHandlerKaltura.prototype = {
 	}
 };
 
-} )( mediaWiki, jQuery );
+} )( window.mediaWiki, window.jQuery );

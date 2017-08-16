@@ -115,7 +115,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 			}
 			return ;
 		}
-		// else do a normal setConfig
+		// Else do a normal setConfig
 		mwConfig[ name ] = value;
 		mwNonDefaultConfigList.push( name );
 	};
@@ -1210,7 +1210,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		return ( mw.isIphone() || mw.isIpod() || mw.isIpad() );
 	},
 	mw.isIE9 = function(){
-		return (/msie 9/.test(navigator.userAgent.toLowerCase()));
+		return ( /msie 9/.test( navigator.userAgent.toLowerCase() ) );
 	}
 	mw.isIphone = function(){
 		return ( navigator.userAgent.indexOf('iPhone') != -1 && ! mw.isIpad() );
@@ -1450,6 +1450,10 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 *            string String to output to console
 	 */
 	mw.log = function() {
+		// Don't ouptut to console in debug mode; 
+		if( mw.getConfig( 'debug' ) === false ){
+			return ;
+		}
 		// Add any prepend debug strings if necessary
 		if ( mw.getConfig( 'Mw.LogPrepend' ) && arguments.length > 0 ){
 			arguments[0] = mw.getConfig('Mw.LogPrepend') + arguments[0];
@@ -1545,6 +1549,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 *            callback Function to run once DOM and jQuery are ready
 	 */
 	mw.ready = function( callback ) {
+		//alert( 'run ready function! : ' + callback);
 		if( mwReadyFlag === false ) {
 			// Add the callbcak to the onLoad function stack
 			mwOnLoadFunctions.push ( callback );
@@ -1574,7 +1579,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		// Once we have run all the queued functions
 		setTimeout(function(){
 			mw.loader.runModuleLoadQueue();
-		}, 1);
+		}, 0);
 	};
 
 
@@ -1820,39 +1825,41 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 	 *            verbose If hours and milliseconds should padded be displayed.
 	 * @return {Float} String npt format
 	 */
-	mw.seconds2npt = function( sec, verbose ) {
+	mw.seconds2npt = function( sec, show_ms ) {
 		if ( isNaN( sec ) ) {
-			mw.log("Warning: trying to get npt time on NaN:" + sec);
+			mw.log("Warning: trying to get npt time on NaN:" + sec);			
 			return '0:00:00';
 		}
-
+		
 		var tm = mw.seconds2Measurements( sec );
-
+				
 		// Round the number of seconds to the required number of significant
 		// digits
-		if ( verbose ) {
+		if ( show_ms ) {
 			tm.seconds = Math.round( tm.seconds * 1000 ) / 1000;
 		} else {
-			tm.seconds = Math.round( tm.seconds );
+			var roundedSec = Math.round( tm.seconds );
+			if( roundedSec == 60 ){
+				tm.seconds = 0;
+				tm.minutes = parseInt( tm.minutes ) + 1;
+			} else { 
+				tm.seconds = roundedSec;
+			}
 		}
 		if ( tm.seconds < 10 ){
 			tm.seconds = '0' +	tm.seconds;
 		}
-		if( tm.hours == 0 && !verbose ){
+		if( tm.hours == 0 ){
 			hoursStr = '';
 		} else {
-			if ( tm.minutes < 10 && verbose) {
+			if ( tm.minutes < 10 )
 				tm.minutes = '0' + tm.minutes;
-			}
-
-			if( tm.hours < 10 && verbose){
-				tm.hours = '0' + tm.hours;
-			}
-
-			hoursStr = tm.hours + ':';
+			
+			hoursStr = tm.hours + ":"; 
 		}
 		return hoursStr + tm.minutes + ":" + tm.seconds;
 	};
+	
 	/**
 	 * Given seconds return array with 'days', 'hours', 'min', 'seconds'
 	 * 
@@ -1865,9 +1872,32 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		tm.hours = Math.floor( sec / 3600 );
 		tm.minutes = Math.floor( ( sec / 60 ) % 60 );
 		tm.seconds = sec % 60;
+		tm.milliseconds = sec - Math.floor( sec );
 		return tm;
 	};
-
+	/**
+	 * Given a timeMeasurements object return the number of seconds
+	 * @param {object} timeMeasurements
+	 */
+	mw.measurements2seconds = function( timeMeasurements ){
+		var seconds = 0;
+		if( timeMeasurements.days ){
+			seconds += parseInt( timeMeasurements.days, 10 ) * 24 * 3600;
+		}
+		if( timeMeasurements.hours ){
+			seconds += parseInt( timeMeasurements.hours, 10 ) * 3600;
+		}
+		if( timeMeasurements.minutes ){
+			seconds += parseInt( timeMeasurements.minutes, 10 ) * 60;
+		}
+		if( timeMeasurements.seconds ){
+			seconds += parseInt( timeMeasurements.seconds, 10 );
+		}
+		if( timeMeasurements.milliseconds ){
+			seconds += parseInt( timeMeasurements.milliseconds, 10 ) / 1000;
+		}
+		return seconds;
+	};
 	/**
 	 * Given a float number of seconds, returns npt format response. ( ignore
 	 * days for now )
@@ -2522,7 +2552,7 @@ if( typeof window.preMwEmbedConfig == 'undefined') {
 		}
 		return false;
 	};
-	
+
 	/**
 	 * A version comparison utility function Handles version of types
 	 * {Major}.{MinorN}.{Patch}
@@ -2667,7 +2697,7 @@ if( mw.isStaticPackge() && !window.jQuery ){
 if( window.jQuery ){
 	if( ! mw.versionIsAtLeast( '1.4.2', jQuery.fn.jquery ) ){
 		if( window.console && window.console.log ) {
-			console.log( 'Error mwEmbed requires jQuery 1.4 or above' );
+			console.log( 'Error Kaltura HTML5 requires jQuery 1.4 or above' );
 		}
 	}
 	var dollarFlag = false;
@@ -2822,7 +2852,8 @@ if( window.jQuery ){
 				'height' : 45,
 				'position': 'absolute',
 				'top' : posTop + 'px',
-				'left' : posLeft + 'px'
+				'left' : posLeft + 'px',
+				'z-index' : 100
 			});
 		$j('body').append( $spinner	);
 		return $spinner;
@@ -2843,7 +2874,7 @@ if( window.jQuery ){
 
 	/**
 	 * Shortcut to a themed button Should be depreciated for $.button
-	 * bellow
+	 * below
 	 */
 	$.btnHtml = function( msg, styleClass, iconId, opt ) {
 		if ( !opt )
@@ -2992,10 +3023,13 @@ if( window.jQuery ){
   //ins(document.getElementsByTagName('head')[0], createEl('style'));
   //var sheet = document.styleSheets[document.styleSheets.length-1];
   var sheet = (function() {
-    ins(document.getElementsByTagName('head')[0], createEl('style', {title: 'spinjs'}));
-    for (var i=0, sheets=document.styleSheets; i < sheets.length; i++) {
-      if (sheets[i].title == 'spinjs') return sheets[i];
-    }
+		var style = document.createElement('style');
+		style['title'] = 'spinjs';	
+		document.getElementsByTagName('head')[0].appendChild(style);  
+		if (!window.createPopup) { /* For Safari */  
+		   style.appendChild(document.createTextNode(''));  
+		} 
+		return document.styleSheets[document.styleSheets.length - 1]; 
   })();
 
   /**

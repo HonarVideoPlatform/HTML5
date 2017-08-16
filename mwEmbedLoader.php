@@ -8,6 +8,9 @@ require_once( realpath( dirname( __FILE__ ) ) . '/includes/DefaultSettings.php' 
 // Append ResourceLoder path to loader.js
 $loaderJs = "window['SCRIPT_LOADER_URL'] = '". addslashes( $wgResourceLoaderUrl ) . "';\n";
 
+// Add the library version: 
+$loaderJs.= "KALTURA_LOADER_VERSION = '$wgMwEmbedVersion';";
+
 // Get resource (  mwEmbedLoader.js )
 $loaderJs .= file_get_contents( 'mwEmbedLoader.js' );
 
@@ -65,8 +68,8 @@ if( isset( $_GET['debug'] ) || $wgEnableScriptDebug ){
 	
 	$loaderCacheFile = $wgScriptCacheDirectory . '/loader.min.js';
 	
-	$javascriptModTime = filemtime( 'mwEmbedLoader.js' );
-	$cacheModTime = filemtime( $loaderCacheFile );
+	$javascriptModTime = @filemtime( 'mwEmbedLoader.js' );
+	$cacheModTime = @filemtime( $loaderCacheFile );
 	
 	// check if there were any updates to the mwEmbedLoader file
 	if( $javascriptModTime < $cacheModTime &&  $loaderCacheFile && is_file( $loaderCacheFile ) ){

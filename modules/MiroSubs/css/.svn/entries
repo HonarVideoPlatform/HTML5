@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.18/modules/MiroSubs/css
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.0/modules/MiroSubs/css
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -32,10 +32,10 @@ file
 
 
 
-2017-07-03T19:08:23.000000Z
+2017-07-03T22:42:33.000000Z
 b38891f18c9f119e9b131c7f6a671878
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -66,10 +66,10 @@ file
 
 
 
-2017-07-03T19:08:23.000000Z
+2017-07-03T22:42:33.000000Z
 98ccee2ddbcda5af740cc51e02040321
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-06T09:56:41.360351Z
+6962
 rany
 has-props
 

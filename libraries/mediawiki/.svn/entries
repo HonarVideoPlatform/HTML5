@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.18/libraries/mediawiki
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.0/libraries/mediawiki
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -35,10 +35,10 @@ file
 
 
 
-2017-07-03T19:09:22.000000Z
-fe44a65aa7c5831d736c77d5fd29f1e1
-2011-11-08T14:30:29.736476Z
-6825
+2017-07-03T22:42:34.000000Z
+835d7ac2ac1e439e7afe69f72dbea36e
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -61,7 +61,7 @@ rany
 
 
 
-2344
+3150
 
 mediawiki.client.js
 file
@@ -69,10 +69,10 @@ file
 
 
 
-2017-07-03T19:09:22.000000Z
-aa9e53ea6053ec1aca657b394b5dfaaa
-2011-11-08T14:30:29.736476Z
-6825
+2017-07-03T22:42:34.000000Z
+f871c66a7fb2fc4961b3aac45e5da68b
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -95,7 +95,7 @@ rany
 
 
 
-3228
+3315
 
 mediawiki.language.parser.js
 file
@@ -103,10 +103,10 @@ file
 
 
 
-2017-07-03T19:09:22.000000Z
+2017-07-03T22:42:34.000000Z
 5d0f5034ea4b8ed6f789e1a0d0b12c9a
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -137,10 +137,10 @@ file
 
 
 
-2017-07-03T19:09:22.000000Z
+2017-07-03T22:42:34.000000Z
 2ffbe17fe042d335775d35fb4468a9e5
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -171,10 +171,10 @@ file
 
 
 
-2017-07-03T19:09:22.000000Z
+2017-07-03T22:42:34.000000Z
 857c254e8e7e189059fafa38c6a17ee7
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 

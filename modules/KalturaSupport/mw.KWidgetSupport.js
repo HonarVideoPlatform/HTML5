@@ -8,6 +8,7 @@ mw.KWidgetSupport.prototype = {
 
 	// The Kaltura client local reference
 	kClient : null,
+	kSessionId: null, // Used for Analytics events
 	
 	// Constructor check settings etc
 	init: function( options ){
@@ -28,8 +29,13 @@ mw.KWidgetSupport.prototype = {
 	*/ 
 	addPlayerHooks: function( ){
 		var _this = this;	
+		 
 		// Add the hooks to the player manager
 		$( mw ).bind( 'newEmbedPlayerEvent', function( event, embedPlayer ) {
+			// Check if we should add binding: ( we need a widget id )
+			if( ! embedPlayer.kwidgetid ){
+				return ;
+			}
 			// Add hook for check player sources to use local kEntry ID source check:
 			$( embedPlayer ).bind( 'checkPlayerSourcesEvent', function( event, callback ) {
 				_this.loadAndUpdatePlayerData( embedPlayer, callback );
@@ -37,13 +43,29 @@ mw.KWidgetSupport.prototype = {
 			// Add Kaltura iframe share support:
 			$( embedPlayer ).bind( 'getShareIframeSrc', function( event, callback ){
 				var iframeUrl = mw.getMwEmbedPath() + 'mwEmbedFrame.php';
-				iframeUrl +='/wid/_' + embedPlayer.kwidgetid +
+				iframeUrl +='/wid/' + embedPlayer.kwidgetid +
 				'/uiconf_id/' + embedPlayer.kuiconfid +
 				'/entry_id/' + embedPlayer.kentryid + '/';
 				// return the iframeUrl via the callback: 
 				callback( iframeUrl );
 			});
 		});
+		// Ads have to communicate with parent iframe to support companion ads.
+		$( mw ).bind( 'AddIframePlayerBindings', function( event, exportedBindings){
+			// Add the updateCompanionTarget binding to bridge iframe
+			exportedBindings.push( 'KalturaSupport_RawUiConfReady' );
+		});
+		
+		// Do special binding for iframe
+		$( mw ).bind( 'newIframePlayerClientSide', function( event, playerProxy ){
+			// once the player is "ready" add kWidget methods: 
+			$( playerProxy ).bind('KalturaSupport_RawUiConfReady', function(event, rawUiConf ){
+				// Store the parsed uiConf in the playerProxy object:
+				playerProxy.$uiConf = $( rawUiConf );
+				_this.addPlayerMethods( playerProxy );
+			});
+		});
+		
 	},
 	rewriteTarget: function( widgetTarget, callback ){
 		var _this = this;
@@ -91,6 +113,7 @@ mw.KWidgetSupport.prototype = {
 	 */
 	loadAndUpdatePlayerData: function( embedPlayer, callback ){
 		var _this = this;
+		mw.log("KWidgetSupport::loadAndUpdatePlayerData>");
 		// Load all the player configuration from kaltura: 
 		_this.loadPlayerData( embedPlayer, function( playerData ){
 			if( !playerData ){
@@ -111,6 +134,9 @@ mw.KWidgetSupport.prototype = {
 		
 		// Check for uiConf	and attach it to the embedPlayer object:
 		if( playerData.uiConf ){
+			// Pass along the uiConf data
+			$( embedPlayer ).trigger( 'KalturaSupport_RawUiConfReady', [ playerData.uiConf ] );
+			
 			// Store the parsed uiConf in the embedPlayer object:
 			embedPlayer.$uiConf = $( playerData.uiConf );
 			
@@ -139,14 +165,15 @@ mw.KWidgetSupport.prototype = {
 				return ;
 			}
 			// Check for preview access control and add special onEnd binding: 
-			if( playerData.accessControl.preview && playerData.accessControl.previewLength != -1 ){
-				$( embedPlayer ).bind('ended.acpreview', function(){
-					mw.log( 'KWidgetSupport:: ended.acpreview>' );
+			if( playerData.accessControl.previewLength != -1 ){
+				$( embedPlayer ).bind('postEnded.acpreview', function(){
+					mw.log( 'KWidgetSupport:: postEnded.acpreview>' );
+					$( embedPlayer ).trigger( 'KalturaSupport_FreePreviewEnd' );
 					// Don't run normal onend action: 
 					embedPlayer.onDoneInterfaceFlag = false;
 					var closeAcMessage = function(){
-						$( embedPlayer ).unbind('ended.acpreview');
-						embedPlayer.stop();
+						$( embedPlayer ).unbind('postEnded.acpreview');
+						embedPlayer.controlBuilder.closeMenuOverlay();
 						embedPlayer.onClipDone();
 					};
 					// Display player dialog 
@@ -195,26 +222,45 @@ mw.KWidgetSupport.prototype = {
 				.get( 0 )
 			);
 		}
-		
 		mw.log("KWidgetSupport:: check for meta:");
-
-		// Add any custom metadata:
-		if( playerData.entryMeta ){
-			embedPlayer.kalturaEntryMetaData = playerData.entryMeta;
-			$( embedPlayer ).trigger( 'KalturaSupport_MetadataReceived', embedPlayer.kalturaEntryMetaData );
+		// check for entry id not found: 
+		if( playerData.meta && playerData.meta.code == 'ENTRY_ID_NOT_FOUND' ){
+			$( embedPlayer ).trigger( 'KalturaSupport_EntryFailed' );
+		} else {
+			// Add any custom metadata:
+			if( playerData.entryMeta ){
+				embedPlayer.kalturaEntryMetaData = playerData.entryMeta;
+				$( embedPlayer ).trigger( 'KalturaSupport_MetadataReceived', embedPlayer.kalturaEntryMetaData );
+			}
+			// Apply player metadata
+			if( playerData.meta ) {
+				embedPlayer.duration = playerData.meta.duration;
+				// We have to assign embedPlayer metadata as an attribute to bridge the iframe
+				embedPlayer.kalturaPlayerMetaData = playerData.meta;
+				$( embedPlayer ).trigger( 'KalturaSupport_EntryDataReady', embedPlayer.kalturaPlayerMetaData );
+			}
+			if( playerData.entryCuePoints && playerData.entryCuePoints.length > 0 ) {
+				mw.log( "KCuePoints:: Added " + playerData.entryCuePoints.length + " CuePoints to embedPlayer");
+				embedPlayer.rawCuePoints = playerData.entryCuePoints;
+				embedPlayer.kCuePoints = new mw.KCuePoints( embedPlayer );
+			}
 		}
-		// Apply player metadata
-		if( playerData.meta ) {
-			embedPlayer.duration = playerData.meta.duration;
-			// We have to assign embedPlayer metadata as an attribute to bridge the iframe
-			embedPlayer.kalturaPlayerMetaData = playerData.meta;
-			$( embedPlayer ).trigger( 'KalturaSupport_EntryDataReady', embedPlayer.kalturaPlayerMetaData );
+		// Add player methods: 
+		this.addPlayerMethods( embedPlayer );
+		
+		// Check for payload based uiConf xml ( as loaded in the case of playlist with uiConf ) 
+		if( $(embedPlayer).data( 'uiConfXml' ) ){
+			embedPlayer.$uiConf = $( embedPlayer ).data( 'uiConfXml' );
 		}
-		if( playerData.entryCuePoints && playerData.entryCuePoints.length > 0 ) {
-			mw.log( "KCuePoints:: Added " + playerData.entryCuePoints.length + " CuePoints to embedPlayer");
-			embedPlayer.rawCuePoints = playerData.entryCuePoints;
-			embedPlayer.kCuePoints = new mw.KCuePoints( embedPlayer );
+		// Check for playlist cache based 
+		if( playerData.playlistData ){
+			embedPlayer.kalturaPlaylistData = playerData.playlistData;
 		}
+		_this.handleUiConf( embedPlayer, callback );
+	},
+	addPlayerMethods: function( embedPlayer ){
+		var _this = this;
+		
 		embedPlayer.getRawKalturaConfig = function( confPrefix, attr ){
 			return _this.getRawPluginConfig( embedPlayer, confPrefix, attr );
 		};
@@ -222,26 +268,39 @@ mw.KWidgetSupport.prototype = {
 		embedPlayer.getKalturaConfig = function( confPrefix, attr ){
 			return _this.getPluginConfig( embedPlayer, confPrefix, attr );
 		};
+		
+		// Add an exported plugin value: 
+		embedPlayer.addExportedObject = function( pluginName, objectSet ){
+			if( !embedPlayer.kalturaExportedEvaluateObject ){
+				embedPlayer.kalturaExportedEvaluateObject = {};
+			}
+			if( !embedPlayer.kalturaExportedEvaluateObject[ pluginName ] ){
+				embedPlayer.kalturaExportedEvaluateObject[ pluginName ] = objectSet;
+			} else {
+				$.extend( embedPlayer.kalturaExportedEvaluateObject[ pluginName ], objectSet);
+			}
+			// Sync iframe with attribute data updates:
+			$( embedPlayer ).trigger( 'updateIframeData' );
+		}
 
 		// Add isPluginEnabled to embed player:
 		embedPlayer.isPluginEnabled = function( pluginName ) {
-			return _this.getPluginConfig( embedPlayer, pluginName, 'plugin');
+			return _this.getPluginConfig( embedPlayer, pluginName, 'plugin' );
 		};
-
 		// Add getFlashvars to embed player:
 		embedPlayer.getFlashvars = function() {
-			return $( embedPlayer ).data('flashvars');
+			var fv = $( embedPlayer ).data( 'flashvars' );
+			if( !fv ){
+				fv = mw.getConfig( 'KalturaSupport.IFramePresetFlashvars' ) || {};
+			}
+			return fv;
 		}
-		
-		// Check for payload based uiConf xml ( as loaded in the case of playlist with uiConf ) 
-		if( $(embedPlayer).data('uiConfXml') ){
-			embedPlayer.$uiConf = $( embedPlayer ).data('uiConfXml');
-		}
-		// Check for playlist cache based 
-		if( playerData.playlistData ){
-			embedPlayer.kalturaPlaylistData = playerData.playlistData;
-		}
-		
+	},
+	/**
+	 * Handle the ui conf 
+	 */
+	handleUiConf: function( embedPlayer, callback ){
+		var _this = this;
 		// Local function to defer the trigger of loaded cuePoints so that plugins have time to load
 		// and setup their binding to KalturaSupport_CuePointsReady
 		var doneWithUiConf = function(){
@@ -253,15 +312,16 @@ mw.KWidgetSupport.prototype = {
 			// Run the DoneWithUiConf trigger 
 			// Allows modules that depend on other modules initialization to do what they need to do. 
 			mw.log("KWidgetSupport:: trigger KalturaSupport_DoneWithUiConf");
-			// don't stack
+			
+			// Don't stack
 			setTimeout(function(){
 				$( embedPlayer ).trigger( 'KalturaSupport_DoneWithUiConf' );
 				callback();
-			},0);
+			}, 0 );
 		};
 		
-		// sync iframe with attribute data updates:
-		$( embedPlayer ).trigger('updateIframeData');
+		// Sync iframe with attribute data updates:
+		$( embedPlayer ).trigger( 'updateIframeData' );
 		
 		if( embedPlayer.$uiConf ){
 			_this.baseUiConfChecks( embedPlayer );
@@ -274,7 +334,7 @@ mw.KWidgetSupport.prototype = {
 			});
 		} else {
 			doneWithUiConf();
-		}
+		}		
 	},
 	/**
 	 * Run base ui conf / flashvars checks
@@ -451,8 +511,7 @@ mw.KWidgetSupport.prototype = {
 				}
 			}					
 			// Get device sources 
-			var deviceSources = _this.getEntryIdSourcesFromFlavorData( _this.kClient.getPartnerId(), playerData.flavors );
-			var sources = _this.getSourcesForDevice( deviceSources );
+			var sources = _this.getEntryIdSourcesFromFlavorData( _this.kClient.getPartnerId(), playerData.flavors );
 			callback( sources );
 		});
 	},
@@ -572,6 +631,7 @@ mw.KWidgetSupport.prototype = {
 		}
 		return false;
 	},
+	
 	/**
 	* Convert flavorData to embedPlayer sources
 	* 
@@ -581,7 +641,6 @@ mw.KWidgetSupport.prototype = {
 	addFlavorSources: function( embedPlayer, flavorData ) {
 		var _this = this;
 		mw.log( 'KWidgetSupport::addEntryIdSources:');
-
 		// Set the poster ( if not already set ) 
 		if( !embedPlayer.poster && embedPlayer.kentryid ){
 			embedPlayer.poster = mw.getKalturaThumbUrl({
@@ -591,60 +650,53 @@ mw.KWidgetSupport.prototype = {
 				'height' :  embedPlayer.getHeight()
 			});
 		}
-		
-		var deviceSources = {};
-		
-		// Check existing sources have kaltura specific flavorid attribute ) 
-		// NOTE we may refactor how we package in the kaltura pay-load from the iframe 
+		// Check if we already have sources: 
 		var sources = embedPlayer.mediaElement.getSources();
-		if( sources[0] && sources[0]['flavorid'] ){
-			// Not so clean ... will refactor once we add another source
-			for(var i=0; i< sources.length;i++){
-				deviceSources[ sources[i]['flavorid'] ] = sources[i].src;
-			}
-			// Unset existing DOM source children 
-			$('#' + embedPlayer.pid ).find('source').remove();
-			// Empty the embedPlayers sources ( we don't want iPad h.264 being used for iPhone devices ) 
-			embedPlayer.mediaElement.sources = [];
-			// Update the set of sources in the embedPlayer ( might cause issues with other plugins ) 
-		} else {		
-			// Get device flavors ( if not already set )
-			deviceSources = _this.getEntryIdSourcesFromFlavorData( _this.kClient.getPartnerId(), flavorData );	
+		if( sources[0] && sources[0]['data-flavorid'] ){
+			return ;
 		}
-		// Setup the error hook: 
-		if( _this.videoIsTranscodingFlag ){
-			$(embedPlayer).bind( 'NoSourcesCustomError', function( callback ) {
-				callback( "Video is transcoding, check back later" );
-			});
-		}
-		// Update the source list per the current user-agent device: 
-		var sources = _this.getSourcesForDevice( deviceSources );
-		
-		for( var i=0; i < sources.length; i++) {
-			mw.log( 'KWidgetSupport:: addSource::' + embedPlayer.id + ' : ' +  sources[i].src + ' type: ' +  sources[i].type);
+		// Else get sources from flavor data :
+		var flavorSources = _this.getEntryIdSourcesFromFlavorData( _this.kClient.getPartnerId(), flavorData );
+		// Add all the sources to the player element: 
+		for( var i=0; i < flavorSources.length; i++) {
+			mw.log( 'KWidgetSupport:: addSource::' + embedPlayer.id + ' : ' +  flavorSources[i].src + ' type: ' +  flavorSources[i].type);
 			embedPlayer.mediaElement.tryAddSource(
 				$('<source />')
-				.attr( {
-					'src' : sources[i].src,
-					'type' : sources[i].type
-				} )
+				.attr( flavorSources[i] )
 				.get( 0 )
 			);
 		}
 	},
-	
+	/** 
+	 * Get the host page url used passing referrer to kaltura api
+	 */
+	getHostPageUrl: function(){
+		// The referring  url ( can be from the iframe if in iframe mode )
+		var hostUrl = ( mw.getConfig( 'EmbedPlayer.IframeParentUrl') ) ?
+						mw.getConfig( 'EmbedPlayer.IframeParentUrl') :
+						document.URL;
+
+		// If we have hash, remove everything after that
+		if( hostUrl.indexOf("#") !== -1 ) {
+			hostUrl = hostUrl.substr(0, hostUrl.indexOf("#"));
+		}
+		return hostUrl;
+	},
 	/**
 	 * Get client entry id sources: 
 	 */
 	getEntryIdSourcesFromFlavorData: function( partner_id, flavorData ){
 		var _this = this;
-		
 		if( !flavorData ){
 			mw.log("Error: KWidgetSupport: flavorData is not defined ");
 			return ;
 		}
+		
+		// Remove the ':' from the protocol
+		var protocol = location.protocol.substr(0, location.protocol.length-1); 
 
-		var deviceSources = {};
+		// Setup the deviceSources array
+		var deviceSources = [];
 		
 		// Setup the src defines
 		var ipadAdaptiveFlavors = [];
@@ -658,19 +710,40 @@ mw.KWidgetSupport.prototype = {
 			var flavorUrl = mw.getConfig('Kaltura.CdnUrl') + '/p/' + partner_id +
 				   '/sp/' +  partner_id + '00/flvclipper';
 		}
-		_this.videoIsTranscodingFlag = false;
-		// Find a compatible stream
+
+		// Add all avaliable sources: 
 		for( var i = 0 ; i < flavorData.length; i ++ ) {
 			var asset = flavorData[i];
 			var entryId = asset.entryId;
 			
-			// continue if clip is not ready (2) and not in a transcoding state (4 )
+			// Setup a source object:
+			var source = {
+				'data-bitrate' :  asset.bitrate * 8,
+				'data-width' : asset.width,
+				'data-height' : asset.height
+			};
+			// Continue if clip is not ready (2) and not in a transcoding state (4 )
 			if( asset.status != 2  ) {
 				// if an asset is transcoding and no other source is found bind an error callback: 
 				if( asset.status == 4 ){
-					_this.videoIsTranscodingFlag = true;
+					source.error = 'not-ready-transcoding';
+					// don't add sources that are not ready ( for now ) 
+					//deviceSources.push( source );
 				}
 				continue;
+			}
+			
+			// Add iPad Akamai flavor to iPad flavor Ids list id list
+			if( asset.tags.toLowerCase().indexOf('ipadnew') != -1 ){
+				iphoneAdaptiveFlavors.push( asset.id );
+				// We don't need to continue, the ipadnew/iphonenew flavor are used also for progressive download
+				//continue;
+			}
+			
+			// Add iPhone Akamai flavor to iPad&iPhone flavor Ids list
+			if( asset.tags.toLowerCase().indexOf('iphonenew') != -1 ){
+				ipadAdaptiveFlavors.push( asset.id );
+				iphoneAdaptiveFlavors.push( asset.id );
 			}
 			
 			// Check playManifest conditional
@@ -678,61 +751,82 @@ mw.KWidgetSupport.prototype = {
 				var src  = flavorUrl + '/entryId/' + asset.entryId;
 				// Check if Apple http streaming is enabled and the tags include applembr
 				if( asset.tags.indexOf('applembr') != -1 ) {
-					src += '/format/applehttp/protocol/http';
-					deviceSources['AppleMBR'] = src + '/a.m3u8';
+					src += '/format/applehttp/protocol/'+ protocol + '/a.m3u8';
 				} else {
-					src += '/flavorId/' + asset.id + '/format/url/protocol/http';
+					src += '/flavorId/' + asset.id + '/format/url/protocol/' + protocol;
 				}
-
 			} else {
 				mw.log( "Error: KWidgetSupport: non-manifest urls are deprecated" );
 				var src  = flavorUrl + '/entry_id/' + asset.entryId + '/flavor/' + asset.id ;
 			}
 			
-			// Add iPad Akamai flavor to iPad flavor Ids list id list
-			if( asset.tags.indexOf('ipadnew') != -1 ){
-				ipadAdaptiveFlavors.push( asset.id );
-			}
-
-			// Add iPhone Akamai flavor to iPad&iPhone flavor Ids list
-			if( asset.tags.indexOf('iphonenew') != -1 ){
-				ipadAdaptiveFlavors.push( asset.id );
-				iphoneAdaptiveFlavors.push( asset.id );
-			}
-
 			// Check the tags to read what type of mp4 source
-			if( asset.tags.indexOf('ipad') != -1 ){
-				deviceSources['iPad'] = src + '/a.mp4';
+			if( asset.tags.toLowerCase().indexOf('ipad') != -1 ){
+				source['src'] = src + '/a.mp4';
+				source['data-flavorid'] = 'iPad';
+				source['type'] = 'video/h264';
 			}
 
 			// Check for iPhone src
-			if( asset.tags.indexOf('iphone') != -1 ){
-				deviceSources['iPhone'] = src + '/a.mp4';
+			if( asset.tags.toLowerCase().indexOf('iphone') != -1 ){
+				source['src'] = src + '/a.mp4';
+				source['data-flavorid'] = 'iPhone';
+				source['type'] = 'video/h264';
 			}
 
 			// Check for ogg source
-			if( asset.fileExt == 'ogg' || asset.fileExt == 'ogv'){
-				deviceSources['ogg'] = src + '/a.ogg';
+			if( asset.fileExt.toLowerCase() == 'ogg' 
+				|| 
+				asset.fileExt.toLowerCase() == 'ogv'
+				||
+				asset.containerFormat.toLowerCase() == 'ogg'
+			){
+				source['src'] = src + '/a.ogg';
+				source['data-flavorid'] = 'ogg';
+				source['type'] = 'video/ogg';
 			}
 
 			// Check for webm source
-			if( asset.fileExt == 'webm' || asset.tags.indexOf('webm') != -1 ){
-				deviceSources['webm'] = src + '/a.webm';
+			if( asset.fileExt == 'webm' 
+				|| 
+				asset.tags.indexOf('webm') != -1 
+				|| // Kaltura transcodes give: 'matroska'
+				asset.containerFormat.toLowerCase() == 'matroska'
+				|| // some ingestion systems give "webm" 
+				asset.containerFormat.toLowerCase() == 'webm'
+			){
+				source['src'] = src + '/a.webm';
+				source['data-flavorid'] = 'webm';
+				source['type'] = 'video/webm';
 			}
 
 			// Check for 3gp source
 			if( asset.fileExt == '3gp' ){
-				deviceSources['3gp'] = src + '/a.3gp';
+				source['src'] = src + '/a.3gp';
+				source['data-flavorid'] = '3gp'
+				source['type'] = 'video/3gp';
+			}
+			// Add the source ( if a src was defined ):
+			if( source['src'] ){
+				deviceSources.push( source );
 			}
 		}
+		
 		// Create iPad flavor for Akamai HTTP
-		if( ipadAdaptiveFlavors.length != 0) {
-			deviceSources['iPadNew'] = flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + ipadAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/http/a.m3u8';
+		if( ipadAdaptiveFlavors.length != 0 && mw.getConfig('Kaltura.UseAppleAdaptive') ) {
+			deviceSources.push({
+				'data-flavorid' : 'iPadNew',
+				'type' : 'application/vnd.apple.mpegurl',
+				'src' : flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + ipadAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/' + protocol + '/a.m3u8'
+			});
 		}
-
 		// Create iPhone flavor for Akamai HTTP
-		if(iphoneAdaptiveFlavors.length != 0) {
-			deviceSources['iPhoneNew'] = flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + iphoneAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/http/a.m3u8';
+		if(iphoneAdaptiveFlavors.length != 0 && mw.getConfig('Kaltura.UseAppleAdaptive') ) {
+			deviceSources.push({
+				'data-flavorid' : 'iPhoneNew',
+				'type' : 'application/vnd.apple.mpegurl',
+				'src' : flavorUrl + '/entryId/' + asset.entryId + '/flavorIds/' + iphoneAdaptiveFlavors.join(',')  + '/format/applehttp/protocol/' + protocol + '/a.m3u8'
+			});
 		}
 		
 		// Append KS to all source if available 
@@ -741,94 +835,27 @@ mw.KWidgetSupport.prototype = {
 		this.kClient.getKS( function( ks ) {
 			ksCheck = true;
 			$.each( deviceSources, function(inx, source){
-				deviceSources[inx] = deviceSources[inx] + '?ks=' + ks;
+				deviceSources[inx]['src'] = deviceSources[inx]['src'] + '?ks=' + ks + '&referrer=' + base64_encode( _this.getHostPageUrl() );
 			});
 		});
 		if( !ksCheck ){
-			mw.log("Error:: KWidgetSupport: KS not defined in time, streams are missing ks paramter");
+			mw.log("Error:: KWidgetSupport: KS not defined in time, streams will be missing ks paramter");
 		}
-
+		
 		return deviceSources;
 	},
-	
-	getSourcesForDevice: function(  deviceSources ){
-		var sources = [];
-		var addSource = function ( src, type ){
-			sources.push( {
-				'src': src,
-				'type': type
-			} );
+
+	generateGUID: function() {
+		var S4 = function() {
+		   return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
 		};
-
-		// If on an iPad or iPhone4 use iPad Source
-		if( mw.isIpad() || mw.isIphone() || mw.isIpod() ) {
-			mw.log( "KwidgetSupport:: Add iOS source");
-			// Note it would be nice to detect if the iPhone was on wifi or 3g
-
-			// Check if we like to use iPad flavor for iPad & iPhone4
-			var useIpadFlavor = ( mw.isIpad() || mw.isIphone4() );
-
-			// Prefer Apple HTTP streaming if enabled: 
-			if( mw.getConfig('Kaltura.UseAppleAdaptive') ){
-				if( deviceSources['AppleMBR'] ) {
-					addSource( deviceSources['AppleMBR'] , 'application/vnd.apple.mpegurl' );
-					return sources;
-				}
-				if( deviceSources['iPadNew'] && useIpadFlavor ){
-					mw.log( "KwidgetSupport:: Add iPad Source using Akamai HTTP" );
-					addSource( deviceSources['iPadNew'] , 'application/vnd.apple.mpegurl' );
-					return sources;
-				} else if ( deviceSources['iPhoneNew']) {
-					mw.log( "KwidgetSupport:: Add iPhone Source using Akamai HTTP" );
-					addSource( deviceSources['iPhoneNew'], 'application/vnd.apple.mpegurl' );
-					return sources;
-				}
-			}
-
-			if( deviceSources['iPad'] && useIpadFlavor ){
-				mw.log( "KwidgetSupport:: Add normal iPad source" );
-				addSource( deviceSources['iPad'] , 'video/h264' );
-				return sources;
-			} else if ( deviceSources['iPhone']) {
-				mw.log( "KwidgetSupport:: Add normal iPhone source" );
-				addSource( deviceSources['iPhone'], 'video/h264' );
-				return sources;
-			}
+		return (S4()+S4()+"-"+S4()+"-"+S4()+"-"+S4()+"-"+S4()+S4()+S4());
+	},
+	getGUID: function() {
+		if( ! this.kSessionId ) {
+			this.kSessionId = this.generateGUID();
 		}
-		
-		// If on iPhone or Android or iPod use iPhone src
-		if( ( mw.isIphone() || mw.isAndroid2() || mw.isIpod() ) ){			
-			if( deviceSources['iPhone'] ) {
-				addSource( deviceSources['iPhone'], 'video/h264' );	
-			} else if( deviceSources['3gp'] ){
-				addSource( deviceSources['3gp'], 'video/3gp' );	
-			}
-			return sources;
-		} else {
-			// use h264 source for flash fallback ( desktop browsers ) 
-			mw.log( "KwidgetSupport:: Add from flash h264 fallback" );
-			if( deviceSources['iPad'] ) {
-				addSource( deviceSources['iPad'], 'video/h264' );
-			} else if( deviceSources['iPhone'] ) {
-				addSource( deviceSources['iPhone'], 'video/h264' );
-			}
-		}
-		// Add the webm
-		if( deviceSources['webm'] ){
-			addSource( deviceSources['webm'], 'video/webm' );
-		}
-		
-		// Add the 3gp source if available
-		if( deviceSources['3gp'] ){
-			addSource( deviceSources['3gp'] );
-		}
-		
-		// Always add the oggSrc if we got to this point
-		if( deviceSources['ogg'] ) {
-			addSource( deviceSources['ogg'], 'video/ogg' );
-		}
-		
-		return sources;
+		return this.kSessionId;
 	}
 };
 

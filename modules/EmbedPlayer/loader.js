@@ -14,6 +14,10 @@
 		// The preferred media format order 
 		'EmbedPlayer.CodecPreference': [ 'webm', 'h264', 'mp3', 'ogg' ],
 		
+		// If the flavor selector menu option should be displayed: 
+		// This will be enabled by default in some future release of the library
+		'EmbedPlayer.EnableFlavorSelector' : false,
+		
 		// If the iPad should use html controls 
 		// With html controls you can't access native fullscreen 
 		// With html controls you can support html themed controls, overlays, ads etc. )
@@ -42,7 +46,7 @@
 		'EmbedPlayer.ControlsHeight': 31,
 		
 		// Default time display size: 
-		'EmbedPlayer.TimeDisplayWidth': 45,
+		'EmbedPlayer.TimeDisplayWidth': 55,
 
 		// If the video player should attribute kaltura
 		"EmbedPlayer.KalturaAttribution" : true,
@@ -103,9 +107,6 @@
 		// don't fully support DOM overlays or don't expose full-screen
 		// functionality to javascript
 		"EmbedPlayer.NativeControls" : false,
-
-		// If mwEmbed should use native controls on mobile safari
-		"EmbedPlayer.NativeControlsMobileSafari" : true,
 		
 		// A link to download the latest firefox:
 		"EmbedPlayer.FirefoxLink" : 'http://www.mozilla.com/en-US/firefox/upgrade.html?from=mwEmbed',
@@ -124,8 +125,11 @@
 		//		the remote site to the mwEmbed javascript and can be a xss issue.
 		"EmbedPlayer.ShareEmbedMode" : 'iframe',
 
+		// The skin list ( should correspond to a folder in skins )
+		"EmbedPlayer.SkinList" : [ 'mvpcf', 'kskin' ],
+		
 		// Default player skin name
-		"EmbedPlayer.SkinName" : "mvpcf",
+		"EmbedPlayer.DefaultSkin" : "mvpcf",
 
 		// Number of milliseconds between interface updates
 		'EmbedPlayer.MonitorRate' : 250,
@@ -147,7 +151,11 @@
 		'EmbedPlayer.PageDomainIframe' : true,
 		
 		// When there is no in-browser playback mechanism provide a download link for the play button
-		'EmbedPlayer.NotPlayableDownloadLink' : false
+		'EmbedPlayer.NotPlayableDownloadLink' : false,
+		
+		// A black pixel for source switching 
+		'EmbedPlayer.BlackPixel' : "data:image/png,%89PNG%0D%0A%1A%0A%00%00%00%0DIHDR%00%00%00%01%00%00%00%01%08%02%00%00%00%90wS%DE%00%00%00%01sRGB%00%AE%CE%1C%E9%00%00%00%09pHYs%00%00%0B%13%00%00%0B%13%01%00%9A%9C%18%00%00%00%07tIME%07%DB%0B%0A%17%041%80%9B%E7%F2%00%00%00%19tEXtComment%00Created%20with%20GIMPW%81%0E%17%00%00%00%0CIDAT%08%D7c%60%60%60%00%00%00%04%00%01'4'%0A%00%00%00%00IEND%AEB%60%82"
+
 	} );
 	
 	/**
@@ -174,10 +182,6 @@
 		// display ogg page time rather than presentation time
 		'startOffset',
 
-		// A hint to the duration of the media file so that duration
-		// can be displayed in the player without loading the media file
-		'durationHint',
-
 		// Media start time
 		'start',
 
@@ -199,8 +203,8 @@
 	
 	// Add class file paths
 	mw.addResourcePaths( {
-		"mw.EmbedPlayer"	: "mw.EmbedPlayer.js",
-		
+		"mw.EmbedPlayer" : "mw.EmbedPlayer.js",
+		"mw.processEmbedPlayers" : "mw.processEmbedPlayers.js",
 		"mw.MediaElement" : "mw.MediaElement.js",
 		"mw.MediaPlayer" : "mw.MediaPlayer.js",
 		"mw.MediaPlayers" : "mw.MediaPlayers.js",
@@ -253,7 +257,7 @@
 
 	mw.rewritePagePlayerTags = function( callback ) {
 		mw.log( 'Loader::EmbedPlayer:rewritePagePlayerTags:' + mw.documentHasPlayerTags() );
-		
+
 		// Allow modules to do tag rewrites as well: 
 		var doModuleTagRewrites = function(){
 			$( mw ).triggerQueueCallback( 'LoadeRewritePlayerTags', callback);
@@ -266,7 +270,7 @@
 			$( mw.getConfig( 'EmbedPlayer.RewriteSelector' ) ).each( function( index, element ){
 
 				// Assign an the element an ID ( if its missing one )
-				if ( $( element ).attr( "id" ) == '' ) {
+				if ( $( element ).attr( "id" ) == '' || ! $( element ).attr( "id" ) ) {
 					$( element ).attr( "id", 'v' + ( rewriteElementCount++ ) );
 				}
 				// Add an absolute positioned loader
@@ -355,6 +359,14 @@
 		// custom data-durationhint attribute or via the media file once its played
 		"duration" : null,
 	
+		// A hint to the duration of the media file so that duration
+		// can be displayed in the player without loading the media file
+		'data-durationhint': null,
+		
+		// Also support direct durationHint attribute ( backwards compatibly )
+		// @deprecated please use data-durationhint instead. 
+		'durationHint' : null,
+		
 		// Mute state
 		"muted" : false,
 	
@@ -421,6 +433,7 @@
 			],
 			[
 				'mw.EmbedPlayer',
+				'mw.processEmbedPlayers',
 				'mw.MediaElement',
 				'mw.MediaPlayer',
 				'mw.MediaPlayers',
@@ -482,8 +495,8 @@
 	mw.embedPlayerUpdateLibraryRequest = function(playerElement, dependencyRequest ){
 		var skinName = $( playerElement ).attr( 'class' );
 		// Set playerClassName to default if unset or not a valid skin
-		if( ! skinName || $.inArray( skinName.toLowerCase(), mw.validSkins ) == -1 ){
-			skinName = mw.getConfig( 'EmbedPlayer.SkinName' );
+		if( ! skinName || $.inArray( skinName.toLowerCase(), mw.validSkins ) === -1 ){
+			skinName = mw.getConfig( 'EmbedPlayer.DefaultSkin' );
 		}
 		skinName = skinName.toLowerCase();
 		// Add the skin to the request
@@ -500,6 +513,7 @@
 		// Allow extension to extend the request.
 		$( mw ).trigger( 'LoaderEmbedPlayerUpdateRequest',
 				[ playerElement, dependencyRequest ] );
+		
 	};
 	
 	/**
@@ -518,5 +532,70 @@
 			})
 		);
 	};
+	
+	$.embedPlayers = function(){
+		$( mw.getConfig( 'EmbedPlayer.RewriteSelector' ) ).embedPlayer();	
+	}
+	/**
+	 * Selector based embedPlayer jQuery binding
+	 * 
+	 * Rewrites all tags via a given selector
+	 * @param {Function=}
+	 *            callback Optional Function to be called once video interfaces
+	 *            are ready
+	 * 
+	 */
+	$.fn.embedPlayer = function( callback ) {
+		mw.log( 'EmbedPlayer:: fn.embedPlayer' );
+		if( this.selector ){
+			var playerSelect = this.selector;
+		} else {
+			var playerSelect = this;
+		}
+		$( playerSelect ).each( function( index, playerElement) {
+			// make sure the playerElement has an id:
+			if( !$( playerElement ).attr('id') ){
+				$( playerElement ).attr( "id", 'mwe_vid_' + ( index ) );
+			}
+
+			// If we are dynamically embedding on a "div" check if we can
+			// add a poster image behind the loader:
+			if( playerElement.nodeName.toLowerCase() == 'div'
+					&&  
+				$(playerElement).attr( 'poster' ) )
+			{
+				var posterSrc = $(playerElement).attr( 'poster' );
+	
+				// Set image size:
+				var width = $( playerElement ).width();
+				var height = $( playerElement ).height();
+				if( !width ){
+					var width = '100%';
+				}
+				if( !height ){
+					var height = '100%';
+				}
+	
+				mw.log('EmbedPlayer:: set loading background: ' + posterSrc);
+				$( playerElement ).append(
+					$( '<img />' )
+					.attr( 'src', posterSrc)
+					.css({
+						'position' : 'absolute',
+						'width' : width,
+						'height' : height
+					})
+				);
+			}
+		});
+	
+		// Make sure we have user preference setup ( for setting preferences on
+		// video selection )
+		mw.load( 'EmbedPlayer', function(){
+			mw.processEmbedPlayers( playerSelect, callback );
+		});
+	};
+	// Setup global pointer to this jquery method, Function scope bug in Chrome 15x
+	window.jQueryEmbedPlayer = $.fn.embedPlayer;
 	
 })( mediaWiki, jQuery );

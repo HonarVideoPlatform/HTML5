@@ -24,11 +24,11 @@ mw.EmbedPlayerGeneric = {
 	* @return {String}
 	* 	embed code for generic ogg plugin
 	*/
-	doEmbedHTML: function() {
+	embedPlayerHTML: function() {
 		$( this ).html(
 			'<object type="application/ogg" ' +
 			'width="' + this.getWidth() + '" height="' + this.getHeight() + '" ' +
-			'data="' + this.getSrc( this.seek_time_sec ) + '"></object>'
+			'data="' + this.getSrc( this.seekTimeSec ) + '"></object>'
 		);
 	}
 };

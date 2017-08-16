@@ -7,6 +7,7 @@
 		return this.init( embedPlayer, kalturaConfig, callback );
 	};
 	mw.KTimedText.prototype = {
+		bindPostfix : '.kTimedText',
 		init: function( embedPlayer, kalturaConfig, callback ){
 			var _this = this;
 			// Override embedPlayer hasTextTracks:
@@ -29,14 +30,37 @@
 				}
 				baseTimedText[i] = _this[i];
 			}
-			return baseTimedText;
-
-			// Trigger changed caption
-			$( embedPlayer ).bind( 'TimedText_ChangeSource', function() {
-				$( embedPlayer ).trigger('changedClosedCaptions');
-			});
+			embedPlayer.timedText = baseTimedText;
+			
+			// Hide captions by default if hideClosedCaptions attribute is set
+			if( _this.kVars['hideClosedCaptions'] == true ){
+				embedPlayer.timedText.selectLayout( 'off' );
+			}
+			_this.bindPlayer( embedPlayer );
 		},
-	
+		bindPlayer: function( embedPlayer ){
+			// remove any old timed text bindings:
+			$( embedPlayer ).unbind( this.bindPostfix );
+			
+			// Trigger changed caption
+			$( embedPlayer ).bind( 'TimedText_ChangeSource' + this.bindPostfix , function() {
+				$( embedPlayer ).trigger( 'changedClosedCaptions' );
+			});
+			// Support hide show notifications: 
+			$( embedPlayer ).bind( 'Kaltura_SendNotification'+ this.bindPostfix , function( event, notificationName, notificationData){
+				switch( notificationName ){
+					case 'showHideClosedCaptions':
+						embedPlayer.timedText.toggleCaptions();
+						break;
+					case 'showClosedCaptions':
+						embedPlayer.timedText.selectLayout( 'ontop' );
+						break;
+					case 'hideClosedCaptions':
+						embedPlayer.timedText.selectLayout( 'off' );
+						break;
+				}
+			}); 
+		},
 		getKalturaClient: function(){
 			if( ! this.kClient ){
 				this.kClient = mw.kApiGetPartnerClient( this.embedPlayer.kwidgetid );
@@ -72,9 +96,9 @@
 						_this.textSources.push(
 							_this.getTextSourceFromDB( dbTextSource )
 						);
-						$( _this.embedPlayer ).trigger('KalturaSupport_newClosedCaptionsData');
+						$( _this.embedPlayer ).trigger('KalturaSupport_NewClosedCaptionsData');
 					});
-					$( _this.embedPlayer ).trigger('KalturaSupport_ccDataLoaded');
+					$( _this.embedPlayer ).trigger('KalturaSupport_CCDataLoaded');
 					// Done adding source issue callback
 					callback();
 				});

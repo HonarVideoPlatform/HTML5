@@ -46,6 +46,10 @@ mw.IFramePlayerApiServer.prototype = {
 		// Add the list of native events to the exportedBindings	
 		for( var i =0 ; i < mw.EmbedPlayerNative.nativeEvents.length; i++ ){
 			var bindName = mw.EmbedPlayerNative.nativeEvents[i];
+			// For pause only listen to 'onpause' ( causes propagation issues with local methods the same as bind name )
+			if( bindName == 'pause' ){
+				bindName = 'onpause';
+			}
 			// The progress event fires too often for the iframe proxy ( instead use mwEmbed monitorEvent )
 			if( bindName != 'progress' ) {				
 				this.exportedBindings.push( bindName );
@@ -72,11 +76,11 @@ mw.IFramePlayerApiServer.prototype = {
 				};
 				// Only wait 250ms for the handshake to come through otherwise continue: 
 				setTimeout(function(){
-					if( !proxyHandShakeComplete)
+					if( !proxyHandShakeComplete )
 						callback();
 				}, 250);
 				// Trigger the proxyReady event ( will add all the prePlayerProxy listeners 
-				mw.log("IframePlayerApiServer::trigger: proxyReady");
+				mw.log( "IframePlayerApiServer::trigger: proxyReady" );
 				$( embedPlayer ).trigger( 'proxyReady' );
 			});
 		}
@@ -195,8 +199,8 @@ mw.IFramePlayerApiServer.prototype = {
 	 * @param {string} event
 	 */
 	'hanldeMsg': function( event ){
-		
 		//mw.log( 'IFramePlayerApiServer:: hanldeMsg: ' +  event.data );
+		
 		// Check if the server should even be enabled 
 		if( !mw.getConfig( 'EmbedPlayer.EnableIframeApi' )){
 			mw.log( 'Error: Loading iFrame playerApi but config EmbedPlayer.EnableIframeApi is false');

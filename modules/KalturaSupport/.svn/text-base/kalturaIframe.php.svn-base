@@ -140,10 +140,10 @@ class kalturaIframe {
 		// check if we have iframeSize paramater:
 		if( isset( $_GET[ 'iframeSize' ] ) ){
 			list( $width, $height ) = explode( 'x',  $_GET[ 'iframeSize' ]);
-			$width = intval( $width );
-			$height = intval( $height );
+			$width = ( strpos($width, '%') === false ) ? intval( $width ) . 'px' : $width;
+			$height = ( strpos($height, '%') === false ) ? intval( $height ) . 'px' : $height;
 		}		
-		return "width:{$width}px;height:{$height}px;";
+		return "width:{$width};height:{$height};";
 	}
 	private function getPlaylistPlayerSizeCss(){
 		$width = 400;
@@ -154,29 +154,29 @@ class kalturaIframe {
 			$iframeWidth = intval( $iframeWidth );
 			$iframeHeight = intval( $iframeHeight );
 			
-			$xml = $this->getResultObject()->getUiConfXML();
-			// check for playlist.includeInLayout property and set to full size:
-			$result = $xml->xpath("//*[@key='playlist.includeInLayout']" );
-			if( isset( $result[0] ) ){
-				foreach ( $result[0]->attributes() as $key => $value ) {
-					if( $key == 'value' && $value == "false" ){
+			$includeInLayout = $this->getResultObject()->getPlayerConfig('playlist', 'includeInLayout');
+			$playlistHolder = $this->getResultObject()->getPlayerConfig('playlistHolder');
+			
+			// Hide list if includeInLayout is false
+			if( $includeInLayout === false ) {
+				$width = $iframeWidth;
+				$height = $iframeHeight;
+			} else {
+				if( $playlistHolder ) {
+					if( isset($playlistHolder['width']) && $playlistHolder['width'] != '100%' ) {
+						$width = $iframeWidth - intval( $playlistHolder['width'] );
+						$height = $iframeHeight;
+					}
+					if( isset($playlistHolder['height']) && $playlistHolder['height'] != '100%' ) {
+						$height = $iframeHeight - intval( $playlistHolder['height'] );
 						$width = $iframeWidth;
-						$height = 	$iframeHeight;						
 					}
 				}
-			} else {
-				$result = $xml->xpath("//*[@id='playlistHolder']");
-				if( isset( $result[0] ) ){
-					foreach ( $result[0]->attributes() as $key => $value ) {
-						if( $key == 'width' && $value != '100%' ){
-							$width = $iframeWidth - intval( $value );
-							$height = $iframeHeight;
-						}
-						if( $key == 'height' && $value != '100%' ){
-							$height = $iframeHeight - intval( $value );
-							$width = $iframeWidth;
-						}
-					}
+
+				// If we don't need to show the player, set the player container height to the controlbar (audio playlist)
+				if( $this->getResultObject()->getPlayerConfig('PlayerHolder', 'visible') === false ||
+						$this->getResultObject()->getPlayerConfig('PlayerHolder', 'includeInLayout') === false ) {
+					$height = $this->getResultObject()->getPlayerConfig('controlsHolder', 'height');
 				}
 			}
 		}
@@ -273,8 +273,11 @@ class kalturaIframe {
 			$o.= "\n\t\t" .'<source ' .
 					'type="' . htmlspecialchars( $source['type'] ) . '" ' . 
 					'src="' . $source['src'] . '" '.
-					'data-flavorid="' . htmlspecialchars( $source['data-flavorid'] ) . '" '.
-				'></source>';
+					'data-flavorid="' . htmlspecialchars( $source['data-flavorid'] ) . '" ';
+			if( isset( $source['data-bandwidth'] )){
+				$o.= 'data-bandwidth="' . htmlspecialchars( $source['data-bandwidth'] ) . '" ';
+			}
+			$o.= '></source>';
 		}
 
 		// To be on the safe side include the flash player and
@@ -286,6 +289,8 @@ class kalturaIframe {
 		);
 
 		$o.= "\n" . "</video>\n";
+		$o.= "<img src='".$posterUrl."' id='directFileLinkThumb' alt='' onclick='return false;' />";
+		
 		// Wrap in a videoContainer
 		return  '<div id="videoContainer" > ' . $o . '</div>';
 	}
@@ -445,23 +450,34 @@ class kalturaIframe {
 	 * Void function to set iframe content headers
 	 */
 	private function setIFrameHeaders(){
-		global $wgKalturaUiConfCacheTime;
-
+		global $wgKalturaUiConfCacheTime, $wgKalturaErrorCacheTime;
+		// Only cache for 30 seconds if there is an error: 
+		$cacheTime = ( $this->isError() )? $wgKalturaErrorCacheTime : $wgKalturaUiConfCacheTime;
 		// Set relevent expire headers:
-		if( $this->getResultObject()->isCachedOutput() && ! $this->isError() ){
+		if( $this->getResultObject()->isCachedOutput() ){
 			$time = $this->getResultObject()->getFileCacheTime();
-			header( 'Pragma: public' );
-			// Cache for $wgKalturaUiConfCacheTime
-			header( "Cache-Control: public, max-age=$wgKalturaUiConfCacheTime, max-stale=0");
-			header( "Last-Modified: " . gmdate( "D, d M Y H:i:s", $time) . "GMT");
-			header( "Expires: " . gmdate( "D, d M Y H:i:s", $time + $wgKalturaUiConfCacheTime ) . " GM" );
+			$this->sendPublicHeaders( $cacheTime,  $time );
 		} else {
 			header("Cache-Control: no-cache, must-revalidate"); // HTTP/1.1
 			header("Pragma: no-cache");
 			header("Expires: Sat, 26 Jul 1997 05:00:00 GMT"); // Date in the past
 		}
 	}
-	
+	/**
+	 * Sets public header per a provided expire time in seconds
+	 * @param $expireTime Number of seconds before content is expired
+	 * @param $lastModified {optional} TimeStamp of the modification data
+	 */
+	private function sendPublicHeaders( $expireTime, $lastModified = null ){
+		if( $lastModified === null ){
+			$lastModified = time();
+		}
+		header( 'Pragma: public' );
+		// Cache for $wgKalturaUiConfCacheTime
+		header( "Cache-Control: public, max-age=$expireTime, max-stale=0");
+		header( "Last-Modified: " . gmdate( "D, d M Y H:i:s", $lastModified) . "GMT");
+		header( "Expires: " . gmdate( "D, d M Y H:i:s", $lastModified + $expireTime ) . " GM" );
+	}
 	/**
 	 * Get the location of the mwEmbed library
 	 */
@@ -570,6 +586,7 @@ class kalturaIframe {
 					top:50%;
 					left:50%;
 					margin: -26px 0 0 -35px;
+					z-index: 20;
 				}
 				#directFileLinkThumb{
 					position: absolute;
@@ -577,6 +594,7 @@ class kalturaIframe {
 					left:0px;
 					width: 100%;
 					height: 100%;
+					z-index: 10;
 				}
 			<?php
 		}
@@ -597,6 +615,8 @@ class kalturaIframe {
 <!DOCTYPE html>
 <html>
 	<head>
+		<script type="text/javascript"> /*@cc_on@if(@_jscript_version<9){'video audio source track'.replace(/\w+/g,function(n){document.createElement(n)})}@end@*/ 
+		</script>
 		<?php echo $this->outputIframeHeadCss(); ?>
 	</head>
 	<body>	
@@ -609,7 +629,7 @@ class kalturaIframe {
 				echo $this->getPlaylistWraper( 
 					// Get video html with a default playlist video size ( we can adjust it later in js )
 					// iOS needs display type block: 
-					$this->getVideoHTML( $this->getPlaylistPlayerSizeCss() . ';display:block' ) 
+					$this->getVideoHTML( $this->getPlaylistPlayerSizeCss() . ';display:block;' )
 				);
 			} else {
 				// For the actual video tag we need to use a document.write since android dies 
@@ -617,11 +637,23 @@ class kalturaIframe {
 				?>
 				<script type="text/javascript">
 					var videoTagHTML = <?php echo json_encode( $this->getVideoHTML() ) ?>;
+					var ua = navigator.userAgent
 					// Android can't handle position:absolute style on video tags
-					if( navigator.userAgent.indexOf('Android' ) !== -1 ){
+					if( ua.indexOf('Android' ) !== -1 ){
 						// Also android does not like "type" on source tags
 						videoTagHTML= videoTagHTML.replace(/type=\"[^\"]*\"/g, '');
 					} 
+					
+					// IE < 8  does not handle class="persistentNativePlayer" very well:
+					if( ua.indexOf("MSIE ")!== -1 
+							&&  
+						parseFloat( ua.substring( ua.indexOf("MSIE ") + 5, ua.indexOf(";", ua.indexOf("MSIE ") ) )) 
+							<= 
+						8
+					) {
+						videoTagHTML = videoTagHTML.replace( /class=\"persistentNativePlayer\"/gi, '' );
+					}
+					
 					//styleValue = 'position:absolute;width:100%;height:100%';
 					styleValue = 'display: block;<?php echo $this->getPlayerSizeCss(); ?>';
 					
@@ -679,17 +711,27 @@ class kalturaIframe {
 				var hashString = document.location.hash;
 				// Parse any configuration options passed in via hash url:
 				if( hashString ){
-					var hashObj = JSON.parse(
-						unescape( hashString.replace( /^#/, '' ) )
-					);
-					if( hashObj.mwConfig ){
-						mw.setConfig( hashObj.mwConfig );
+					try{
+						var hashObj = JSON.parse(
+							unescape( hashString.replace( /^#/, '' ) )
+						);
+						if( hashObj.mwConfig ){
+							mw.setConfig( hashObj.mwConfig );
+						}
+					} catch( e ) {
+						//error could not parse hash tag
 					}
-				} else 	if( window['parent'] && window['parent']['preMwEmbedConfig'] ){ 
-					// Grab config from parent frame:
-					mw.setConfig( window['parent']['preMwEmbedConfig'] );
-					// Set the "iframeServer" to the current domain: 
-					mw.setConfig( 'EmbedPlayer.IframeParentUrl', document.URL ); 
+				} else 	{
+					try{
+						if( window['parent'] && window['parent']['preMwEmbedConfig'] ){ 
+							// Grab config from parent frame:
+							mw.setConfig( window['parent']['preMwEmbedConfig'] );
+							// Set the "iframeServer" to the current domain: 
+							mw.setConfig( 'EmbedPlayer.IframeParentUrl', document.URL ); 
+						}
+					} catch( e ) {
+						// could not get config from parent javascript scope
+					}
 				}
 	
 				// Get the flashvars object:
@@ -714,7 +756,7 @@ class kalturaIframe {
 				mw.setConfig('Mw.LogPrepend', 'iframe:');
 	
 				// Don't rewrite the video tag from the loader ( if html5 is supported it will be
-				// invoked bellow and respect the persistant video tag option for iPad overlays )
+				// invoked below and respect the persistant video tag option for iPad overlays )
 				mw.setConfig( 'Kaltura.LoadScriptForVideoTags', false );
 	
 				// Don't wait for player metada for size layout and duration Won't be needed since
@@ -761,6 +803,7 @@ class kalturaIframe {
 	}
 	private function javaScriptPlayerLogic(){
 		?>
+		
 		var isHTML5 = kIsHTML5FallForward();
 		if( window.kUserAgentPlayerRules ) {
 			var playerAction = window.checkUserAgentPlayerRules( window.kUserAgentPlayerRules[ '<?php echo $this->getResultObject()->getUiConfId() ?>' ] );
@@ -768,6 +811,7 @@ class kalturaIframe {
 				isHTML5 = true;
 			}
 		}
+		
 		if( isHTML5){
 				// remove the no_rewrite flash object ( never used in rewrite )
 				var obj = document.getElementById('kaltura_player_iframe_no_rewrite');
@@ -778,12 +822,13 @@ class kalturaIframe {
 						// could not remove node
 					}
 				}
-				
 				// Load the mwEmbed resource library and add resize binding
 				mw.ready(function(){
-				
-					// try again to remove the flash player if not already removed: 
+					// Try again to remove the flash player if not already removed: 
 					$('#kaltura_player_iframe_no_rewrite').remove();
+
+					// Remove thumbnail from the iframe
+					$('#directFileLinkThumb').remove();
 					
 					var embedPlayer = $( '#<?php echo htmlspecialchars( $this->getIframeId() )?>' ).get(0);
 					// Try to seek to the IframeSeekOffset time:
@@ -860,20 +905,25 @@ class kalturaIframe {
 	private function setError( $errorTitle ){
 		$this->error = true;
 	}
+	// Check if there is a local iframe error or result object error
 	private function isError( ){
-		return $this->error;
+		return ( $this->error || $this->getResultObject()->getError() );
 	}
 	/**
 	 * Output a fatal error and exit with error code 1
 	 */
 	private function fatalError( $errorTitle, $errorMsg = false ){
+		global $wgKalturaErrorCacheTime;
 		// check for multi line errorTitle array: 
 		if( strpos( $errorTitle, "\n" ) !== false ){
 			list( $errorTitle, $errorMsg) = explode( "\n", $errorTitle);
 		};
 		$this->setError( $errorTitle );
-		// Send expire headers: 
-		$this->setIFrameHeaders();
+		
+		// Send expire headers 
+		// Note: we can't use normal iframeHeader method because it calls the kalturaResultObject
+		// constructor that could be the source of the fatalError 
+		$this->sendPublicHeaders( $wgKalturaErrorCacheTime );
 		
 		// clear the buffer
 		$pageInProgress = ob_end_clean();

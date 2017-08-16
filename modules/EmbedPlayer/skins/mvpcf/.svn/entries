@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.18/modules/EmbedPlayer/skins/mvpcf
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.0/modules/EmbedPlayer/skins/mvpcf
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -35,10 +35,10 @@ file
 
 
 
-2017-07-03T19:06:44.000000Z
-53a3f71cf5ee4830a1333602c25467bd
-2011-11-08T14:30:29.736476Z
-6825
+2017-07-03T22:42:12.000000Z
+de54a7b7ad10504ca09e0a5597f175c1
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 
@@ -61,7 +61,7 @@ rany
 
 
 
-3006
+3421
 
 mw.PlayerSkinMvpcf.js
 file
@@ -69,10 +69,10 @@ file
 
 
 
-2017-07-03T19:06:44.000000Z
+2017-07-03T22:42:12.000000Z
 adcb923cd0d0f1e75ca82a661be8cf0b
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-06T09:56:41.360351Z
+6962
 rany
 
 

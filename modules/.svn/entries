@@ -2,13 +2,13 @@
 
 dir
 8923
-svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.5.18/modules
+svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod/html5/html5lib/v1.6.0/modules
 svn+ssh://svnread@kelev.kaltura.com/usr/local/kalprod
 
 
 
-2011-11-08T14:30:29.736476Z
-6825
+2011-12-13T18:51:13.712155Z
+7035
 rany
 
 
@@ -35,6 +35,9 @@ dir
 SmilPlayer
 dir
 
+NielsenVideoCensusPlugin
+dir
+
 InternetArchiveSupport
 dir
 
@@ -42,6 +45,9 @@ AddMedia
 dir
 
 EmbedPlayer
+dir
+
+DolStatistics
 dir
 
 AjaxCategories
@@ -62,10 +68,10 @@ dir
 KalturaSupport
 dir
 
-PlayerThemer
+Playlist
 dir
 
-Playlist
+PlayerThemer
 dir
 
 Omniture

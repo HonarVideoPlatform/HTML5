@@ -21,7 +21,6 @@ mw.Comscore.prototype = {
 	midrollAdContentType: "11",
 	inBannerVideoAd: "12",
 
-	playerPlayedFired: false,
 	loadedXML: false,
 
 	bindPostfix: '.Comscore',
@@ -36,7 +35,7 @@ mw.Comscore.prototype = {
 		c10: ""
 	},
 
-	adIndex: 0, // Used for C10 tag (read comments in getC10 method)
+	currentSegment: 0, // Used for C10 tag (read comments in getC10 method)
 
 	init: function( embedPlayer, callback ){
 		this.embedPlayer = embedPlayer;
@@ -44,6 +43,7 @@ mw.Comscore.prototype = {
 		this.loadXML( callback );
 	},
 
+	/* setupConfig: returns plugin attributes from uiConf */
 	setupConfig: function() {
 		
 		var attributes = ['cTagsMap'];
@@ -103,36 +103,79 @@ mw.Comscore.prototype = {
 				mw.log( "Comscore:: first cross domain request failed, trying with proxy" );
 			}
 		} else {
-			callback();
+			this.addPlayerBindings( callback );
 		}
 	},
 
-	addPlayerBindings: function() {
+	handleXMLResult: function( xml, callback ) {
+		mw.log('Comscore:: loaded xml successfully, setup cparams & player bindings');
+
+		// Save XML
+		this.$xml = $(xml);
+		this.loadedXML = true;
+
+		// Add player bindings
+		this.addPlayerBindings( callback );
+	},
+
+	addPlayerBindings: function( callback ) {
 		var _this = this;
 		var embedPlayer = this.embedPlayer;
 		var cParams = _this.cParams;
 
+		/*
+		 * We need to send beacons on Content playback and Ads playback
+		 *
+		 * 1. Send Beacon on 'onPlay' event ( Content Beacon )
+		 * 1. Send Beacon on AdStartPlayback ( Ad Beacon )
+		 * 2. Send Beacon on AdEndPlayback only for Midrolls ( Resume Content Beacon )
+		 * 3. If we had AdOpportunity, but didn't got AdStartPlayback, we need to send a Beacon ( Resume Content Beacon )
+		 *
+		 */
+		var shouldSendBeacon = false;
+		var sendOnSequnceEnd = false;
+		var playerPlayedFired = false;
+
+		// Setup Defaults CParams
+		this.setupCParams();
+
+		// on change media remove any existing ads:
+		$( embedPlayer ).bind( 'onChangeMedia' + _this.bindPostfix, function(){
+			_this.destroy();
+		});
+
 		// Bind to entry ready
 		$( embedPlayer ).bind('KalturaSupport_EntryDataReady' + this.bindPostfix, function() {
-			_this.playerPlayedFired = false;
-			_this.adIndex = 0;
+			playerPlayedFired = false;
+			shouldSendBeacon = false;
+			sendOnSequnceEnd = false;
+			_this.currentSegment = 0;
 			_this.setupCParams();
 		});
 
 		// Bind to player played
 		$( embedPlayer ).bind('onplay' + this.bindPostfix, function() {
-			if (!_this.playerPlayedFired)
-			{
+			if ( !playerPlayedFired && !_this.inAd() ){
 				// Send beacon
-				_this.adIndex++;
+				_this.currentSegment++;
+				cParams["c5"] = _this.parseCAttribute('c5');
+				mw.log('Comscore:: Send Content Start Beacon');
 				_this.comScoreBeacon( cParams );
-				_this.playerPlayedFired = true;
+				playerPlayedFired = true;
 			}
 		});
 
-		// Bind to ad start
+		// Listen to Ad opportunities of midroll type and increase the current segment counter
+		$( embedPlayer ).bind('KalturaSupport_AdOpportunity' + this.bindPostfix, function( event, cuePoint ) {
+			if( embedPlayer.kCuePoints.getAdSlotType( cuePoint ) === 'midroll' ) {
+				_this.currentSegment++;
+				// Used setTimeout because it takes few ms to set propagateEvents to false
+				setTimeout( function() { shouldSendBeacon = true; }, mw.getConfig( 'EmbedPlayer.MonitorRate' ));
+			}
+		});
+
 		$( embedPlayer ).bind('AdSupport_StartAdPlayback' + this.bindPostfix, function( event, adType ) {
-			
+
 			switch ( adType )
 			{
 				case 'preroll':
@@ -143,42 +186,42 @@ mw.Comscore.prototype = {
 				break;
 				case 'midroll':
 					cParams["c5"] = _this.midrollAdContentType;
+					sendOnSequnceEnd = true;
 				break;
 			}
 
 			// Send beacon
-			_this.adIndex++;
+			mw.log('Comscore:: Send Ad Start Beacon');
 			_this.comScoreBeacon( cParams );
+			shouldSendBeacon = false;
 
 		});
 
-		// on change media remove any existing ads:
-		$( embedPlayer ).bind( 'onChangeMedia' + _this.bindPostfix, function(){
-			_this.destroy();
+		$( embedPlayer ).bind('AdSupport_EndAdPlayback' + this.bindPostfix, function() {
+			if( sendOnSequnceEnd ) {
+				cParams["c5"] = _this.parseCAttribute('c5'); // Reset C5
+				mw.log('Comscore:: Send Ad End Beacon (Resume Content)');
+				_this.comScoreBeacon( cParams );
+				sendOnSequnceEnd = false;
+			}
 		});
-	},
 
-	handleXMLResult: function( xml, callback ) {
-		mw.log('Comscore:: loaded xml successfully, setup cparams & player bindings');
+		$( embedPlayer ).bind('monitorEvent' + this.bindPostfix, function() {
+			if( shouldSendBeacon ) {
+				cParams["c5"] = _this.parseCAttribute('c5'); // Reset C5
+				mw.log('Comscore:: Send Resume Content Beacon (No Ad)');
+				_this.comScoreBeacon( cParams );
+				shouldSendBeacon = false;
+			}
+		});
 
-		// Save XML
-		this.$xml = $(xml);
-		this.loadedXML = true;
-
-		// Setup Defaults CParams
-		this.setupCParams();
-
-		// Add player bindings
-		this.addPlayerBindings();
-
-		// Run callback to continue player loading
+		// release the player
 		callback();
 	},
 
 	setupCParams: function() {
 		mw.log('Comscore:: Setup CParams');
 		//Set up cParams object
-		var config = this.config;
 		var cParams = this.cParams;
 
 		for( var i = 2 ; i < 10; i++ ){
@@ -187,12 +230,12 @@ mw.Comscore.prototype = {
 		}
 
 		/**
-		 * For debug:
-		 console.log( $(this.embedPlayer).data('flashvars'));
-		 console.log(this.embedPlayer.$uiConf.find("#comscore"));
-		 console.log(config);
-		 console.log(cParams);
-		 */
+		 * For debug:*/
+		 console.log( 'Flashvars: ', $(this.embedPlayer).data('flashvars'));
+		 console.log( 'uiConf: ', this.embedPlayer.$uiConf.find("#comscore"));
+		 console.log( 'Comscore config: ', this.config);
+		 console.log( 'cParams: ', cParams);
+		 /**/
 	},
 
 	/**
@@ -255,11 +298,11 @@ mw.Comscore.prototype = {
 	 */
 	getC10: function() {
 		if( ! this.embedPlayer.kCuePoints ) { return "1-1"; }
-		var adsCount = this.embedPlayer.kCuePoints.getTotalAdsCount( 'video' );
+		var adsCount = this.embedPlayer.kCuePoints.getCuePointsCount( 'midroll' );
 		if( adsCount == 0 ){
 			return "1-1";
 		} else {
-			return this.adIndex + "-" + ( parseInt(adsCount) + 1);
+			return this.currentSegment + "-" + ( parseInt(adsCount) + 1);
 		}
 	},
 
@@ -308,5 +351,9 @@ mw.Comscore.prototype = {
 	},
 	destroy: function() {
 		$( this.embedPlayer ).unbind( this.bindPostfix );
+	},
+
+	inAd: function(){
+		return !! this.embedPlayer.evaluate('{sequenceProxy.isInSequence}');
 	}
 };
