@@ -870,6 +870,7 @@ function kAddScript( callback ){
 		  'mw.KLayout',
 		  'mw.style.klayout',
 		  'titleLayout',
+		  'volumeBarLayout',
 		  'playlistPlugin',
 		  'controlbarLayout',
 		  'faderPlugin',
@@ -1280,7 +1281,7 @@ window.kWidget = {
 	 */
 	addReadyCallback : function( readyCallback ){
 		// issue the ready callback for any existing ready widgets: 
-		for( wid in this.readyWidgets ){
+		for( var wid in this.readyWidgets ){
 			// Make sure the widget is still in the dom before running the ready callback
 			if( document.getElementById( wid ) ){
 				readyCallback( wid );

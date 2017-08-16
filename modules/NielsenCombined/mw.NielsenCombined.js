@@ -174,7 +174,14 @@ mw.NielsenCombined.prototype = {
 		});
 	},
 	round: function( floatValue ){
-		return Math.round( floatValue * 100 ) / 100;
+		var roundedValue = Math.round( floatValue * 100 ) / 100;
+		var str = '' + roundedValue;
+		if( str.split('.').length == 1 ){
+			str += '.00';
+		} else if(  str.split('.')[1].length == 1){
+			str += '0';
+		}
+		return str;
 	},
 	unbindPlayerTracking: function(){
 		this.embedPlayer.unbindHelper( this.trackerPostFix );
@@ -197,7 +204,7 @@ mw.NielsenCombined.prototype = {
 		var embedPlayer = this.embedPlayer;
 		var vid = _this.getPlayerElement();
 		
-		// Unbind any existing bindings: : 
+		// Unbind any existing bindings:: 
 		this.unbindPlayerTracking();
 		
 		// Non-native events: ( have to bind against embedPlayer instead of the video instance )
@@ -224,7 +231,7 @@ mw.NielsenCombined.prototype = {
 			_this.unbindPlayerTracking();
 		})
 		
-		
+			
 		// on pause:
 		b( 'pause', function(){
 			// pause is triggered as part of player end state ( don't dispatch if eventProgatation is off ) 
@@ -370,6 +377,7 @@ mw.NielsenCombined.prototype = {
 				return _this.round( ( absolutePlayerTime - prevCuePointTime )  / 1000 );
 			}
 		}
+		// Should not allow length of 0
 		if(  vid[ timeAttribute ]  ){
 			return _this.round( vid[ timeAttribute ] );
 		} else {
